@@ -112,11 +112,6 @@ data=data_subset, control.mcmc=control.mcmc,
 fixed.rel.nugget=0,par0=par0,start.cov.pars=0.15,method="nlminb",kappa=2)
 summary(fit.MCML,log.cov.pars=FALSE)
 coef(fit.MCML)
-
-# Low-rank approximation
-data(data_sim)
-knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
-par0.lr <- c(0,1,0.15)
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

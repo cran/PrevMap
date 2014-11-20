@@ -125,13 +125,13 @@ maxim.integrand.lr <- function(y,units.m,mu,sigma2,K) {
 
 create.ID.coords <- function(data,coords) {
 	if(class(data)!="data.frame") stop("data must be a data frame.")
-	if(class(coords)!="formula") stop("coords must be of class formula.")
+	if(class(coords)!="formula") stop("coords must a 'formula' object indicating the spatial coordinates in the data.")
     coords <- as.matrix(model.frame(coords,data))
 	if(any(is.na(coords))) stop("missing values are not accepted.")
 	n <- nrow(coords)
 	ID.coords <- rep(NA,n)	
 	coords.uni <- unique(coords)
-	if(nrow(coords.uni)==n) stop("the unique set of coordinates concides with coords.")
+	if(nrow(coords.uni)==n) warning("the unique set of coordinates concides with the provided spatial coordinates in 'coords'.")
 	for(i in 1:nrow(coords.uni)) {
 		ind <- which(coords.uni[i,1]==coords[,1] & 
 		                     coords.uni[i,2]==coords[,2])
@@ -1188,10 +1188,7 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 ##' summary(fit.MCML,log.cov.pars=FALSE)
 ##' coef(fit.MCML)
 ##'
-##' # Low-rank approximation
-##' data(data_sim)
-##' knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
-##' par0.lr <- c(0,1,0.15)
+
 
 ##' @export
 binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
@@ -1205,6 +1202,10 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
     if(low.rank & length(ID.coords) > 0) stop("low-rank approximation is not available for a two-levels model.")
     if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("control.mcmc must be of class 'mcmc.MCML.PrevMap'")
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
+    if(kappa < 0) stop("kappa must be positive.")
 	if(!low.rank) {
 		res <- binomial.geo.MCML(formula=formula,units.m=units.m,coords=coords,
 		           data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
@@ -1290,7 +1291,10 @@ linear.model.MLE <- function(formula,coords,data,
                                                method="BFGS",low.rank=FALSE,
                                                knots=NULL,messages=TRUE) {
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")                                 
-    if(low.rank & length(fixed.rel.nugget)>0) stop("the relative variance of the nugget effect cannot be fixed in the low-rank approximation.")              	
+    if(low.rank & length(fixed.rel.nugget)>0) stop("the relative variance of the nugget effect cannot be fixed in the low-rank approximation.")     
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(kappa < 0) stop("kappa must be positive.")
 	if(!low.rank) {
 		res <-  geo.linear.MLE(formula=formula,coords=coords,
 		           data=data,kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
@@ -1372,7 +1376,10 @@ linear.model.Bayes <- function(formula,coords,data,
                                                  knots=NULL,messages=TRUE) {
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")                                 
     if(low.rank & length(control.mcmc$start.nugget)==0) stop("the nugget effect must be included in the low-rank approximation.")   
-    if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")           	
+    if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'") 
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(kappa < 0) stop("kappa must be positive.")
 	if(!low.rank) {
 		res <-  geo.linear.Bayes(formula=formula,coords=coords,
 		           data=data,kappa=kappa,control.prior=control.prior,
@@ -1571,7 +1578,7 @@ print.summary.PrevMap <- function(x,...) {
 ##' @description This function performs spatial prediction for fixed parameters at the Monte Carlo maximum likelihood estimates of a geostatistical binomial logistic model.
 ##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{binomial.logistic.MCML}}.
 ##' @param grid.pred a matrix of prediction locations.
-##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only joint predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
@@ -1601,7 +1608,8 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
                                                     scale.thresholds=NULL,
                                                     plot.correlogram=FALSE,
                                                     messages=TRUE) {
-    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")                                                 	
+    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")       
+    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
 	p <- object$p <- ncol(object$D)	
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -1627,6 +1635,8 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
 	} else {
 	   if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")	
 	   predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+	   if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+	   if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
 	}
 	
 	if(length(dim(object$knots)) > 0) {	
@@ -2329,7 +2339,7 @@ geo.linear.MLE <- function(formula,coords,data,kappa,fixed.rel.nugget=NULL,start
 ##' @description This function performs spatial prediction for fixed parameters at the maximum likelihood estimates of a linear geostatistical model.
 ##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.
 ##' @param grid.pred a matrix of prediction locations.
-##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only marginal predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
@@ -2357,6 +2367,7 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
 	p <- ncol(object$D)
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -2382,6 +2393,8 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 	} else {
 	   if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")	
 	   predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+	   if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+	   if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
 	}
         
     beta <- object$estimate[1:p]
@@ -3848,6 +3861,10 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
     if(low.rank & length(ID.coords) > 0) stop("low-rank approximation is not available for a two-levels model.")
     if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
+    if(kappa < 0) stop("kappa must be positive.")
 	if(!low.rank) {
 		res <- binomial.geo.Bayes(formula=formula,units.m=units.m,coords=coords,
 		           data=data,ID.coords=ID.coords,control.prior=control.prior,
@@ -3867,7 +3884,7 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##' @description This function performs Bayesian spatial prediction for the binomial logistic model.
 ##' @param object an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{binomial.logistic.Bayes}}.
 ##' @param grid.pred a matrix of prediction locations.
-##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only joint predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
@@ -3894,7 +3911,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     standard.errors=FALSE,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
-    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.") 
+    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.") 
     if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
 	ck <- length(dim(object$knots)) > 0
 	if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
@@ -3925,6 +3943,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 	   if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")	
 	   predictors <- as.matrix(model.matrix(
 	                        delete.response(terms(formula(object$call))),data=predictors))
+	   if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")        
+	   if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")             
 	}				
 	
 	n.samples <- nrow(object$estimate)	
@@ -4842,7 +4862,7 @@ geo.linear.Bayes.lr <- function(formula,coords,knots,data,
 ##' @description This function performs Bayesian prediction for a geostatistical linear Gaussian model.
 ##' @param object an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{linear.model.Bayes}}.
 ##' @param grid.pred a matrix of prediction locations.
-##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only joint predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
@@ -4870,6 +4890,7 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
 	object$p <- ncol(object$D)
 	object$fixed.nugget <- ncol(object$estimate) < object$p+3
 	kappa <- object$kappa	
@@ -4897,6 +4918,8 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
 	} else {
 	   if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")	
 	   predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+	   if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+	   if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
 	}
         
    	n.samples <- nrow(object$estimate)
@@ -5553,3 +5576,153 @@ adjust.sigma2 <- function(knots.dist,phi,kappa) {
 	out <- mean(apply(K,1,function(r) sqrt(sum(r^2))))
 	return(out)
 }
+
+##' @title Spatially discrete sampling
+##' @description Draws a sub-sample from a set of units spatially located irregularly over some defined geographical region by imposing a minimum distance between any two sampled units.  
+##' @param xy.all set of locations from which the sample will be drawn.
+##' @param n size of required sample.
+##' @param delta minimum distance between any two locations in preliminary sample.
+##' @param k number of locations in preliminary sample to be replaced by nearest neighbours of other preliminary sample locations in final sample (must be between 0 and \code{n/2}).
+##'
+##' @details  To draw a sample of size \code{n}  from a population of spatial locations \eqn{X_{i}  : i  = 1,\ldots,N}, with the property that the distance between any two sampled locations is at least \code{delta}, the function implements the following algorithm.
+##' \itemize{
+##' \item{Step 1.} Draw an initial sample of size \code{n}  completely at random and call this \eqn{x_{i}  : i  = 1,\dots, n}.
+##' \item{Step 2.} Set \eqn{i  = 1} and calculate the minimum, \eqn{d_{\min}}, of the distances from \eqn{x_{i}}  to all other \eqn{x_{j}}  in the initial sample.
+##' \item{Step 3.} If \eqn{d_{\min} \ge \delta}, increase \eqn{i}  by 1 and return to step 2 if \eqn{i \le n}, otherwise stop.
+##' \item{Step 4.} If \eqn{d_{\min} < \delta}, draw an integer \eqn{j}  at random from \eqn{1,  2,\ldots,N}, set \eqn{x_{i}  = X_{j}}  and return to step 3.
+##' }
+##' Samples generated in this way will exhibit a more regular spatial arrangement than would a random sample of the same size. The degree of regularity achievable will be influenced by the spatial arrangement of the population \eqn{X_{i}  : i  = 1,\ldots,N}, the specified value of \code{delta}  and the sample size \code{n}. For any given population, if \code{n}  and/or \code{delta}  are too large, a sample of the required size with the distance between any two sampled locations at least \code{delta} will not be achievable; the suggested solution is then to run the algorithm with a smaller value of \code{delta}.
+##'
+##' \bold{Sampling close pairs of points}.
+##'  For some purposes, it is desirable that a spatial sampling scheme include pairs of closely spaced points. In this case, the above algorithm requires the following additional steps to be taken.
+##' Let \code{k}  be the required number of close pairs.
+##' \itemize{
+##' \item{Step 5.} Set \eqn{j  = 1} and draw a random sample of size 2 from the integers \eqn{1,  2,\ldots,n}, say \eqn{(i_{1}, i_{2} )}.
+##' \item{Step 6.} Find the integer \eqn{r}  such that the distances from \eqn{x_{i_{1}}}  to \eqn{X_{r}} is the minimum of all \eqn{N-1} distances from \eqn{x_{i_{1}}}  to the \eqn{X_{j}}.
+##' \item{Step 7.}  Replace \eqn{x_{i_{2}}}  by \eqn{X_{r}}, increase \eqn{i}  by 1 and return to step 5 if \eqn{i \le k}, otherwise stop.
+##' }
+##' 
+##' @return A matrix of dimension \code{n} by 2 containing the final sampled locations.
+##'
+##' @examples
+##' x<-0.015+0.03*(1:33)
+##' xall<-rep(x,33)
+##' yall<-c(t(matrix(xall,33,33)))
+##' xy<-cbind(xall,yall)+matrix(-0.0075+0.015*runif(33*33*2),33*33,2)
+##' par(pty="s",mfrow=c(1,2))
+##' plot(xy[,1],xy[,2],pch=19,cex=0.25,xlab="Easting",ylab="Northing",
+##'    cex.lab=1,cex.axis=1,cex.main=1)
+##' 
+##' set.seed(15892) 
+##' # Generate spatially random sample
+##' xy.sample<-xy[sample(1:dim(xy)[1],50,replace=FALSE),] 
+##' points(xy.sample[,1],xy.sample[,2],pch=19,col="red")
+##' points(xy[,1],xy[,2],pch=19,cex=0.25)
+##' plot(xy[,1],xy[,2],pch=19,cex=0.25,xlab="Easting",ylab="Northing",
+##'    cex.lab=1,cex.axis=1,cex.main=1)
+##'
+##' set.seed(15892) 
+##' # Generate spatially regular sample
+##' xy.sample<-discrete.sample(xy,50,0.08) 
+##' points(xy.sample[,1],xy.sample[,2],pch=19,col="red")
+##' points(xy[,1],xy[,2],pch=19,cex=0.25)
+##'
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##'
+##' @export
+
+discrete.sample<-function(xy.all,n,delta,k=0) {
+   deltasq<-delta*delta
+   N<-dim(xy.all)[1]
+   index<-1:N
+   index.sample<-sample(index,n,replace=FALSE)
+   xy.sample<-xy.all[index.sample,]
+   for (i in 2:n) {
+      dmin<-0
+      while (dmin<deltasq) {
+         take<-sample(index,1)
+         dvec<-(xy.all[take,1]-xy.sample[,1])^2+(xy.all[take,2]-xy.sample[,2])^2
+         dmin<-min(dvec)
+         }
+      xy.sample[i,]<-xy.all[take,]
+      }
+   if (k>0) {
+   	  if(k > n/2) stop("k must be between 0 and n/2.")
+      take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
+      for (j in 1:k) {
+         take1<-take[j,1]; take2<-take[j,2]
+         xy1<-c(xy.sample[take1,])
+         dvec<-(xy.all[,1]-xy1[1])^2+(xy.all[,2]-xy1[2])^2
+         neighbour<-order(dvec)[2]
+         xy.sample[take2,]<-xy.all[neighbour,]
+         }
+      }
+   return(xy.sample)
+} 
+
+##' @title Spatially continuous sampling
+##' @description Draws a sample of spatial locations within a spatially continuous polygonal sampling region.
+##' @param poly boundary of a polygon.
+##' @param n number of events.
+##' @param delta minimum permissible distance between any two events in preliminary sample.
+##' @param k number of locations in preliminary sample to be replaced by near neighbours of other preliminary sample locations in final sample (must be between 0 and \code{n/2})
+##' @param rho maximum distance between close pairs of locations in final sample.  
+##'
+##' @return A matrix of dimension \code{n} by 2 containing event locations.
+##'  
+##' @details  To draw a sample of size \code{n}  from a spatially continuous region \eqn{A}, with the property that the distance between any two sampled locations is at least \code{delta}, the following algorithm is used.
+##' \itemize{
+##' \item{Step 1.} Set \eqn{i  = 1} and generate a point \eqn{x_{1}}  uniformly distributed on \eqn{A}.
+##' \item{Step 2.} Increase \eqn{i}  by 1, generate a point \eqn{x_{i}}  uniformly distributed on \eqn{A} and calculate the minimum, \eqn{d_{\min}}, of the distances from \eqn{x_{i}} to all \eqn{x_{j}: j < i }.
+##' \item{Step 3.} If \eqn{d_{\min} \ge \delta}, increase \eqn{i}  by 1 and return to step 2 if \eqn{i \le n}, otherwise stop;
+##' \item{Step 4.} If \eqn{d_{\min} < \delta}, return to step 2 without increasing \eqn{i}.
+##' }
+##'
+##' \bold{ Sampling close pairs of points.}  For some purposes, it is desirable that a spatial sampling scheme include pairs of closely spaced points. In this case, the above algorithm requires the following additional steps to be taken.
+##'  Let \code{k}  be the required number of close pairs. Choose a value \code{rho}  such that a close pair  of points will be a pair of points separated by a distance of at most \code{rho}.
+##' \itemize{
+##' \item{Step 5.} Set \eqn{j  = 1} and draw a random sample of size 2 from the integers \eqn{1,2,\ldots,n}, say \eqn{(i_{1}; i_{2})};
+##' \item{Step 6.} Replace \eqn{x_{i_{1}}} by \eqn{x_{i_{2}} + u} , where \eqn{u}  is uniformly distributed on the disc with centre \eqn{x_{i_{2}}} and radius \code{rho}, increase \eqn{i} by 1 and return to step 5 if \eqn{i \le k}, otherwise stop.	
+##' }	
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##'
+##' @examples
+##' library(geoR)
+##' data(parana)
+##' poly<-parana$borders
+##' poly<-matrix(c(poly[,1],poly[,2]),dim(poly)[1],2,byrow=FALSE)
+##' set.seed(5871121)
+##' 
+##' # Generate spatially regular sample
+##' xy.sample<-continuous.sample(poly,100,30) 
+##' plot(poly,type="l",xlab="X",ylab="Y")
+##' points(xy.sample,pch=19,cex=0.5)
+##'
+##' @importFrom splancs csr
+##' @export
+continuous.sample<-function(poly,n,delta,k=0,rho=NULL) {   	
+   xy<-matrix(csr(poly,1),1,2)
+   delsq<-delta*delta
+   while (dim(xy)[1]<n) {
+      dsq<-0
+      while (dsq<delsq) {
+         xy.try<-c(csr(poly,1))
+         dsq<-min((xy[,1]-xy.try[1])^2+(xy[,2]-xy.try[2])^2)
+         }
+      xy<-rbind(xy,xy.try)
+      }
+   if (k>0) {
+   	  if(k > n/2) stop("k must be between 0 and n/2.")
+      take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
+      for (j in 1:k) {
+         take1<-take[j,1]; take2<-take[j,2]
+         xy1<-c(xy[take1,])
+         angle<-2*pi*runif(1)
+         radius<-rho*sqrt(runif(1))
+         xy[take2,]<-xy1+radius*c(cos(angle),sin(angle))
+         }
+      }
+  xy
+} 

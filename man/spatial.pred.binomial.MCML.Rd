@@ -13,7 +13,7 @@ spatial.pred.binomial.MCML(object, grid.pred, predictors = NULL, control.mcmc,
 
 \item{grid.pred}{a matrix of prediction locations.}
 
-\item{predictors}{a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. Default is \code{predictors=NULL} for models with only an intercept.}
+\item{predictors}{a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.}
 
 \item{control.mcmc}{output from \code{\link{control.mcmc.MCML}}.}
 
