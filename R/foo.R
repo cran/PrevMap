@@ -594,6 +594,7 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 	n <- length(y)
 	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
 	p <- ncol(D)
+	if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
 	beta0 <- par0[1:p]
 	mu0 <- as.numeric(D%*%beta0)
 		
@@ -1610,6 +1611,7 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")       
     if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
 	p <- object$p <- ncol(object$D)	
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -1883,6 +1885,7 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
 	n <- length(y)
 	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
 	p <- ncol(D)
+	if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
 	beta0 <- par0[1:p]
 	mu0 <- as.numeric(D%*%beta0)
 		
@@ -2368,6 +2371,7 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
     if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
 	p <- ncol(object$D)
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -3913,6 +3917,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
     if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.") 
+    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+
     if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
 	ck <- length(dim(object$knots)) > 0
 	if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
@@ -4373,10 +4379,10 @@ plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...
 	 }				
 }
 
-##' @title Profile log-likelihood confidence intervals
-##' @description Computes confidence intervals based on the profile log-likelihood computed for a single covariance parameter.
+##' @title Profile likelihood confidence intervals
+##' @description Computes confidence intervals based on the interpolated profile likelihood computed for a single covariance parameter.
 ##' @param object object of class "profile.PrevMap" obtained from \code{\link{loglik.linear.model}}.
-##' @param coverage confidence level; default is 0.95.
+##' @param coverage value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile likelihood. Default is \code{coverage=0.95}.
 ##' @param plot.spline.profile logical; if \code{TRUE} an interpolating spline of the profile-likelihood of for a univariate parameter is plotted. Default is \code{FALSE}. 
 ##' @return A list with elements \code{lower} and \code{upper} for the upper and lower limits of the confidence interval, respectively.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
@@ -4385,6 +4391,7 @@ plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...
 
 loglik.ci <- function(object,coverage=0.95,plot.spline.profile=TRUE) {
 	if(class(object) != "profile.PrevMap") stop("object must be of class profile.PrevMap")
+	if(coverage <= 0 | coverage >=1) stop("'coverage' must be between 0 and 1.")
 	if(object$fixed.par | class(object$profile)=="matrix") {
 		stop("profile likelihood must be computed and only for a single paramater.")
 	} else {
@@ -4891,6 +4898,8 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
     if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+
 	object$p <- ncol(object$D)
 	object$fixed.nugget <- ncol(object$estimate) < object$p+3
 	kappa <- object$kappa	
@@ -5408,7 +5417,7 @@ dens.plot <- function(object,param,component.beta=NULL,
 ##' @param set.kappa a vector indicating the set values for evluation of the profile likelihood.
 ##' @param fixed.rel.nugget a value for the relative variance \code{nu2} of the nugget effect, that is then treated as fixed. Default is \code{NULL}.
 ##' @param start.par starting values for the scale parameter \code{phi} and the relative variance of the nugget effect \code{nu2}; if \code{fixed.rel.nugget} is provided, then a starting value for \code{phi} only should be provided.
-##' @param coverage logical; if \code{TRUE} a confidence interval based on the interpolated profile likelihood is computed. A solide red line of the interpolating spline is added to the plot of the profile likelihood. Default is \code{FALSE}.
+##' @param coverage value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile liklelihood for the shape parameter. Default is \code{coverage=NULL} and no confidence interval is then computed.
 ##' @param plot.profile logical; if \code{TRUE} the computed profile-likelihood is plotted together with the interpolating spline. 
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
 ##' @return The function returns an object of class 'shape.matern' that is a list with the following components
@@ -5420,8 +5429,9 @@ dens.plot <- function(object,param,component.beta=NULL,
 ##' @importFrom geoR varcov.spatial
 ##' @export
 shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,start.par,
-              coverage=NULL,plot.profile=TRUE,messages=TRUE) {
+              coverage=NULL,plot.profile=TRUE,messages=TRUE) {              	
 	start.par <- as.numeric(start.par)
+	if(coverage <= 0 | coverage >=1) stop("'coverage' must be between 0 and 1.")
 	mf <- model.frame(formula,data=data)
 	if(any(is.na(data))) stop("missing data are not accepted.")	
 	y <- as.numeric(model.response(mf))
