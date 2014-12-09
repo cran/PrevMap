@@ -122,6 +122,8 @@ Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
 \references{
 Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.
+
+Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
 \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.

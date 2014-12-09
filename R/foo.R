@@ -1189,8 +1189,6 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 ##' summary(fit.MCML,log.cov.pars=FALSE)
 ##' coef(fit.MCML)
 ##'
-
-
 ##' @export
 binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
                                                    par0,control.mcmc,kappa,
@@ -1242,6 +1240,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} can be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process, the parameter \code{sigma2} is adjusted by a factor\code{constant.sigma2}. See \code{\link{adjust.sigma2}} for more details on the the computation of the adjustment factor \code{constant.sigma2} in the low-rank approximation.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "PrevMap".
 ##' The function \code{\link{summary.PrevMap}} is used to print a summary of the fitted model.
 ##' The object is a list with the following components:
@@ -1331,6 +1330,7 @@ linear.model.MLE <- function(formula,coords,data,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "Bayes.PrevMap".
 ##' The function \code{\link{summary.Bayes.PrevMap}} is used to print a summary of the fitted model.
 ##' The object is a list with the following components:
@@ -3825,6 +3825,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @return \code{call}: the matched call.
 ##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 ##' @references Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @examples
@@ -4382,7 +4383,7 @@ plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...
 ##' @title Profile likelihood confidence intervals
 ##' @description Computes confidence intervals based on the interpolated profile likelihood computed for a single covariance parameter.
 ##' @param object object of class "profile.PrevMap" obtained from \code{\link{loglik.linear.model}}.
-##' @param coverage value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile likelihood. Default is \code{coverage=0.95}.
+##' @param coverage a value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile likelihood. Default is \code{coverage=0.95}.
 ##' @param plot.spline.profile logical; if \code{TRUE} an interpolating spline of the profile-likelihood of for a univariate parameter is plotted. Default is \code{FALSE}. 
 ##' @return A list with elements \code{lower} and \code{upper} for the upper and lower limits of the confidence interval, respectively.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
@@ -5417,7 +5418,7 @@ dens.plot <- function(object,param,component.beta=NULL,
 ##' @param set.kappa a vector indicating the set values for evluation of the profile likelihood.
 ##' @param fixed.rel.nugget a value for the relative variance \code{nu2} of the nugget effect, that is then treated as fixed. Default is \code{NULL}.
 ##' @param start.par starting values for the scale parameter \code{phi} and the relative variance of the nugget effect \code{nu2}; if \code{fixed.rel.nugget} is provided, then a starting value for \code{phi} only should be provided.
-##' @param coverage value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile liklelihood for the shape parameter. Default is \code{coverage=NULL} and no confidence interval is then computed.
+##' @param coverage a value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile liklelihood for the shape parameter. Default is \code{coverage=NULL} and no confidence interval is then computed.
 ##' @param plot.profile logical; if \code{TRUE} the computed profile-likelihood is plotted together with the interpolating spline. 
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
 ##' @return The function returns an object of class 'shape.matern' that is a list with the following components
@@ -5431,7 +5432,7 @@ dens.plot <- function(object,param,component.beta=NULL,
 shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,start.par,
               coverage=NULL,plot.profile=TRUE,messages=TRUE) {              	
 	start.par <- as.numeric(start.par)
-	if(coverage <= 0 | coverage >=1) stop("'coverage' must be between 0 and 1.")
+	if(length(coverage)>0 && (coverage <= 0 | coverage >=1)) stop("'coverage' must be between 0 and 1.")
 	mf <- model.frame(formula,data=data)
 	if(any(is.na(data))) stop("missing data are not accepted.")	
 	y <- as.numeric(model.response(mf))
@@ -5505,20 +5506,24 @@ shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,sta
            		done <- TRUE
            	}       
         }
-        out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=lower.int[1],upper=lower.int[2])$root                        
-        out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=upper.int[1],upper=upper.int[2])$root 
+        out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
+        lower=lower.int[1],upper=lower.int[2])$root                        
+        out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
+        lower=upper.int[1],upper=upper.int[2])$root 
         out$kappa.hat <- estim.kappa$minimum
-        if(plot.profile) {
+      } 
+      if(plot.profile) {
     	  plot(set.kappa,val.kappa,type="l",xlab=expression(kappa),ylab="log-likelihood",
                     main=expression("Profile likelihood for"~kappa))
-          a <- seq(min(par.set),max(par.set),length=1000)
-          b <- sapply(a, function(x) f(x))
-          lines(a,b,type="l",col=2)
-          abline(h=-(k/2-max.log.lik),lty="dashed")
-          abline(v=out$lower,lty="dashed")
-          abline(v=out$upper,lty="dashed")
+          if(length(coverage) > 0) {          
+             a <- seq(min(par.set),max(par.set),length=1000)
+             b <- sapply(a, function(x) f(x))
+             lines(a,b,type="l",col=2)
+             abline(h=-(k/2-max.log.lik),lty="dashed")
+             abline(v=out$lower,lty="dashed")
+             abline(v=out$upper,lty="dashed")
        }
-    }           
+    }          
     class(out) <- "shape.matern"
     return(out)
 }

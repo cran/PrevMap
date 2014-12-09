@@ -19,7 +19,7 @@ shape.matern(formula, coords, data, set.kappa, fixed.rel.nugget = NULL,
 
 \item{start.par}{starting values for the scale parameter \code{phi} and the relative variance of the nugget effect \code{nu2}; if \code{fixed.rel.nugget} is provided, then a starting value for \code{phi} only should be provided.}
 
-\item{coverage}{value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile liklelihood for the shape parameter. Default is \code{coverage=NULL} and no confidence interval is then computed.}
+\item{coverage}{a value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile liklelihood for the shape parameter. Default is \code{coverage=NULL} and no confidence interval is then computed.}
 
 \item{plot.profile}{logical; if \code{TRUE} the computed profile-likelihood is plotted together with the interpolating spline.}
 

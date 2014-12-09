@@ -8,7 +8,7 @@ loglik.ci(object, coverage = 0.95, plot.spline.profile = TRUE)
 \arguments{
 \item{object}{object of class "profile.PrevMap" obtained from \code{\link{loglik.linear.model}}.}
 
-\item{coverage}{value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile likelihood. Default is \code{coverage=0.95}.}
+\item{coverage}{a value between 0 and 1 indicating the coverage of the confidence interval based on the interpolated profile likelihood. Default is \code{coverage=0.95}.}
 
 \item{plot.spline.profile}{logical; if \code{TRUE} an interpolating spline of the profile-likelihood of for a univariate parameter is plotted. Default is \code{FALSE}.}
 }

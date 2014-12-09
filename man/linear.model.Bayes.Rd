@@ -94,6 +94,9 @@ Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
+\references{
+Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
+}
 \seealso{
 \code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
 }
