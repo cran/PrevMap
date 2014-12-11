@@ -1610,8 +1610,8 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
                                                     plot.correlogram=FALSE,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")       
-    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 	p <- object$p <- ncol(object$D)	
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -2370,8 +2370,8 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 	p <- ncol(object$D)
 	kappa <- object$kappa	
 	n.pred <- nrow(grid.pred)
@@ -3917,8 +3917,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.") 
-    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.") 
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 
     if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
 	ck <- length(dim(object$knots)) > 0
@@ -4898,8 +4898,8 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
                                                     thresholds=NULL,scale.thresholds=NULL,
                                                     messages=TRUE) {
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-    if(length(predictors)>0 & class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-    if(length(predictors)>0 & any(is.na(predictors))) stop("missing values found in 'predictors'.")
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 
 	object$p <- ncol(object$D)
 	object$fixed.nugget <- ncol(object$estimate) < object$p+3
