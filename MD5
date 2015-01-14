@@ -1,7 +1,7 @@
-0a861ced705d66c73c826bbd3fcc3e6a *DESCRIPTION
+1970bf8049be270831ccfb86fd936fe8 *DESCRIPTION
 bd6c0c20228394a8fa0359b5f8a755c6 *NAMESPACE
 b7c4e4253c6dbe9a6c9cf60733c71570 *R/data_sim.R
-127ce49ac6075413f842d8c947fdc6e7 *R/foo.R
+6fc87ebb6322f2b082b1fe4d13e9166a *R/foo.R
 8b88e3fa47b7e95ccaf7db778269c45f *R/loaloa.R
 a3703512599205c553c93842dee9558e *data/data_sim.rdata
 5857e24e574d7e962b2ab17777928b32 *data/loaloa.rdata
@@ -33,7 +33,7 @@ cc354c01ab8f17598cf118bd977afd41 *man/loglik.ci.Rd
 1b1dd5c2a0d2d0d739ffa18455f4fb7e *man/plot.shape.matern.Rd
 2652475ffeafd4f74ef5732772610c79 *man/shape.matern.Rd
 4c1d0154df764de427ac9ed6f6164d5b *man/spatial.pred.binomial.Bayes.Rd
-061fa8a15d26380bc465826cb0e27c00 *man/spatial.pred.binomial.MCML.Rd
+6645aa27d08c95eafbb72e590fa946b8 *man/spatial.pred.binomial.MCML.Rd
 aaa48c208c138f194fda75eee9ebf5b4 *man/spatial.pred.linear.Bayes.Rd
 b3977ef4103c57f37445647d84540beb *man/spatial.pred.linear.MLE.Rd
 21007abdc9f42853d93dbd30413bddbb *man/summary.Bayes.PrevMap.Rd

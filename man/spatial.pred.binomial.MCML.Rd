@@ -34,7 +34,7 @@ spatial.pred.binomial.MCML(object, grid.pred, predictors = NULL, control.mcmc,
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
 }
 \value{
-A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the binomial logistic model; \code{grid.pred} prediction locations.
+A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the binomial logistic model (if \code{scale.predictions="logit"} this component is \code{NULL}); \code{grid.pred} prediction locations.
 Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
 
 \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).

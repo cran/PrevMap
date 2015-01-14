@@ -153,14 +153,14 @@ create.ID.coords <- function(data,coords) {
 ##' @details Conditionally on the random effect \eqn{S}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. The logistic link function is used for the linear predictor, which assumes the form \deqn{\log(p/(1-p))=S.} The random effect \eqn{S} has a multivariate Gaussian distribution with mean \code{mu} and covariance matrix \code{Sigma}. 
 ##'
 ##' \bold{Laplace sampling.} This function generates samples from the distribution of \eqn{S} given the data \code{y}. Specifically a Langevin-Hastings algorithm is used to update \eqn{\tilde{S} = \tilde{\Sigma}^{-1/2}(S-\tilde{s})} where \eqn{\tilde{\Sigma}} and \eqn{\tilde{s}} are the inverse of the negative Hessian and the mode of the distribution of \eqn{S} given \code{y}, respectively. At each iteration a new value \eqn{\tilde{s}_{prop}} for \eqn{\tilde{S}} is proposed from a multivariate Gaussian distribution with mean \deqn{\tilde{s}_{curr}+(h/2)\nabla \log f(\tilde{S} | y),}
-##' where \eqn{\tilde{s}_{curr}} is the current value for \eqn{\tilde{S}}, \eqn{h} is a tuning constant and \eqn{\nabla \log f(\tilde{S} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{S}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
+##' where \eqn{\tilde{s}_{curr}} is the current value for \eqn{\tilde{S}}, \eqn{h} is a tuning parameter and \eqn{\nabla \log f(\tilde{S} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{S}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
 ##' where \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants, and \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (\eqn{0.547} is the optimal acceptance rate for a multivariate standard Gaussian distribution). 
 ##' The starting value for \eqn{h}, and the values for \eqn{c_{1}} and \eqn{c_{2}} can be set through the function \code{\link{control.mcmc.MCML}}.
 ##' 
 ##' \bold{Random effects at household-level.} When the data consist of two nested levels, such as households and individuals within households, the argument \code{ID.coords} must be used to define the household IDs for each individual. Let \eqn{i} and \eqn{j} denote the \eqn{i}-th household and the \eqn{j}-th person within that household; the logistic link function then assumes the form \deqn{\log(p_{ij}/(1-p_{ij}))=\mu_{ij}+S_{i}} where the random effects \eqn{S_{i}} are now defined at household level and have mean zero.  
 ##' @return A list with the following components
 ##' @return \code{samples}: a matrix, each row of which corresponds to a sample from the predictive distribution.
-##' @return \code{h}: vector of the values of the tuning constant at each iteration of the Langevin-Hastings MCMC algorithm.
+##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
 ##' @seealso \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 ##' @examples
 ##' set.seed(1234)
@@ -356,13 +356,13 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
 ##' @details Conditionally on \eqn{Z}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. Let \eqn{K} denote the random effects design matrix; a logistic link function is used, thus the linear predictor assumes the form \deqn{\log(p/(1-p))=\mu + KZ} where \eqn{\mu} is the mean vector component defined through \code{mu}. The random effect \eqn{Z} has iid components distributed as zero-mean Gaussian variables with variance \code{sigma2}. 
 ##'
 ##' \bold{Laplace sampling.} This function generates samples from the distribution of \eqn{Z} given the data \code{y}. Specifically, a Langevin-Hastings algorithm is used to update \eqn{\tilde{Z} = \tilde{\Sigma}^{-1/2}(Z-\tilde{z})} where \eqn{\tilde{\Sigma}} and \eqn{\tilde{z}} are the inverse of the negative Hessian and the mode of the distribution of \eqn{Z} given \code{y}, respectively. At each iteration a new value \eqn{\tilde{z}_{prop}} for \eqn{\tilde{Z}} is proposed from a multivariate Gaussian distribution with mean \deqn{\tilde{z}_{curr}+(h/2)\nabla \log f(\tilde{Z} | y),}
-##' where \eqn{\tilde{z}_{curr}} is the current value for \eqn{\tilde{Z}}, \eqn{h} is a tuning constant and \eqn{\nabla \log f(\tilde{Z} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{Z}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
+##' where \eqn{\tilde{z}_{curr}} is the current value for \eqn{\tilde{Z}}, \eqn{h} is a tuning parameter and \eqn{\nabla \log f(\tilde{Z} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{Z}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
 ##' where \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants, and \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (\eqn{0.547} is the optimal acceptance rate for a multivariate standard Gaussian distribution). 
 ##' The starting value for \eqn{h}, and the values for \eqn{c_{1}} and \eqn{c_{2}} can be set through the function \code{\link{control.mcmc.MCML}}.
 ##' 
 ##' @return A list with the following components
 ##' @return \code{samples}: a matrix, each row of which corresponds to a sample from the predictive distribution.
-##' @return \code{h}: vector of the values of the tuning constant at each iteration of the Langevin-Hastings MCMC algorithm.
+##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
 ##' @seealso \code{\link{control.mcmc.MCML}}.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
@@ -1160,7 +1160,7 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 ##' @return \code{kappa}: fixed value of the shape parameter of the Matern function.
 ##' @return \code{knots}: matrix of the spatial knots used in the low-rank approximation.
 ##' @return \code{const.sigma2}: adjustment factor for \code{sigma2} in the low-rank approximation.
-##' @return \code{h}: vector of the values of the tuning constant at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
+##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
@@ -1589,7 +1589,7 @@ print.summary.PrevMap <- function(x,...) {
 ##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.
 ##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed. 
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
-##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the binomial logistic model; \code{grid.pred} prediction locations. 
+##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the binomial logistic model (if \code{scale.predictions="logit"} this component is \code{NULL}); \code{grid.pred} prediction locations. 
 ##' Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
 ##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).
 ##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
@@ -1644,7 +1644,7 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
 	if(length(dim(object$knots)) > 0) {	
 	beta <- object$estimate[1:p]
 	sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
-	rho <- exp(object$estimate[p+2])
+	rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
 	knots <- object$knots
 	U.k <- as.matrix(pdist(coords,knots))
 	K <- matern.kernel(U.k,rho,kappa)
@@ -1775,7 +1775,8 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
           } 
        }		   
     }
-        if(any(scale.predictions=="odds")) {
+    
+    if(any(scale.predictions=="odds")) {
        if(messages) cat("Spatial predictions: odds \n") 
        odds.sim <- exp(eta.sim)    	   
        out$odds$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
@@ -1818,7 +1819,9 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
           } 
        }	   
     }
-    out$samples <- eta.sim
+    if(scale.predictions=="odds" | scale.predictions=="prevalence"){
+       out$samples <- eta.sim	
+    }
     out$grid <- grid.pred
     class(out) <- "pred.PrevMap"
     out
