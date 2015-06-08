@@ -1205,6 +1205,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
     if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
     if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
     if(kappa < 0) stop("kappa must be positive.")
+    if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
 	if(!low.rank) {
 		res <- binomial.geo.MCML(formula=formula,units.m=units.m,coords=coords,
 		           data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
@@ -1295,6 +1296,7 @@ linear.model.MLE <- function(formula,coords,data,
     if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
     if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
     if(kappa < 0) stop("kappa must be positive.")
+    if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
 	if(!low.rank) {
 		res <-  geo.linear.MLE(formula=formula,coords=coords,
 		           data=data,kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
@@ -1326,7 +1328,7 @@ linear.model.MLE <- function(formula,coords,data,
 ##'
 ##' \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \eqn{(\sigma^2,\phi,\tau^2)}; then each component of \eqn{\theta} can have independent priors freely defined by the user. However, uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}. 
 ##' 
-##' \bold{Updating the covariance parameters using a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{linear.model.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance, say \eqn{h_{i}}, that is tuned using the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (0.45 is the optimal acceptance rate for a univariate Gaussian distribution) whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}}, \eqn{\theta_{2}} and \eqn{\theta_{3}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
+##' \bold{Updating the covariance parameters using a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{linear.model.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance, say \eqn{h_{i}^2}, tuned according the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (0.45 is the optimal acceptance rate for a univariate Gaussian distribution) whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}}, \eqn{\theta_{2}} and \eqn{\theta_{3}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
@@ -3651,7 +3653,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
        for(i in 1:n.sim) {
       	
          # Update theta1 
-    	 theta1.prop <- theta1.curr+(h.theta1^2)*rnorm(1)
+    	 theta1.prop <- theta1.curr+h.theta1*rnorm(1)
     	 sigma2.prop <- exp(2*theta1.prop)
 	     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
 	     rho.prop <- phi.prop*2*sqrt(kappa)
@@ -3674,7 +3676,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))                                    
     	     
     	  # Update theta2 
-    	  theta2.prop <- theta2.curr+(h.theta2^2)*rnorm(1)
+    	  theta2.prop <- theta2.curr+h.theta2*rnorm(1)
 	      phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
 	      rho.prop <- 2*phi.prop*sqrt(kappa)
     	  K.prop <- matern.kernel(U.k,rho.prop,kappa) 
@@ -3800,7 +3802,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' 
 ##' \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi,tau2)}; then each component of \eqn{\theta} has independent priors freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}. 
 ##' 
-##' \bold{Updating the covariance parameters with a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{binomial.logistic.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance \eqn{h_{i}} that is tuned using the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration, 0.45 is the optimal acceptance rate for a univariate Gaussian distribution, whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}}, \eqn{\theta_{2}} and \eqn{\theta_{3}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
+##' \bold{Updating the covariance parameters with a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{binomial.logistic.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance \eqn{h_{i}^2} that is tuned using the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration, 0.45 is the optimal acceptance rate for a univariate Gaussian distribution, whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}}, \eqn{\theta_{2}} and \eqn{\theta_{3}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
 ##' 
 ##' \bold{Hamiltonian Monte Carlo.} The MCMC algorithm in \code{binomial.logistic.Bayes} uses a Hamiltonian Monte Carlo (HMC) procedure to update the random effect \eqn{T=d'\beta + S(x) + Z}; see Neal (2011) for an introduction to HMC. HMC makes use of a postion vector, say \eqn{t}, representing the random effect \eqn{T}, and a momentum vector, say \eqn{q}, of the same length of the position vector, say \eqn{n}. Hamiltonian dynamics also have a physical interpretation where the states of the system are described by the position of a puck and its momentum (its mass times its velocity). The Hamiltonian function is then defined as a function of \eqn{t} and \eqn{q}, having the form \eqn{H(t,q) = -\log\{f(t | y, \beta, \theta)\} + q'q/2}, where \eqn{f(t | y, \beta, \theta)} is the conditional distribution of \eqn{T} given the data \eqn{y}, the regression parameters \eqn{\beta} and covariance parameters \eqn{\theta}. The system of Hamiltonian equations then defines the evolution of the system in time, which can be used to implement an algorithm for simulation from the posterior distribution of \eqn{T}. In order to implement the Hamiltonian dynamic on a computer, the Hamiltonian equations must be discretised. The \emph{leapfrog method} is then used for this purpose, where two tuning parameters should be defined: the stepsize \eqn{\epsilon} and the number of steps \eqn{L}. These respectively correspond to \code{epsilon.S.lim} and \code{L.S.lim} in the \code{\link{control.mcmc.Bayes}} function. However, it is advisable to let \eqn{epsilon} and \eqn{L} take different random values at each iteration of the HCM algorithm so as to account for the different variances amongst the components of the posterior of \eqn{T}. This can be done in \code{\link{control.mcmc.Bayes}} by defning \code{epsilon.S.lim} and \code{L.S.lim} as vectors of two elements, each of which represents the lower and upper limit of a uniform distribution used to generate values for  \code{epsilon.S.lim} and \code{L.S.lim}, respectively.
 ##' 
@@ -4362,6 +4364,7 @@ plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...
         plot.list$x <- x[[1]]
         plot.list$y <- x[[2]]
 		if(log.scale) {		
+		   plot.list$x <- log(plot.list$x)	
 		   do.call(plot,plot.list)
 		   if(plot.spline.profile) {
 		      f <- splinefun(log(x[[1]]),x[[2]])
@@ -5567,7 +5570,7 @@ plot.shape.matern <- function(x,plot.spline=TRUE,...) {
 ##' @param phi scale parameter of the Matern covariance function.
 ##' @param kappa shape parameter of the Matern covariance function.
 ##' @details Let \eqn{U} denote the \eqn{n} by \eqn{m} matrix of the distances between the \eqn{n} observed coordinates and \eqn{m} pre-defined spatial knots. This function computes the following quantity 
-##' \deqn{\frac{1}{n}\sum_{i=1}^n\left(\sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2\right)^{1/2},}
+##' \deqn{\frac{1}{n}\sum_{i=1}^n \sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2,}
 ##' where \eqn{K(.; \phi, \kappa)} is the Matern kernel (see \code{\link{matern.kernel}}) and \eqn{u_{ij}} is the distance between the \eqn{i}-th sampled location and the \eqn{j}-th spatial knot. 
 ##' @return A value corresponding to the adjustment factor for \code{sigma2}.
 ##' @seealso \code{\link{matern.kernel}}, \code{\link{pdist}}. 
@@ -5591,7 +5594,7 @@ plot.shape.matern <- function(x,plot.spline=TRUE,...) {
 
 adjust.sigma2 <- function(knots.dist,phi,kappa) {
 	K <- matern.kernel(knots.dist,2*sqrt(kappa)*phi,kappa)
-	out <- mean(apply(K,1,function(r) sqrt(sum(r^2))))
+	out <- mean(apply(K,1,function(r) sum(r^2)))
 	return(out)
 }
 

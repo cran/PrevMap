@@ -68,7 +68,7 @@ The object is a list with the following components:
 
 \code{const.sigma2}: adjustment factor for \code{sigma2} in the low-rank approximation.
 
-\code{h}: vector of the values of the tuning constant at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
+\code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
 
 \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 

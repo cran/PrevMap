@@ -20,7 +20,7 @@ This function computes the multiplicative constant used to adjust the value of \
 }
 \details{
 Let \eqn{U} denote the \eqn{n} by \eqn{m} matrix of the distances between the \eqn{n} observed coordinates and \eqn{m} pre-defined spatial knots. This function computes the following quantity
-\deqn{\frac{1}{n}\sum_{i=1}^n\left(\sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2\right)^{1/2},}
+\deqn{\frac{1}{n}\sum_{i=1}^n \sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2,}
 where \eqn{K(.; \phi, \kappa)} is the Matern kernel (see \code{\link{matern.kernel}}) and \eqn{u_{ij}} is the distance between the \eqn{i}-th sampled location and the \eqn{j}-th spatial knot.
 }
 \examples{

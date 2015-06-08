@@ -28,7 +28,7 @@ A list with the following components
 
 \code{samples}: a matrix, each row of which corresponds to a sample from the predictive distribution.
 
-\code{h}: vector of the values of the tuning constant at each iteration of the Langevin-Hastings MCMC algorithm.
+\code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
 }
 \description{
 This function simulates from the conditional distribution of a Gaussian random effect, given binomial observations \code{y}.
@@ -37,7 +37,7 @@ This function simulates from the conditional distribution of a Gaussian random e
 Conditionally on the random effect \eqn{S}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. The logistic link function is used for the linear predictor, which assumes the form \deqn{\log(p/(1-p))=S.} The random effect \eqn{S} has a multivariate Gaussian distribution with mean \code{mu} and covariance matrix \code{Sigma}.
 
 \bold{Laplace sampling.} This function generates samples from the distribution of \eqn{S} given the data \code{y}. Specifically a Langevin-Hastings algorithm is used to update \eqn{\tilde{S} = \tilde{\Sigma}^{-1/2}(S-\tilde{s})} where \eqn{\tilde{\Sigma}} and \eqn{\tilde{s}} are the inverse of the negative Hessian and the mode of the distribution of \eqn{S} given \code{y}, respectively. At each iteration a new value \eqn{\tilde{s}_{prop}} for \eqn{\tilde{S}} is proposed from a multivariate Gaussian distribution with mean \deqn{\tilde{s}_{curr}+(h/2)\nabla \log f(\tilde{S} | y),}
-where \eqn{\tilde{s}_{curr}} is the current value for \eqn{\tilde{S}}, \eqn{h} is a tuning constant and \eqn{\nabla \log f(\tilde{S} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{S}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
+where \eqn{\tilde{s}_{curr}} is the current value for \eqn{\tilde{S}}, \eqn{h} is a tuning parameter and \eqn{\nabla \log f(\tilde{S} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{S}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
 where \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants, and \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (\eqn{0.547} is the optimal acceptance rate for a multivariate standard Gaussian distribution).
 The starting value for \eqn{h}, and the values for \eqn{c_{1}} and \eqn{c_{2}} can be set through the function \code{\link{control.mcmc.MCML}}.
 
