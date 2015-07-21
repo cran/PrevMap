@@ -4,10 +4,10 @@
 \title{Control settings for the MCMC algorithm used for Bayesian inference}
 \usage{
 control.mcmc.Bayes(n.sim, burnin, thin, h.theta1, h.theta2, h.theta3 = NULL,
-  L.S.lim, epsilon.S.lim, start.beta, start.sigma2, start.phi, start.S,
-  start.nugget = NULL, c1.h.theta1 = 0.01, c2.h.theta1 = 1e-04,
+  L.S.lim = NULL, epsilon.S.lim = NULL, start.beta, start.sigma2, start.phi,
+  start.S, start.nugget = NULL, c1.h.theta1 = 0.01, c2.h.theta1 = 1e-04,
   c1.h.theta2 = 0.01, c2.h.theta2 = 1e-04, c1.h.theta3 = 0.01,
-  c2.h.theta3 = 1e-04, linear.model = FALSE)
+  c2.h.theta3 = 1e-04, linear.model = FALSE, binary = FALSE)
 }
 \arguments{
 \item{n.sim}{total number of simulations.}
@@ -48,7 +48,9 @@ control.mcmc.Bayes(n.sim, burnin, thin, h.theta1, h.theta2, h.theta3 = NULL,
 
 \item{c2.h.theta3}{value of \eqn{c_{2}} used to adaptively tune the variance of the Gaussian proposal for the transformed parameter \code{log(tau2)}; see 'Details' in \code{\link{binomial.logistic.Bayes}} or \code{\link{linear.model.Bayes}}.}
 
-\item{linear.model}{logical; if     \code{linear.model=TRUE}, the control parameters are considered for the geostatistical linear model. Default is \code{linear.model=FALSE}.}
+\item{linear.model}{logical; if     \code{linear.model=TRUE}, the control parameters are set for the geostatistical linear model. Default is \code{linear.model=FALSE}.}
+
+\item{binary}{logical; if \code{binary=TRUE}, the control parameters are set the binary geostatistical model. Default is \code{binary=FALSE}.}
 }
 \value{
 an object of class "mcmc.Bayes.PrevMap".

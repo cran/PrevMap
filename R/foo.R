@@ -184,7 +184,6 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
                                                plot.correlogram=TRUE) {
    if(length(ID.coords)==0) {                                               	
 	n.sim <- control.mcmc$n.sim
-	p <- ncol(D)
 	n <- length(y)
 	S.estim <- maxim.integrand(y,units.m,mu,Sigma)
 	Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
@@ -259,7 +258,6 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
     if(messages) cat("\n")
     } else {
       n.sim <- control.mcmc$n.sim
-	  p <- ncol(D)
 	  n <- length(y)
 	  n.x <- dim(Sigma)[1]
 	  S.estim <- maxim.integrand(y,units.m,mu,Sigma,ID.coords)
@@ -372,7 +370,6 @@ Laplace.sampling.lr <- function(mu,sigma2,K,y,units.m,
                                                   messages=TRUE,
                                                   plot.correlogram=TRUE) {
 	n.sim <- control.mcmc$n.sim
-	p <- ncol(D)
 	n <- length(y)
 	N <- ncol(K)
 	S.estim <- maxim.integrand.lr(y,units.m,mu,sigma2,K)
@@ -1199,7 +1196,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
                                                    messages=TRUE,
                                                    plot.correlogram=TRUE) {
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
-    if(low.rank & length(ID.coords) > 0) stop("low-rank approximation is not available for a two-levels model.")
+    if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
     if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("control.mcmc must be of class 'mcmc.MCML.PrevMap'")
     if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
     if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
@@ -2816,6 +2813,10 @@ control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
                                     uniform.sigma2=NULL,log.normal.sigma2=NULL, 
                                     uniform.phi=NULL,log.normal.phi=NULL,
                                     uniform.nugget=NULL,log.normal.nugget=NULL) { 
+   if(dim(as.matrix(beta.covar))[1]*
+      dim(as.matrix(beta.covar))[2] != (length(beta.mean)^2)) {
+      stop("incompatible values for beta.covar and beta.mean")
+   }
    if(length(log.prior.sigma2) >0 && length(log.prior.sigma2(runif(1)))!=1) stop("invalid prior for sigma2")      
    if(length(log.prior.phi) >0 && length(log.prior.phi(runif(1)))!=1) stop("invalid prior for phi")  
    if(length(log.prior.nugget)>0) {
@@ -2905,39 +2906,56 @@ control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
 ##' @param c2.h.theta2 value of \eqn{c_{2}} used to adaptively tune the variance of the Gaussian proposal for the transformed parameter \code{log(sigma2.curr/(phi.curr^(2*kappa)))}; see 'Details' in \code{\link{binomial.logistic.Bayes}} or \code{\link{linear.model.Bayes}}.
 ##' @param c1.h.theta3 value of \eqn{c_{1}} used to adaptively tune the variance of the Gaussian proposal for the transformed parameter \code{log(tau2)}; see 'Details' in \code{\link{binomial.logistic.Bayes}} or \code{\link{linear.model.Bayes}}.
 ##' @param c2.h.theta3 value of \eqn{c_{2}} used to adaptively tune the variance of the Gaussian proposal for the transformed parameter \code{log(tau2)}; see 'Details' in \code{\link{binomial.logistic.Bayes}} or \code{\link{linear.model.Bayes}}.
-##' @param linear.model logical; if 	\code{linear.model=TRUE}, the control parameters are considered for the geostatistical linear model. Default is \code{linear.model=FALSE}.
+##' @param linear.model logical; if 	\code{linear.model=TRUE}, the control parameters are set for the geostatistical linear model. Default is \code{linear.model=FALSE}.
+##' @param binary logical; if \code{binary=TRUE}, the control parameters are set the binary geostatistical model. Default is \code{binary=FALSE}.
 ##' @return an object of class "mcmc.Bayes.PrevMap".
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 
 control.mcmc.Bayes <- function(n.sim,burnin,thin,
-                                                 h.theta1,h.theta2,h.theta3=NULL,
-                                                 L.S.lim, epsilon.S.lim,
-                                                 start.beta,start.sigma2,
-                                                 start.phi,start.S,start.nugget=NULL,
-                                                 c1.h.theta1=0.01,c2.h.theta1=0.0001,
-                                                 c1.h.theta2=0.01,c2.h.theta2=0.0001,
-                                                 c1.h.theta3=0.01,c2.h.theta3=0.0001,
-                                                 linear.model=FALSE) {
-   if(!linear.model) epsilon.S.lim <- as.numeric(epsilon.S.lim)
-   if(!linear.model && (any(length(epsilon.S.lim)==c(0,1,2))==FALSE)) stop("epsilon.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")  
-      if(!linear.model && (any(length(L.S.lim)==c(0,1,2))==FALSE))  stop("L.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")                     
+                               h.theta1,h.theta2,h.theta3=NULL,
+                               L.S.lim=NULL, epsilon.S.lim=NULL,
+                               start.beta,start.sigma2,
+                               start.phi,start.S,start.nugget=NULL,
+                               c1.h.theta1=0.01,c2.h.theta1=0.0001,
+                               c1.h.theta2=0.01,c2.h.theta2=0.0001,
+                               c1.h.theta3=0.01,c2.h.theta3=0.0001,
+                               linear.model=FALSE,binary=FALSE) {
+   if(!linear.model & !binary) epsilon.S.lim <- as.numeric(epsilon.S.lim)
+   if(!linear.model & !binary && (any(length(epsilon.S.lim)==c(1,2))==FALSE)) stop("epsilon.S.lim must be: atomic; a vector of length 2.")  
+   
+   if(!linear.model & !binary && (any(length(L.S.lim)==c(1,2))==FALSE))  stop("L.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")                     
+   
    	if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
+	
 	if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
+	
 	if(length(start.nugget) > 0 & length(h.theta3) == 0) stop("h.theta3 is missing.")	
+	
 	if(length(start.nugget) > 0 & length(c1.h.theta3) == 0) stop("c1.h.theta3 is missing.")	
+	
 	if(length(start.nugget) > 0 & length(c2.h.theta3) == 0) stop("c2.h.theta3 is missing.")	
+	
 	if(length(start.nugget) == 0 & length(h.theta3) > 0) stop("start.nugget is missing.")
+	
 	if(c1.h.theta1 < 0) stop("c1.h.theta1 must be positive.")
+	
 	if(c1.h.theta2 < 0) stop("c1.h.theta2 must be positive.")
+	
 	if(length(c1.h.theta3) > 0 && c1.h.theta3 < 0) stop("c1.h.theta3 must be positive.")
+	
 	if(c2.h.theta1 < 0 | c2.h.theta1 > 1) stop("c2.h.theta1 must be between 0 and 1.")
+	
 	if(c2.h.theta2 < 0 | c2.h.theta2 > 1) stop("c2.h.theta2 must be between 0 and 1.")
+	
 	if(length(c2.h.theta3) > 0 && (c2.h.theta3 < 0 | c2.h.theta3 > 1)) stop("c2.h.theta3 must be between 0 and 1.")	
-	if(!linear.model && (length(epsilon.S.lim)==2 & epsilon.S.lim[2] < epsilon.S.lim[1])) stop("The first element of epsilon.S.lim must be smaller than the second.")	
-    if(!linear.model && (length(L.S.lim)==2 & L.S.lim[2] < epsilon.S.lim[1])) stop("The first element of L.S.lim must be smaller than the second.")	
-   if(linear.model) {
+	
+	if(!linear.model & !binary && (length(epsilon.S.lim)==2 & epsilon.S.lim[2] < epsilon.S.lim[1])) stop("The first element of epsilon.S.lim must be smaller than the second.")	
+    
+    if(!linear.model & !binary && (length(L.S.lim)==2 & L.S.lim[2] < epsilon.S.lim[1])) stop("The first element of L.S.lim must be smaller than the second.")	
+    
+    if(linear.model) {
          out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
                    h.theta1=h.theta1,h.theta2=h.theta2,
                    h.theta3=h.theta3,
@@ -2945,14 +2963,23 @@ control.mcmc.Bayes <- function(n.sim,burnin,thin,
                    start.phi=start.phi,start.nugget=start.nugget,
                    c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
                    c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
-                   c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)		
+                   c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)	
+   } else if (binary) {
+   	    if(length(start.nugget) != 0) warning("inclusion of the nugget effect is not available for the binary model") 
+   	    out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
+                   h.theta1=h.theta1,h.theta2=h.theta2,
+                   start.beta=start.beta,start.sigma2=start.sigma2,
+                   start.phi=start.phi,
+                   c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
+                   c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2)	
    } else {
          out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
                    h.theta1=h.theta1,h.theta2=h.theta2,
                    h.theta3=h.theta3,
                    L.S.lim=L.S.lim, epsilon.S.lim=epsilon.S.lim,
                    start.beta=start.beta,start.sigma2=start.sigma2,
-                   start.phi=start.phi,start.S=start.S,start.nugget=start.nugget,
+                   start.phi=start.phi,
+                   start.S=start.S,start.nugget=start.nugget,
                    c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
                    c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
                    c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)	
@@ -2965,7 +2992,6 @@ control.mcmc.Bayes <- function(n.sim,burnin,thin,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom geoR varcov.spatial
-##' @importFrom maxLik maxBFGS
 binomial.geo.Bayes <- function(formula,units.m,coords,data,
                                                   ID.coords,
                                                   control.prior,
@@ -3542,7 +3568,6 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom maxLik maxBFGS
 binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
                                                        control.mcmc,control.prior,kappa,
                                                        messages) {	
@@ -3869,7 +3894,7 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
                                                    control.prior,control.mcmc,kappa,low.rank=FALSE,
                                                    knots=NULL,messages=TRUE) {
     if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
-    if(low.rank & length(ID.coords) > 0) stop("low-rank approximation is not available for a two-levels model.")
+    if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
     if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
     if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
     if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
@@ -3890,20 +3915,20 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
 }
 
 
-##' @title Bayesian spatial predictions for the binomial logistic model
-##' @description This function performs Bayesian spatial prediction for the binomial logistic model.
-##' @param object an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{binomial.logistic.Bayes}}.
+##' @title Bayesian spatial prediction for the binomial logistic and binary probit models
+##' @description This function performs Bayesian spatial prediction for the binomial logistic and binary probit models.
+##' @param object an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{binomial.logistic.Bayes}} or \code{\link{binary.probit.Bayes}}.
 ##' @param grid.pred a matrix of prediction locations.
 ##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only joint predictions are available.
-##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
+##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence", "odds" and "probit". Default is \code{scale.predictions="prevalence"}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
 ##' @param standard.errors logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.
 ##' @param thresholds a vector of exceedance thresholds; default is \code{NULL}.
-##' @param scale.thresholds a character value ("logit", "prevalence" or "odds") indicating the scale on which exceedance thresholds are provided.
+##' @param scale.thresholds a character value ("logit", "prevalence", "odds" or "probit") indicating the scale on which exceedance thresholds are provided.
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
-##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the linear model; \code{grid.pred} prediction locations. 
-##' Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
+##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{probit};\code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor; \code{grid.pred} prediction locations. 
+##' Each of the three components \code{logit}, \code{prevalence},  \code{odds} and \code{probit} is also a list with the following components:
 ##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).
 ##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
 ##' @return \code{quantiles}: a matrix of quantiles of the resulting predictions with each column corresponding to a quantile specified through the argument \code{quantiles}.
@@ -3914,13 +3939,15 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##' @importFrom geoR matern 
 ##' @export 
 spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
-                                                    type="marginal",
-                                                    scale.predictions=c("logit",
-                                                    "prevalence","odds"),
-                                                    quantiles=c(0.025,0.975),
-                                                    standard.errors=FALSE,
-                                                    thresholds=NULL,scale.thresholds=NULL,
-                                                    messages=TRUE) {
+                               type="marginal",
+                               scale.predictions="prevalence",
+                               quantiles=c(0.025,0.975),
+                               standard.errors=FALSE,thresholds=NULL,
+                               scale.thresholds=NULL,messages=TRUE) {
+    
+    check.probit <- substr(object$call[1],8,13)=="probit"                         	
+    if(length(scale.predictions) > 3) stop("too many values for scale.predictions")
+    
     if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
     if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.") 
     if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
@@ -3931,14 +3958,18 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 	if(ck & type=="marginal") warning("only joint predictions are available for the low-rank approximation")
     out <- list()
 	for(i in 1:length(scale.predictions)) {
-		if(any(c("logit","prevalence","odds")==scale.predictions[i])==
+		if(any(c("logit","prevalence","odds","probit")==scale.predictions[i])==
 		          FALSE) stop("invalid scale.predictions")
 	}
 	
+	if(any(scale.predictions == "logit") & check.probit) {
+		warning("a binary probit model was fitted, hence spatial prediction will be carried out on the probit scale and not on the logit scale")
+	}
 	if(length(thresholds)>0) {
-		if(any(c("logit","prevalence","odds")==scale.thresholds)==FALSE) {
-			stop("scale thresholds must be logit, prevalence or odds scale.")
-		}
+	   if(any(c("logit","prevalence","odds","probit")
+		  ==scale.thresholds)==FALSE) {
+	      stop("scale thresholds must be logit, prevalence or odds scale.")
+	   }
 	}
     
     if(length(thresholds)==0 & length(scale.thresholds)>0 |
@@ -3976,41 +4007,67 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 		   if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
 	   }
 	   if(messages) cat("\n")    
-       if(any(scale.predictions=="logit")) {
-       	 if(messages) cat("Spatial prediction: logit \n")
-    	     out$logit$predictions <- apply(eta.sim,2,mean)
-    	     if(length(quantiles)>0) out$logit$quantiles <- 
-    	                                  t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$logit$standard.errors <-  apply(eta.sim,2,sd)
+       if(any(scale.predictions=="logit" | scale.predictions=="probit")) {
+       	 if(messages) {
+       	 	if(check.probit) {
+       	 		cat("Spatial prediction: probit \n")
+       	 	} else {
+       	 		cat("Spatial prediction: logit \n")
+       	 	}	
+       	 }	
+    	     if(check.probit) {
+    	        out$probit$predictions <- apply(eta.sim,2,mean)
+    	        if(length(quantiles)>0) out$probit$quantiles <- 
+    	        t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+    	        if(standard.errors) out$probit$standard.errors <- 
+    	        apply(eta.sim,2,sd)	
+    	     } else {
+    	     	out$logit$predictions <- apply(eta.sim,2,mean)	
+    	     	if(length(quantiles)>0) out$logit$quantiles <- 
+    	        t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+    	        if(standard.errors) out$logit$standard.errors <- 
+    	        apply(eta.sim,2,sd)
+    	     }
         }
     
         if(any(scale.predictions=="odds")) {
          if(messages) cat("Spatial prediction: odds \n")
     	     odds <- exp(eta.sim)
     	     out$odds$predictions <- apply(odds,2,mean)
+    	     
     	     if(length(quantiles)>0) out$odds$quantiles <- 
-    	                                    t(apply(odds,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$odds$standard.errors <-  apply(odds,2,sd)
-        }
+    	     t(apply(odds,2,function(c) quantile(c,quantiles)))
+    	     
+    	     if(standard.errors) out$odds$standard.errors <-  
+    	     apply(odds,2,sd)
+        }              
           
        if(any(scale.predictions=="prevalence")) {
        	 if(messages) cat("Spatial prediction: prevalence \n")
-    	     prev <- exp(eta.sim)/(1+exp(eta.sim))
+    	     if(check.probit) {
+    	     	prev <- exp(eta.sim)/(1+exp(eta.sim))
+    	     } else {
+    	     	prev <- pnorm(eta.sim)
+    	     }
     	     out$prevalence$predictions <- apply(prev,2,mean)
     	     if(length(quantiles)>0) out$prevalence$quantiles <- 
-    	                                    t(apply(prev,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$prevalence$standard.errors <-  apply(prev,2,sd)
+    	     t(apply(prev,2,function(c) quantile(c,quantiles)))
+    	     
+    	     if(standard.errors) out$prevalence$standard.errors <- 
+    	     apply(prev,2,sd)
         }
         
         if(length(scale.thresholds) > 0) {
-        	     if(messages) cat("Spatial prediction: exceedance probabilities \n")
+        	 if(messages) cat("Spatial prediction: exceedance probabilities \n")
              if(scale.thresholds=="prevalence") {
                 thresholds <- log(thresholds/(1-thresholds))	
              } else if(scale.thresholds=="odds") {
              	thresholds <- log(thresholds)
+             } else if(scale.thresholds=="probit") {
+             	thresholds <- qnorm(thresholds)
              }
              out$exceedance.prob <- sapply(thresholds, function(x) 
-                                                             apply(eta.sim,2,function(c) mean(c > x)))	
+             apply(eta.sim,2,function(c) mean(c > x)))	
        } 
 	} else {
 	   U <- dist(object$coords)
@@ -4023,6 +4080,7 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 	   } else {
 	   	if(messages) cat("Type of predictions: marginal \n")
 	   }
+
        for(j in 1:n.samples)  { 
           sigma2 <- object$estimate[j,"sigma^2"]
           phi <-object$estimate[j,"phi"]
@@ -4048,7 +4106,7 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
       	     sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
     	     eta.sim[j,] <-  rnorm(n.pred,mu.cond[j,],sd.cond[j,])
           } else if (type=="joint") {
-    	     Sigma.pred <-  varcov.spatial(dists.lowetri=U.grid.pred,cov.model="matern",
+    	     Sigma.pred <-  varcov.spatial(dists.lowertri=U.grid.pred,cov.model="matern",
 	                                  cov.pars=c(sigma2,phi),kappa=kappa)$varcov 
 	         Sigma.cond <- Sigma.pred - A%*%t(C)
 	         Sigma.cond.sroot <- t(chol(Sigma.cond))
@@ -4059,41 +4117,74 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
          if(messages) cat("Iteration ",j," out of ",n.samples,"\r")   	             
       }
       cat("\n")    
-      if(any(scale.predictions=="logit")) {
-      	if(messages) cat("Spatial prediction: logit \n")
-    	     out$logit$predictions <- apply(mu.cond,2,mean)
-    	     if(length(quantiles)>0) out$logit$quantiles <- 
-    	                                  t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$logit$standard.errors <-  apply(eta.sim,2,sd)
-       }
+      if(any(scale.predictions=="logit" | scale.predictions=="probit")) {
+      	if(messages) {
+       	 	if(check.probit) {
+       	 		cat("Spatial prediction: probit \n")
+       	 	} else {
+       	 		cat("Spatial prediction: logit \n")
+       	 	}	
+       	 }
+    	if(check.probit) {
+    	   out$probit$predictions <- apply(mu.cond,2,mean)
+    	   
+    	   if(length(quantiles)>0) out$probit$quantiles <- 
+    	   t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+    	   
+    	   if(standard.errors) out$probit$standard.errors <-  
+    	   apply(eta.sim,2,sd)	
+    	} else {
+           out$logit$predictions <- apply(mu.cond,2,mean)
+    	   
+    	   if(length(quantiles)>0) out$logit$quantiles <- 
+    	   t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+    	   
+    	   if(standard.errors) out$logit$standard.errors <-  
+    	   apply(eta.sim,2,sd)		
+    	}  
+      }
     
-       if(any(scale.predictions=="odds")) {
+      if(any(scale.predictions=="odds")) {
        	 if(messages) cat("Spatial prediction: odds \n")
     	     odds <- exp(eta.sim)
-    	     out$odds$predictions <- apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
-    	     if(length(quantiles)>0) out$odds$quantiles <- 
-    	                                    t(apply(odds,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$odds$standard.errors <-  apply(odds,2,sd)
-       }
-          
-       if(any(scale.predictions=="prevalence")) {
+    	     out$odds$predictions <- 
+    	     apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
+    	     
+    	 if(length(quantiles)>0) out$odds$quantiles <- 
+    	     t(apply(odds,2,function(c) quantile(c,quantiles)))
+    	     
+    	 if(standard.errors) out$odds$standard.errors <-  
+    	     apply(odds,2,sd)
+      }
+    
+      if(any(scale.predictions=="prevalence")) {
        	 if(messages) cat("Spatial prediction: prevalence \n")
-    	     prev <- exp(eta.sim)/(1+exp(eta.sim))
-    	     out$prevalence$predictions <- apply(prev,2,mean)
-    	     if(length(quantiles)>0) out$prevalence$quantiles <- 
-    	                                    t(apply(prev,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$prevalence$standard.errors <-  apply(prev,2,sd)
-        }
+    	 if(check.probit) {
+    	 	prev <- pnorm(eta.sim)
+    	 } else {
+    	    prev <- exp(eta.sim)/(1+exp(eta.sim))	
+    	 }
+    	 
+    	 out$prevalence$predictions <- apply(prev,2,mean)
+    	 
+    	 if(length(quantiles)>0) out$prevalence$quantiles <- 
+    	 t(apply(prev,2,function(c) quantile(c,quantiles)))
+    	 
+    	 if(standard.errors) out$prevalence$standard.errors <-  
+    	 apply(prev,2,sd)
+      }
         
-        if(length(scale.thresholds) > 0) {
-        	    if(messages) cat("Spatial prediction: exceedance probabilities \n")
-             if(scale.thresholds=="prevalence") {
+      if(length(scale.thresholds) > 0) {
+         if(messages) cat("Spatial prediction: exceedance probabilities \n")
+         if(scale.thresholds=="prevalence") {
                 thresholds <- log(thresholds/(1-thresholds))	
-             } else if(scale.thresholds=="odds") {
+         } else if(scale.thresholds=="odds") {
              	thresholds <- log(thresholds)
-             }
-             out$exceedance.prob <- sapply(thresholds, function(x) 
-                                                             apply(eta.sim,2,function(c) mean(c > x)))	
+         } else if(scale.thresholds=="probit") {
+             	thresholds <- qnorm(thresholds)
+         }
+         out$exceedance.prob <- sapply(thresholds, function(x) 
+         apply(eta.sim,2,function(c) mean(c > x)))	
        }       	
    }
    out$grid.pred <- grid.pred
@@ -4942,6 +5033,7 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
 	n.pred <- nrow(grid.pred)
     
 	if(ck) {	
+	  knots <- object$knots	
       U.k.pred.coords <- as.matrix(pdist(grid.pred,knots))
 	} else {	
 	  U <- dist(coords)
@@ -5075,7 +5167,7 @@ coef.PrevMap <- function(object,...) {
 ##' @title Plot of a predicted surface
 ##' @description \code{plot.pred.PrevMap} displays predictions obtained from \code{\link{spatial.pred.linear.MLE}}, \code{\link{spatial.pred.linear.Bayes}},\code{\link{spatial.pred.binomial.MCML}} and \code{\link{spatial.pred.binomial.Bayes}}.
 ##' @param x an object of class "PrevMap".
-##' @param type a character indicating the type of prediction to display: 'prevalence','odds' or 'logit'.
+##' @param type a character indicating the type of prediction to display: 'prevalence','odds', 'logit' or 'probit'.
 ##' @param summary character indicating which summary to display: 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'; default is 'predictions'. If \code{summary="exceedance.prob"}, the argument \code{type} is ignored.
 ##' @param ... further arguments passed to \code{\link{plot}}.
 ##' @method plot pred.PrevMap
@@ -5083,9 +5175,9 @@ coef.PrevMap <- function(object,...) {
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
-plot.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
+plot.pred.PrevMap <- function(x,type,summary="predictions",...) {
 	if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
-	if(length(type)>0 && any(type==c("prevalence","odds","logit"))==FALSE) {
+	if(length(type)>0 && any(type==c("prevalence","odds","logit","probit"))==FALSE) {
 		stop("type must be 'prevalence','odds' or 'logit''")
 	}
 	if(length(type)>0 & summary=="exceedance.prob") warning("the argument 'type' is ignored when summary='exceedance.prob'")
@@ -5137,6 +5229,8 @@ contour.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 ##' @param ... further arguments passed to or from other methods.
 ##' @return A list with the following values
 ##' @return \code{linear}: logical value that is \code{TRUE} if a linear model was fitted and \code{FALSE} otherwise.
+##' @return \code{binary}: logical value that is \code{TRUE} if a binary model was fitted and \code{FALSE} otherwise.
+##' @return \code{probit}: logical value that is \code{TRUE} if a binary model with probit link function was fitted and \code{FALSE} if with logistic link function.
 ##' @return \code{ck}: logical value that is \code{TRUE} if a low-rank approximation was fitted and \code{FALSE} otherwise.
 ##' @return \code{beta}: matrix of the posterior summaries for the regression coefficients.
 ##' @return \code{sigma2}: vector of the posterior summaries for \code{sigma2}.
@@ -5165,11 +5259,23 @@ summary.Bayes.PrevMap <- function(object,hpd.coverage=0.95,...) {
     }
 	if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
 	res <- list()
-	if(length(object$units.m)>0) {
-		res$linear <- FALSE
-	} else {
+	
+	check.binary <- all(object$y==0 | object$y==1)
+
+	res$linear <- FALSE
+	res$binary <- FALSE
+	res$probit <- FALSE
+	
+	if (check.binary){		
+		res$binary <- TRUE
+		if(substr(object$call[1],8,13)=="probit") {
+		   res$probit <- TRUE
+		}
+    } else if (length(object$units.m)==0 & !check.binary) {
 		res$linear <- TRUE
 	}
+	
+	
 	if(length(object$knots)>0) {
 		res$ck <- TRUE
 	} else {
@@ -5219,7 +5325,9 @@ summary.Bayes.PrevMap <- function(object,hpd.coverage=0.95,...) {
 print.summary.Bayes.PrevMap <- function(x,...) {
 	if(x$linear) {
        cat("Bayesian geostatistical linear model \n")
-    } else {
+    } else if(x$probit) {
+       cat("Bayesian binary geostatistical probit model \n") 
+    } else {	
        cat("Bayesian binomial geostatistical logistic model \n")    	
     }
 	if(x$ck) {
@@ -5745,5 +5853,500 @@ continuous.sample<-function(poly,n,delta,k=0,rho=NULL) {
          xy[take2,]<-xy1+radius*c(cos(angle),sin(angle))
          }
       }
-  xy
+    xy
 } 
+
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @importFrom truncnorm rtruncnorm
+##' @importFrom geoR varcov.spatial
+binary.geo.Bayes <- function(formula,coords,data,
+                               ID.coords,
+                               control.prior,
+                               control.mcmc,
+                               kappa,messages) {
+   kappa <- as.numeric(kappa)
+   if(length(control.prior$log.prior.nugget)!=0 |
+      length(control.mcmc$start.nugget) != 0) {
+      stop("inclusion of the nugget effect is not available for binary data.")
+   }
+                                                                                               
+   coords <- as.matrix(model.frame(coords,data,na.action=na.fail))
+
+   out <- list()
+   
+   coords <- as.matrix(unique(coords))
+   
+   if(nrow(coords)!=nrow(unique(coords))) {
+      warning("coincident locations may cause numerical issues in the computation: see ?jitterDupCoords")
+   }
+
+   mf <- model.frame(formula,data=data,na.action=na.fail)
+   y <- as.numeric(model.response(mf))
+   if(any(y > 1)) stop("the response variable must be binary")      
+   n <- length(y)
+   n.x <- nrow(coords)
+   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+
+   p <- ncol(D)
+   
+   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+   
+   U <- dist(coords)
+   V.inv <- control.prior$V.inv
+   m <- control.prior$m   	  
+   nu <- 2*kappa
+   n.S <- as.numeric(tapply(ID.coords,ID.coords,length))
+
+   ind0 <- which(y==0)
+   lim.y <- matrix(NA,ncol=2,nrow=n)
+   lim.y[ind0,1] <- -Inf
+   lim.y[ind0,2] <- 0
+   lim.y[-ind0,1] <- 0
+   lim.y[-ind0,2] <- Inf
+
+   ind.beta <- 1:p
+   ind.S <- (p+1):(n.x+p)
+   cond.cov.inv <- matrix(NA,nrow=n.x+p,ncol=n.x+p)
+   cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
+   cond.cov.inv[ind.S,ind.beta] <- sapply(1:p,
+                                   function(i) 
+                                   tapply(D[,i],ID.coords,sum))
+   cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
+   beta.aux <- as.numeric(V.inv%*%m)
+
+   full.cond.sim <- function(W,sigma2,R.inv) {
+      cond.cov.inv[ind.S,ind.S] <- R.inv/sigma2 
+      diag(cond.cov.inv[ind.S,ind.S]) <- 
+      diag(cond.cov.inv[ind.S,ind.S])+n.S
+      
+      out.param.sim <- list()
+      cond.cov <- solve(cond.cov.inv)
+      b <- c(beta.aux+t(D)%*%W,tapply(W,ID.coords,sum))
+      cond.mean <- as.numeric(cond.cov%*%b)
+      out.sim <- list()
+      sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(n.x+p)
+      out.sim$beta <- sim.par[ind.beta]
+      out.sim$S <- sim.par[ind.S]
+      return(out.sim)
+   }
+
+   log.prior.theta1_2 <- function(theta1,theta2) {
+      sigma2 <- exp(2*theta1)
+      phi <- (exp(2*theta1-theta2))^(1/nu)
+      log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)	
+   }
+
+   log.posterior <- function(theta1,theta2,S,param.post) {
+	  sigma2 <- exp(2*theta1)
+	  as.numeric(log.prior.theta1_2(theta1,theta2)+
+	  -0.5*(n.x*log(sigma2)+param.post$ldetR+
+	  t(S)%*%param.post$R.inv%*%(S)/sigma2))
+   }
+
+   acc.theta1 <- 0
+   acc.theta2 <- 0
+
+   n.sim <- control.mcmc$n.sim 
+   burnin <- control.mcmc$burnin
+   thin <- control.mcmc$thin
+   h.theta1 <- control.mcmc$h.theta1
+   h.theta2 <- control.mcmc$h.theta2
+   
+      
+   c1.h.theta1 <- control.mcmc$c1.h.theta1
+   c2.h.theta1 <- control.mcmc$c2.h.theta1
+   c1.h.theta2 <- control.mcmc$c1.h.theta2
+   c2.h.theta2 <- control.mcmc$c2.h.theta2
+      
+   
+   out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)	
+   colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")    
+
+   out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
+
+   # Initialise all the parameters
+   sigma2.curr <- control.mcmc$start.sigma2
+   phi.curr <- control.mcmc$start.phi
+	
+   theta1.curr <- 0.5*log(sigma2.curr)
+   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+	
+   beta.curr <- control.mcmc$start.beta
+   mu.curr <- as.numeric(D%*%beta.curr)
+   S.curr <- rep(0,n.x)
+   W.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+             mean=S.curr[ID.coords]+mu.curr)
+
+   R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+	         cov.pars=c(1,phi.curr),kappa=kappa,
+	         nugget=0)$varcov
+	  
+  param.post.curr <- list()
+  param.post.curr$R.inv <- solve(R.curr)
+  param.post.curr$ldetR <- determinant(R.curr)$modulus
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,S.curr,param.post.curr)
+     
+       
+  h1 <- rep(NA,n.sim) 
+  h2 <- rep(NA,n.sim) 
+      
+  for(i in 1:n.sim) {
+	
+     # Update theta1 
+     theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+     sigma2.prop <- exp(2*theta1.prop)
+	 phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+     R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+	                          cov.pars=c(1,phi.prop),
+	                          kappa=kappa,nugget=0)$varcov 
+       
+     param.post.prop <- list()	     
+	 param.post.prop$R.inv <- solve(R.prop)
+	 param.post.prop$ldetR <- determinant(R.prop)$modulus
+	 lp.prop <- log.posterior(theta1.prop,theta2.curr,S.curr,param.post.prop) 
+	 
+	 if(log(runif(1)) < lp.prop-lp.curr) {
+	    theta1.curr <- theta1.prop
+	    param.post.curr <- param.post.prop
+	    lp.curr <- lp.prop
+	    sigma2.curr <- sigma2.prop
+	    phi.curr <- phi.prop
+	    acc.theta1 <- acc.theta1+1
+	 } 
+	 rm(theta1.prop,sigma2.prop,phi.prop)   	                                          
+     h1[i] <- h.theta1 <- max(0,h.theta1 + 
+	          (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))                                  
+    	     
+     # Update theta2 
+     theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+	 phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+     R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+	                          cov.pars=c(1,phi.prop),
+	                          kappa=kappa,nugget=0)$varcov 
+         
+     param.post.prop <- list()	     
+	 param.post.prop$R.inv <- solve(R.prop)
+	 param.post.prop$ldetR <- determinant(R.prop)$modulus
+	 lp.prop <- log.posterior(theta1.curr,theta2.prop,S.curr,
+	                          param.post.prop) 	                                         
+	     
+	 if(log(runif(1)) < lp.prop-lp.curr) {
+	    theta2.curr <- theta2.prop
+	    param.post.curr <- param.post.prop
+	    lp.curr <- lp.prop
+	    phi.curr <- phi.prop
+	    acc.theta2 <- acc.theta2+1
+	 }    	                      
+	 rm(theta2.prop,phi.prop)                     
+     h2[i] <- h.theta2 <- max(0,h.theta2 + 
+	          (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))  
+	                                            
+                    
+     # Update beta, S and W
+     sim.curr <- full.cond.sim(W.curr,sigma2.curr,param.post.curr$R.inv)   
+     beta.curr <- sim.curr$beta
+     mu.curr <- as.numeric(D%*%beta.curr)
+     S.curr <- sim.curr$S
+     W.curr <- rtruncnorm(n,lim.y[,1],lim.y[,2],
+               mean=S.curr[ID.coords]+mu.curr)
+     
+     lp.curr <- log.posterior(theta1.curr,theta2.curr,S.curr,
+	                          param.post.curr) 
+	                           
+     if(i > burnin & (i-burnin)%%thin==0) {
+	    out$S[(i-burnin)/thin,] <- S.curr    
+		out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+		                                    phi.curr)
+	
+   	 }
+     if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+     flush.console()                            
+        	
+   }
+   class(out) <- "Bayes.PrevMap"	
+   out$y <- y
+   out$D <- D
+   out$coords <- coords
+   out$kappa <- kappa
+   out$ID.coords <- ID.coords  
+   out$h1 <- h1
+   out$h2 <- h2
+   return(out)
+}
+
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @importFrom truncnorm rtruncnorm
+##' @importFrom pdist pdist
+binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
+                       control.mcmc,control.prior,kappa,messages) {	
+   knots <- as.matrix(knots)
+   coords <- unique(as.matrix(model.frame(coords,data)))
+   
+      
+   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")                                                       	                                                       	
+   mf <- model.frame(formula,data=data)
+   y <- as.numeric(model.response(mf))
+   n <- length(y)
+   N <- nrow(knots)
+   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))	   
+   p <- ncol(D)
+   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+   U.k <- as.matrix(pdist(coords,knots))
+   V.inv <- control.prior$V.inv
+   m <- control.prior$m   	  
+   nu <- 2*kappa
+
+   log.prior.theta1_2 <- function(theta1,theta2) {
+      sigma2 <- exp(2*theta1)
+      phi <- (exp(2*theta1-theta2))^(1/nu)
+      log(phi/kappa)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)	
+   }
+             
+   log.posterior <- function(theta1,theta2,mu,S,W,Z) {
+	  sigma2 <- exp(2*theta1)
+	  mu.Z <- as.numeric(mu+W[ID.coords])
+	  diff.Z <- Z-mu.Z
+	  as.numeric(log.prior.theta1_2(theta1,theta2)+
+	  -0.5*(N*log(sigma2)+sum(S^2)/sigma2)+
+     -0.5*sum(diff.Z^2))
+   }
+            
+   c1.h.theta1 <- control.mcmc$c1.h.theta1
+   c1.h.theta2 <- control.mcmc$c1.h.theta2
+       
+   c2.h.theta1 <- control.mcmc$c2.h.theta1
+   c2.h.theta2 <- control.mcmc$c2.h.theta2
+       
+   h.theta1 <- control.mcmc$h.theta1
+   h.theta2 <- control.mcmc$h.theta2
+       
+   acc.theta1 <- 0
+   acc.theta2 <- 0
+       
+   n.sim <- control.mcmc$n.sim 
+   burnin <- control.mcmc$burnin
+   thin <- control.mcmc$thin
+   
+   out <- list()
+   out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)	
+   colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+   	  	 
+   out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
+   out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
+       
+   # Initialise all the parameters
+   sigma2.curr <- control.mcmc$start.sigma2
+   phi.curr <- control.mcmc$start.phi
+   rho.curr <- phi.curr*2*sqrt(kappa)
+   theta1.curr <- 0.5*log(sigma2.curr)
+   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+
+   beta.curr <- control.mcmc$start.beta
+   mu.curr <- as.numeric(D%*%beta.curr)
+   S.curr <- rep(0,N)
+
+   ind0 <- which(y==0)
+   lim.y <- matrix(NA,ncol=2,nrow=n)
+   lim.y[ind0,1] <- -Inf
+   lim.y[ind0,2] <- 0
+   lim.y[-ind0,1] <- 0
+   lim.y[-ind0,2] <- Inf
+
+   ind.beta <- 1:p
+   ind.S <- (p+1):(N+p)
+   cond.cov.inv <- matrix(NA,nrow=N+p,ncol=N+p)
+   cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
+   beta.aux <- as.numeric(V.inv%*%m)
+
+   n.S <- as.numeric(tapply(ID.coords,ID.coords,length))   
+   D.aux <- sapply(1:p,function(i) tapply(D[,i],ID.coords,sum))
+
+   full.cond.sim <- function(Z,sigma2,K) {
+      cond.cov.inv[ind.S,ind.S] <- t(K*n.S)%*%K 
+      diag(cond.cov.inv[ind.S,ind.S]) <- 
+      diag(cond.cov.inv[ind.S,ind.S])+1/sigma2
+
+      cond.cov.inv[ind.S,ind.beta] <- t(K)%*%D.aux
+      cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
+
+      out.param.sim <- list()
+      cond.cov <- solve(cond.cov.inv)
+      b <- c(beta.aux+t(D)%*%Z,t(K)%*%tapply(Z,ID.coords,sum))
+      cond.mean <- as.numeric(cond.cov%*%b)
+      out.sim <- list()
+      sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(N+p)
+      out.sim$beta <- sim.par[ind.beta]
+      out.sim$S <- sim.par[ind.S]
+      return(out.sim)
+   }
+   	
+   # Compute the log-posterior density
+   K.curr <- matern.kernel(U.k,rho.curr,kappa)	 
+   W.curr <- as.numeric(K.curr%*%S.curr)
+   Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+             mean=mu.curr+W.curr[ID.coords],sd=1)
+   lp.curr <- log.posterior(theta1.curr,theta2.curr,mu.curr,
+              S.curr,W.curr,Z.curr)
+      
+       
+   h1 <- rep(NA,n.sim)
+   h2 <- rep(NA,n.sim)
+   for(i in 1:n.sim) {
+
+      # Update theta1 
+      theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+      sigma2.prop <- exp(2*theta1.prop)
+	  phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+	  rho.prop <- phi.prop*2*sqrt(kappa)
+      K.prop <- matern.kernel(U.k,rho.curr,kappa)
+         
+      W.prop <- as.numeric(K.prop%*%S.curr)
+	  lp.prop <- log.posterior(theta1.prop,theta2.curr,
+	             mu.curr,S.curr,W.prop,Z.curr) 	                                         	     
+	  if(log(runif(1)) < lp.prop-lp.curr) {
+	     theta1.curr <- theta1.prop
+	     lp.curr <- lp.prop
+	     sigma2.curr <- sigma2.prop
+	     phi.curr <- phi.prop
+	     rho.curr <- rho.prop
+	     K.curr <- K.prop
+	     W.curr <- W.prop
+	     acc.theta1 <- acc.theta1+1
+	  } 
+	  rm(theta1.prop,sigma2.prop,phi.prop,K.prop,W.prop,rho.prop)   	                                          
+      h1[i] <- h.theta1 <- max(0,h.theta1 + 
+	  (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))                                    
+    	     
+      # Update theta2 
+      theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+	  phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+	  rho.prop <- 2*phi.prop*sqrt(kappa)
+      K.prop <- matern.kernel(U.k,rho.prop,kappa) 
+         
+      W.prop <- as.numeric(K.prop%*%S.curr)
+	  lp.prop <- log.posterior(theta1.curr,theta2.prop,
+	             mu.curr,S.curr,W.prop,Z.curr) 	                                         
+	     
+	  if(log(runif(1)) < lp.prop-lp.curr) {
+	     theta2.curr <- theta2.prop
+	     lp.curr <- lp.prop
+	     phi.curr <- phi.prop
+	     rho.curr <- rho.prop
+	     K.curr <- K.prop
+	     W.curr <- W.prop
+	     acc.theta2 <- acc.theta2+1
+	  }    	                      
+	  rm(theta2.prop,phi.prop,rho.prop,K.prop,W.prop)                     
+      h2[i] <- h.theta2 <- max(0,h.theta2 + 
+	  (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))                                                          
+	                          
+      # Update beta, S and Z
+      sim.curr <- full.cond.sim(Z.curr,sigma2.curr,K.curr)
+      beta.curr <- sim.curr$beta
+      mu.curr <- as.numeric(D%*%beta.curr)
+      S.curr <- sim.curr$S
+      W.curr <- K.curr%*%S.curr
+      Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+                mean=mu.curr+W.curr[ID.coords],sd=1)
+      
+      lp.curr <- log.posterior(theta1.curr,theta2.curr,
+	             mu.curr,S.curr,W.curr,Z.curr)   
+	                           
+      if(i > burnin & (i-burnin)%%thin==0) {
+	     out$S[(i-burnin)/thin,] <- S.curr
+		 out$estimate[(i-burnin)/thin,] <-
+		 c(beta.curr,sigma2.curr,phi.curr)	
+		 out$const.sigma2[(i-burnin)/thin] <- 
+		 mean(apply(K.curr,1,function(r) sqrt(sum(r^2))))
+   	  }
+      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+      flush.console()                            
+   }
+
+   class(out) <- "Bayes.PrevMap"	
+   out$y <- y
+   out$D <- D
+   out$coords <- coords       
+   out$kappa <- kappa  
+   out$knots <- knots   
+   out$h1 <- h1
+   out$h2 <- h2
+   return(out)
+}
+
+
+##' @title Bayesian estimation for the two-levels binary probit model
+##' @description This function performs Bayesian estimation for a geostatistical binary probit model. It also allows to specify a two-levels model so as to include individual-level and household-level (or any other unit comprising a group of individuals, e.g. village, school, compound, etc...) variables. 
+##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
+##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
+##' @param data a data frame containing the variables in the model. 
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to specify spatial random effects at household-level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param control.prior output from \code{\link{control.prior}}.
+##' @param control.mcmc output from \code{\link{control.mcmc.Bayes}}.
+##' @param kappa value for the shape parameter of the Matern covariance function.
+##' @param low.rank logical; if \code{low.rank=TRUE} a low-rank approximation is required. Default is \code{low.rank=FALSE}.
+##' @param knots if \code{low.rank=TRUE}, \code{knots} is a matrix of spatial knots used in the low-rank approximation. Default is \code{knots=NULL}. 
+##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
+##' @details
+##' This function performs Bayesian estimation for the parameters of the geostatistical binary probit model. Let \eqn{i} and \eqn{j} denote the indices of the \eqn{i}-th household and \eqn{j}-th individual within that household. The response variable \eqn{Y_{ij}} is a binary indicator taking value 1 if the individual has been tested positive for the disease of interest and 0 otherwise. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x_{i})}, \eqn{Y_{ij}} are mutually independent Bernoulli variables with probit link function \eqn{\Phi^{-1}(\cdot)}, i.e.
+##' \deqn{\Phi^{-1}(p_{ij}) = d_{ij}'\beta + S(x_{i}),}
+##' where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-level, with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. 
+##' 
+##' \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi)}; each component of \eqn{\theta} has independent priors that can be freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. The vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{beta.covar}. 
+##'
+##' \bold{Updating regression coefficents and random effects using auxiliary variables.} To update \eqn{\beta} and \eqn{S(x_{i})}, we use an auxiliary variable technique based on Rue and Held (2005). Let \eqn{V_{ij}} denote a set of random variables that conditionally on \eqn{\beta} and \eqn{S(x_{i})}, are mutually independent Gaussian with mean \eqn{d_{ij}'\beta + S(x_{i})} and unit variance. Then, \eqn{Y_{ij}=1} if \eqn{V_{ij} > 0} and \eqn{Y_{ij}=0} otherwise. Using this representation of the model, we use a Gibbs sampler to simulate from the full conditionals of \eqn{\beta}, \eqn{S(x_{i})} and \eqn{V_{ij}}. See Section 4.3 of Rue and Held (2005) for more details. 
+##'
+##' \bold{Updating the covariance parameters with a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{binary.probit.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each parameter from a univariate Gaussian distrubion with variance \eqn{h_{i}^2}. This is tuned using the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration, 0.45 is the optimal acceptance rate for a univariate Gaussian distribution, whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}} and \eqn{\theta_{2}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
+##' 
+##' \bold{Low-rank approximation.}
+##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
+##' @return An object of class "Bayes.PrevMap".
+##' The function \code{\link{summary.Bayes.PrevMap}} is used to print a summary of the fitted model.
+##' The object is a list with the following components:
+##' @return \code{estimate}: matrix of the posterior samples of the model parameters.
+##' @return \code{S}: matrix of the posterior samples for each component of the random effect. 
+##' @return \code{const.sigma2}: vector of the values of the multiplicative factor used to adjust the values of \code{sigma2} in the low-rank approximation.
+##' @return \code{y}: binary observations.
+##' @return \code{D}: matrix of covariarates.
+##' @return \code{coords}: matrix of the observed sampling locations.
+##' @return \code{kappa}: shape parameter of the Matern function.
+##' @return \code{ID.coords}: set of ID values defined through the argument \code{ID.coords}.
+##' @return \code{knots}: matrix of spatial knots used in the low-rank approximation.
+##' @return \code{h1}: vector of values taken by the tuning parameter \code{h.theta1} at each iteration.
+##' @return \code{h2}: vector of values taken by the tuning parameter \code{h.theta2} at each iteration.
+##' @return \code{call}: the matched call.
+##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @references Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applications.} Chapman & Hall, London.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @export
+binary.probit.Bayes <- function(formula,coords,data,ID.coords,
+                           control.prior,control.mcmc,kappa,low.rank=FALSE,
+                           knots=NULL,messages=TRUE) {
+    if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
+    if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
+
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(kappa < 0) stop("kappa must be positive.")
+	if(!low.rank) {
+		res <- binary.geo.Bayes(formula=formula,coords=coords,
+		       data=data,ID.coords=ID.coords,
+		       control.prior=control.prior,
+		       control.mcmc=control.mcmc,
+		       kappa=kappa,messages=messages)
+	} else {
+		res <- binary.geo.Bayes.lr(formula=formula,
+		       coords=coords,data=data,ID.coords=ID.coords,
+		       knots=knots,control.mcmc=control.mcmc,
+		       control.prior=control.prior,kappa=kappa,
+		       messages=messages)
+	}
+	res$call <- match.call()
+	return(res)
+}

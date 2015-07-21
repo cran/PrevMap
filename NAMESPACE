@@ -13,6 +13,7 @@ export(Laplace.sampling)
 export(Laplace.sampling.lr)
 export(adjust.sigma2)
 export(autocor.plot)
+export(binary.probit.Bayes)
 export(binomial.logistic.Bayes)
 export(binomial.logistic.MCML)
 export(continuous.sample)
@@ -40,3 +41,12 @@ importFrom(maxLik,maxBFGS)
 importFrom(pdist,pdist)
 importFrom(raster,rasterFromXYZ)
 importFrom(splancs,csr)
+importFrom(truncnorm,rtruncnorm)
+importFrom("graphics", "abline", "contour", "lines", "plot")
+importFrom("stats", "acf", "cov", "delete.response", "density",
+            "dist", "dlnorm", "dunif", "formula", "median",
+            "model.frame", "model.matrix", "model.response", "na.fail",
+            "nlminb", "optimize", "pnorm", "printCoefmat", "qchisq",
+            "qlnorm", "qnorm", "quantile", "rnorm", "rt", "runif", "sd",
+            "splinefun", "terms", "uniroot")
+importFrom("utils", "flush.console")

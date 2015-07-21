@@ -17,6 +17,10 @@ A list with the following values
 
 \code{linear}: logical value that is \code{TRUE} if a linear model was fitted and \code{FALSE} otherwise.
 
+\code{binary}: logical value that is \code{TRUE} if a binary model was fitted and \code{FALSE} otherwise.
+
+\code{probit}: logical value that is \code{TRUE} if a binary model with probit link function was fitted and \code{FALSE} if with logistic link function.
+
 \code{ck}: logical value that is \code{TRUE} if a low-rank approximation was fitted and \code{FALSE} otherwise.
 
 \code{beta}: matrix of the posterior summaries for the regression coefficients.
