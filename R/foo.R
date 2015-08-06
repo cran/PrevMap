@@ -5167,59 +5167,86 @@ coef.PrevMap <- function(object,...) {
 ##' @title Plot of a predicted surface
 ##' @description \code{plot.pred.PrevMap} displays predictions obtained from \code{\link{spatial.pred.linear.MLE}}, \code{\link{spatial.pred.linear.Bayes}},\code{\link{spatial.pred.binomial.MCML}} and \code{\link{spatial.pred.binomial.Bayes}}.
 ##' @param x an object of class "PrevMap".
-##' @param type a character indicating the type of prediction to display: 'prevalence','odds', 'logit' or 'probit'.
+##' @param type a character indicating the type of prediction to display: 'prevalence','odds', 'logit' or 'probit'. Default is \code{NULL}.
 ##' @param summary character indicating which summary to display: 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'; default is 'predictions'. If \code{summary="exceedance.prob"}, the argument \code{type} is ignored.
 ##' @param ... further arguments passed to \code{\link{plot}}.
 ##' @method plot pred.PrevMap
 ##' @importFrom raster rasterFromXYZ
+##' @importFrom methods getMethod signature
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
-plot.pred.PrevMap <- function(x,type,summary="predictions",...) {
+plot.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 	if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
-	if(length(type)>0 && any(type==c("prevalence","odds","logit","probit"))==FALSE) {
-		stop("type must be 'prevalence','odds' or 'logit''")
+	if(length(type)>0 && 
+	   any(type==c("prevalence","odds","logit","probit"))==FALSE) {
+	   stop("type must be 'prevalence','odds', 'logit' or 'probit'")
 	}
-	if(length(type)>0 & summary=="exceedance.prob") warning("the argument 'type' is ignored when summary='exceedance.prob'")
+	
+	if(length(type)>0 & summary=="exceedance.prob") {
+		   warning("the argument 'type' is ignored when summary='exceedance.prob'")
+    }
+	
+	if(length(type)==0 && summary!="exceedance.prob") {
+	   stop("type must be specified")	
+	}
+	
 	if(summary !="exceedance.prob") {
-   	   if(any(summary==c("predictions","quantiles","standard.errors"))==FALSE) {
-		   stop("summary must be 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'")
+   	     
+   	   if(any(summary==c("predictions",
+   	     "quantiles","standard.errors","exceedance.prob"))==FALSE) {
+		   stop("summary must be 'predictions','quantiles',
+		        'standard.errors' or 'exceedance.prob'")
    	   }
+   	   
    	   r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
-   	   plot(r,...)
 	} else {
-	   r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
-      plot(r,...)	
+	   r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))       
 	}
+	getMethod('plot',signature=signature(x='Raster', y='ANY'))(r,...)
 }
 
 ##' @title Contour plot of a predicted surface 
 ##' @description \code{plot.pred.PrevMap} displays contours of predictions obtained from \code{\link{spatial.pred.linear.MLE}}, \code{\link{spatial.pred.linear.Bayes}},\code{\link{spatial.pred.binomial.MCML}} and \code{\link{spatial.pred.binomial.Bayes}}.
 ##' @param x an object of class "pred.PrevMap".
-##' @param type a character indicating the type of prediction to display: 'prevalence','odds' or 'logit'.
+##' @param type a character indicating the type of prediction to display: 'prevalence', 'odds', 'logit' or 'probit'.
 ##' @param ... further arguments passed to \code{\link{contour}}.
 ##' @param summary character indicating which summary to display: 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'; default is 'predictions'. If \code{summary="exceedance.prob"}, the argument \code{type} is ignored.
 ##' @method contour pred.PrevMap
 ##' @importFrom raster rasterFromXYZ
+##' @importFrom methods getMethod signature
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 contour.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
-	if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
-	if(length(type)>0 && any(type==c("prevalence","odds","logit"))==FALSE) {
-		stop("type must be 'prevalence','odds' or 'logit''")
-	}
-	if(length(type)>0 & summary=="exceedance.prob") warning("the argument 'type' is ignored when summary='exceedance.prob'")
-	if(summary !="exceedance.prob") {
-   	   if(any(summary==c("predictions","quantiles","standard.errors"))==FALSE) {
-		   stop("summary must be 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'")
-   	   }
-   	   r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
-   	   contour(r,...)
-	} else {
-	   r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
-      contour(r,...)	
-	}
+	
+   if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
+	
+   if(length(type)>0 && 
+	   any(type==c("prevalence","odds","logit","probit"))==FALSE) {
+	   stop("type must be 'prevalence','odds', 'logit' or 'probit'")
+   }
+	
+   if(length(type)>0 & summary=="exceedance.prob") {
+		warning("the argument 'type' is ignored when 
+		         summary='exceedance.prob'")
+   }
+	
+   if(length(type)==0 && summary!="exceedance.prob") {
+	   stop("type must be specified")	
+   }
+	
+   if(summary !="exceedance.prob") {
+      if(any(summary==c("predictions","quantiles",
+   	        	            "standard.errors"))==FALSE) {
+		   stop("summary must be 'predictions','quantiles', 
+		         'standard.errors' or 'exceedance.prob'")
+   	  }
+   	  r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))   	   
+   } else {
+	  r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
+   }
+   getMethod('contour',signature=signature(x='RasterLayer'))(r,...)
 }
 
 ##' @title Summarizing Bayesian model fits

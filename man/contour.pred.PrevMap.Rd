@@ -8,7 +8,7 @@
 \arguments{
 \item{x}{an object of class "pred.PrevMap".}
 
-\item{type}{a character indicating the type of prediction to display: 'prevalence','odds' or 'logit'.}
+\item{type}{a character indicating the type of prediction to display: 'prevalence', 'odds', 'logit' or 'probit'.}
 
 \item{summary}{character indicating which summary to display: 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'; default is 'predictions'. If \code{summary="exceedance.prob"}, the argument \code{type} is ignored.}
 

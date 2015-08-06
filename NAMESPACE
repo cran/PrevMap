@@ -38,15 +38,12 @@ export(trace.plot)
 importFrom(geoR,matern)
 importFrom(geoR,varcov.spatial)
 importFrom(maxLik,maxBFGS)
+importFrom(methods,getMethod)
+importFrom(methods,signature)
 importFrom(pdist,pdist)
 importFrom(raster,rasterFromXYZ)
 importFrom(splancs,csr)
 importFrom(truncnorm,rtruncnorm)
-importFrom("graphics", "abline", "contour", "lines", "plot")
-importFrom("stats", "acf", "cov", "delete.response", "density",
-            "dist", "dlnorm", "dunif", "formula", "median",
-            "model.frame", "model.matrix", "model.response", "na.fail",
-            "nlminb", "optimize", "pnorm", "printCoefmat", "qchisq",
-            "qlnorm", "qnorm", "quantile", "rnorm", "rt", "runif", "sd",
-            "splinefun", "terms", "uniroot")
-importFrom("utils", "flush.console")
+importFrom(graphics,abline,contour,lines,plot)
+importFrom(stats,acf,cov,delete.response,density,dist,dlnorm,dunif,formula,median,model.frame,model.matrix,model.response,na.fail,nlminb,optimize,pnorm,printCoefmat,qchisq,qlnorm,qnorm,quantile,rnorm,rt,runif,sd,splinefun,terms,uniroot)
+importFrom(utils,flush.console)
