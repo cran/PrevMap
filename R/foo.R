@@ -1104,7 +1104,8 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
       estim$method <- method 
       estim$ID.coords <- ID.coords
       estim$kappa <- kappa  
-      estim$h <- S.sim.res$h    
+      estim$h <- S.sim.res$h 
+      estim$samples <- S.sim   
       if(length(fixed.rel.nugget)>0) estim$fixed.rel.nugget <- fixed.rel.nugget
       class(estim) <- "PrevMap"      
       return(estim)
@@ -1158,6 +1159,7 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 ##' @return \code{knots}: matrix of the spatial knots used in the low-rank approximation.
 ##' @return \code{const.sigma2}: adjustment factor for \code{sigma2} in the low-rank approximation.
 ##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
+##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
@@ -1515,6 +1517,38 @@ summary.PrevMap <- function(object, log.cov.pars = TRUE,...) {
     res$call <- object$call               
     class(res) <- "summary.PrevMap"
     return(res)
+}
+
+##' @title Trace-plots of the importance sampling distribution samples from the MCML method 
+##' @description Trace-plots of the MCMC samples from the importance sampling distribution used in \code{\link{binomial.logistic.MCML}}.
+##' @param object an object of class "PrevMap" obatained as result of a call to \code{\link{binomial.logistic.MCML}}.
+##' @param component a positive integer indicating the number of the random effect component for which a trace-plot is required. If \code{component=NULL}, then a component is selected at random. Default is \code{component=NULL}. 
+##' @param ... further arguments passed to \code{\link{plot}}.
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @export
+trace.plot.MCML <- function(object,component=NULL,...) {
+	if(class(object)!="PrevMap") {
+	   stop("'object' must be of class 'PrevMap'")	
+	}
+	
+	
+	
+	if(length(object$units.m)==0) {
+	   stop("'object' must be the output of a call to the 'binomial.logistic.MCML' function")
+	}
+	
+	n.samples <- ncol(object$samples)
+	if(length(component)==0) {
+		component <- sample(1:n.samples,1)
+	}
+	
+	if(component > n.samples) stop("'components' must not be greater than the number of random effects in the model")
+	
+	re <- object$samples[,component]
+	cat("Plotted component number",component,"\n")
+	plot(re,type="l",ylab="",xlab="Iteration",
+	     main=paste("Component number",component))
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
@@ -2079,6 +2113,7 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
       estim$knots <- knots    
       estim$const.sigma2 <- const.sigma2      
       estim$h <- Z.sim.res$h
+      estim$samples <- Z.sim
       class(estim) <- "PrevMap"
       return(estim)
 }

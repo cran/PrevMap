@@ -1,7 +1,7 @@
-cadb2ae5db4e140d1f9df8009edfccb9 *DESCRIPTION
-e18200c7e1898f430839fb099938dd91 *NAMESPACE
+6e1cf72779bec97cae3341aa5d2195b0 *DESCRIPTION
+3b6a4c855acbd184db01ee734f14087c *NAMESPACE
 b7c4e4253c6dbe9a6c9cf60733c71570 *R/data_sim.R
-23cd716a8914a47c495ae28dbaaac79b *R/foo.R
+cb8d90e413705ec9c407be1c8f28c109 *R/foo.R
 8b88e3fa47b7e95ccaf7db778269c45f *R/loaloa.R
 a3703512599205c553c93842dee9558e *data/data_sim.rdata
 5857e24e574d7e962b2ab17777928b32 *data/loaloa.rdata
@@ -11,7 +11,7 @@ a87eb44000a46a996902ba27bb7cf35d *man/adjust.sigma2.Rd
 03c5857364057f4cbb214ef1c79aeaf7 *man/autocor.plot.Rd
 bf24c959a34e072e4782b8a14761b0e6 *man/binary.probit.Bayes.Rd
 97a2198558e33a709721090b01750baf *man/binomial.logistic.Bayes.Rd
-95bab1e00a6083f0be2b74f14d418148 *man/binomial.logistic.MCML.Rd
+8b89ef3ae78f8620983adfbbcd203019 *man/binomial.logistic.MCML.Rd
 e54bd384011ff14f9b007c96fc570b6f *man/coef.PrevMap.Rd
 fc0795e93d14dff49202efdff83fd7a4 *man/continuous.sample.Rd
 e7191087e88ed32e21afe5c8588aa371 *man/contour.pred.PrevMap.Rd
@@ -39,4 +39,5 @@ aaa48c208c138f194fda75eee9ebf5b4 *man/spatial.pred.linear.Bayes.Rd
 b3977ef4103c57f37445647d84540beb *man/spatial.pred.linear.MLE.Rd
 e0c6cd2a3918e3b14e222bfa183367c8 *man/summary.Bayes.PrevMap.Rd
 cdcdf62bed3eb212e67fde47154df57a *man/summary.PrevMap.Rd
+e64b4e22247779923a728a0b315d97db *man/trace.plot.MCML.Rd
 7de791572539f239768df0e2fff18624 *man/trace.plot.Rd

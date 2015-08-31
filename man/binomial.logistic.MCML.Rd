@@ -70,6 +70,8 @@ The object is a list with the following components:
 
 \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
 
+\code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
+
 \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 
 \code{call}: the matched call.
