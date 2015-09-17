@@ -1622,7 +1622,7 @@ print.summary.PrevMap <- function(x,...) {
 ##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.
 ##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed. 
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
-##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor of the binomial logistic model (if \code{scale.predictions="logit"} this component is \code{NULL}); \code{grid.pred} prediction locations. 
+##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the predictive samples at each prediction locations for the linear predictor of the binomial logistic model (if \code{scale.predictions="logit"} this component is \code{NULL}); \code{grid.pred} prediction locations. 
 ##' Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
 ##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).
 ##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
@@ -1852,7 +1852,9 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
           } 
        }	   
     }
-    if(scale.predictions=="odds" | scale.predictions=="prevalence"){
+    
+    if(any(scale.predictions=="odds") | 
+       any(scale.predictions=="prevalence")) {
        out$samples <- eta.sim	
     }
     out$grid <- grid.pred
@@ -2388,7 +2390,7 @@ geo.linear.MLE <- function(formula,coords,data,kappa,fixed.rel.nugget=NULL,start
 ##' @param thresholds a vector of exceedance thresholds; default is \code{thresholds=NULL}.
 ##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
-##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{grid.pred} prediction locations. 
+##' @return A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{grid.pred} prediction locations; \code{samples}, corresponding to the predictive samples of the linear predictor (only if \code{any(scale.predictions=="prevalence")}). 
 ##' Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
 ##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).
 ##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
@@ -2573,6 +2575,9 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
        }	   
     }  
     out$grid.pred <- grid.pred
+    if(any(scale.predictions=="prevalence")) {
+       out$samples <- eta.sim
+    }
     class(out) <- "pred.PrevMap"
     out
 }
@@ -4042,7 +4047,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 		   if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
 	   }
 	   if(messages) cat("\n")    
-       if(any(scale.predictions=="logit" | scale.predictions=="probit")) {
+       if(any(scale.predictions=="logit") | 
+          any(scale.predictions=="probit")) {
        	 if(messages) {
        	 	if(check.probit) {
        	 		cat("Spatial prediction: probit \n")
@@ -4152,7 +4158,8 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
          if(messages) cat("Iteration ",j," out of ",n.samples,"\r")   	             
       }
       cat("\n")    
-      if(any(scale.predictions=="logit" | scale.predictions=="probit")) {
+      if(any(scale.predictions=="logit") | 
+         any(scale.predictions=="probit")) {
       	if(messages) {
        	 	if(check.probit) {
        	 		cat("Spatial prediction: probit \n")
