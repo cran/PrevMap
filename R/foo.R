@@ -1,31 +1,44 @@
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom maxLik maxBFGS
-maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL) {
+maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
 	if(length(ID.coords)==0) {
     Sigma.inv <- solve(Sigma)
 
 	integrand <- function(S) {
+            if(poisson.llik) {
+               llik <- sum(y*S-units.m*exp(S))
+            } else {
+               llik <- sum(y*S-units.m*log(1+exp(S)))
+            }
 		diff.S <- S-mu
 		q.f_S <- t(diff.S)%*%Sigma.inv%*%(diff.S)
 		-0.5*(q.f_S)+
-		sum(y*S-units.m*log(1+exp(S)))
+		llik
 	}
 	
-    grad.integrand <- function(S) {
+      grad.integrand <- function(S) {
 		diff.S <- S-mu
-		h <- units.m*exp(S)/(1+exp(S))
+		if(poisson.llik) {
+               h <- units.m*exp(S)
+            } else {
+               h <- units.m*exp(S)/(1+exp(S))
+            }
 		as.numeric(-Sigma.inv%*%diff.S+(y-h))
 	}
 
 	hessian.integrand <- function(S) {
-		h1 <- units.m*exp(S)/((1+exp(S))^2)
+		if(poisson.llik) {
+               h1 <- units.m*exp(S)
+            } else {
+               h1 <- units.m*exp(S)/((1+exp(S))^2)
+            }
 		res <- -Sigma.inv	
 		diag(res) <- diag(res)-h1
 		res
 	}
 	
-    out <- list()
+      out <- list()
 	estim <- maxBFGS(function(x) integrand(x),function(x) grad.integrand(x),
 	            function(x) hessian.integrand(x),start=mu)
 	out$mode <- estim$estimate
@@ -35,7 +48,7 @@ maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL) {
     Sigma.inv <- solve(Sigma)
     n.x <- dim(Sigma.inv)[1]
 	C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
-	integrand <- function(S) {
+	integrand <- function(S) {         
 		q.f_S <- t(S)%*%Sigma.inv%*%(S)
 		eta <- mu+as.numeric(S[ID.coords])
 		-0.5*q.f_S+
@@ -70,40 +83,53 @@ maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL) {
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom maxLik maxBFGS
-maxim.integrand.lr <- function(y,units.m,mu,sigma2,K) {
+maxim.integrand.lr <- function(y,units.m,mu,sigma2,K,poisson.llik) {
 
 	integrand <- function(z) {
+            
 		s <- as.numeric(K%*%z)
 		eta <- as.numeric(mu+s)
+            if(poisson.llik) {
+               llik <- sum(y*eta-units.m*exp(eta))
+            } else {
+               llik <- sum(y*eta-units.m*log(1+exp(eta)))
+            }
 		-0.5*(sum(z^2)/sigma2)+
-		sum(y*eta-units.m*log(1+exp(eta)))
+		llik
 	}
 	
-    grad.integrand <- function(z) {
+      grad.integrand <- function(z) {
 		s <- as.numeric(K%*%z)
 		eta <- as.numeric(mu+s)
-		h <- units.m*exp(eta)/(1+exp(eta))
+            if(poisson.llik) {
+               h <- units.m*exp(eta)
+            } else {
+               h <- units.m*exp(eta)/(1+exp(eta))
+            }
 		as.numeric(-z/sigma2+t(K)%*%(y-h))		
 	}
 
 	hessian.integrand <- function(z) {
 		s <- as.numeric(K%*%z)
 		eta <- as.numeric(mu+s)
-		h <- units.m*exp(eta)/(1+exp(eta))
-		h1 <- h/(1+exp(eta))
+		if(poisson.llik) {
+               h1 <- units.m*exp(eta)
+            } else {
+               h1 <- units.m*exp(eta)/((1+exp(eta))^2)
+            }
 		out <- -t(K)%*%(K*h1)
 		diag(out) <- diag(out)-1/sigma2
 		out
 	}
 	N <- ncol(K)
-    out <- list()
+      out <- list()
 	estim <- maxBFGS(function(x) integrand(x),
 	                             function(x) grad.integrand(x),
 	                             function(x) hessian.integrand(x),rep(0,N))
 	out$mode <- estim$estimate
 	out$Sigma.tilde <- solve(-estim$hessian)             
             
-    return(out)
+      return(out)
 }
 
 
@@ -141,23 +167,26 @@ create.ID.coords <- function(data,coords) {
 }
 
 ##' @title Langevin-Hastings MCMC for conditional simulation 
-##' @description This function simulates from the conditional distribution of a Gaussian random effect, given binomial observations \code{y}.
+##' @description This function simulates from the conditional distribution of a Gaussian random effect, given binomial or Poisson observations \code{y}.
 ##' @param mu mean vector of the marginal distribution of the random effect.
 ##' @param Sigma covariance matrix of the marginal distribution of the random effect.
-##' @param y vector of binomial observations.
-##' @param units.m vector of binomial denominators.
+##' @param y vector of binomial/Poisson observations.
+##' @param units.m vector of binomial denominators, or offset if the Poisson model is used.
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
 ##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed. 
-##' @details Conditionally on the random effect \eqn{S}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. The logistic link function is used for the linear predictor, which assumes the form \deqn{\log(p/(1-p))=S.} The random effect \eqn{S} has a multivariate Gaussian distribution with mean \code{mu} and covariance matrix \code{Sigma}. 
+##' @param poisson.llik logical; if \code{poisson.llik=TRUE} a Poisson model is used or, if \code{poisson.llik=FALSE}, a binomial model is used.
+##' @details \bold{Binomial model.} Conditionally on the random effect \eqn{S}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. The logistic link function is used for the linear predictor, which assumes the form \deqn{\log(p/(1-p))=S.} 
+##' \bold{Poisson model.} Conditionally on the random effect \eqn{S}, the data \code{y} follow a Poisson distribution with mean \eqn{m\lambda}, where \eqn{m} is an offset set through the argument \code{units.m}. The log link function is used for the linear predictor, which assumes the form \deqn{\log(\lambda)=S.} 
+##' The random effect \eqn{S} has a multivariate Gaussian distribution with mean \code{mu} and covariance matrix \code{Sigma}. 
 ##'
 ##' \bold{Laplace sampling.} This function generates samples from the distribution of \eqn{S} given the data \code{y}. Specifically a Langevin-Hastings algorithm is used to update \eqn{\tilde{S} = \tilde{\Sigma}^{-1/2}(S-\tilde{s})} where \eqn{\tilde{\Sigma}} and \eqn{\tilde{s}} are the inverse of the negative Hessian and the mode of the distribution of \eqn{S} given \code{y}, respectively. At each iteration a new value \eqn{\tilde{s}_{prop}} for \eqn{\tilde{S}} is proposed from a multivariate Gaussian distribution with mean \deqn{\tilde{s}_{curr}+(h/2)\nabla \log f(\tilde{S} | y),}
 ##' where \eqn{\tilde{s}_{curr}} is the current value for \eqn{\tilde{S}}, \eqn{h} is a tuning parameter and \eqn{\nabla \log f(\tilde{S} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{S}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
 ##' where \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants, and \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (\eqn{0.547} is the optimal acceptance rate for a multivariate standard Gaussian distribution). 
 ##' The starting value for \eqn{h}, and the values for \eqn{c_{1}} and \eqn{c_{2}} can be set through the function \code{\link{control.mcmc.MCML}}.
 ##' 
-##' \bold{Random effects at household-level.} When the data consist of two nested levels, such as households and individuals within households, the argument \code{ID.coords} must be used to define the household IDs for each individual. Let \eqn{i} and \eqn{j} denote the \eqn{i}-th household and the \eqn{j}-th person within that household; the logistic link function then assumes the form \deqn{\log(p_{ij}/(1-p_{ij}))=\mu_{ij}+S_{i}} where the random effects \eqn{S_{i}} are now defined at household level and have mean zero.  
+##' \bold{Random effects at household-level.} When the data consist of two nested levels, such as households and individuals within households, the argument \code{ID.coords} must be used to define the household IDs for each individual. Let \eqn{i} and \eqn{j} denote the \eqn{i}-th household and the \eqn{j}-th person within that household; the logistic link function then assumes the form \deqn{\log(p_{ij}/(1-p_{ij}))=\mu_{ij}+S_{i}} where the random effects \eqn{S_{i}} are now defined at household level and have mean zero. \bold{Warning:} this modelling option is available only for the binomial model. 
 ##' @return A list with the following components
 ##' @return \code{samples}: a matrix, each row of which corresponds to a sample from the predictive distribution.
 ##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
@@ -179,30 +208,47 @@ create.ID.coords <- function(data,coords) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 Laplace.sampling <- function(mu,Sigma,y,units.m,
-                                               control.mcmc,ID.coords=NULL,
-                                               messages=TRUE,
-                                               plot.correlogram=TRUE) {
+                             control.mcmc,ID.coords=NULL,
+                             messages=TRUE,
+                             plot.correlogram=TRUE,poisson.llik=FALSE) {
+
+   if(poisson.llik==TRUE & length(ID.coords)>0) {
+      stop("Two-levels models can only be used for binomial data.")
+   }
+
    if(length(ID.coords)==0) {                                               	
 	n.sim <- control.mcmc$n.sim
 	n <- length(y)
-	S.estim <- maxim.integrand(y,units.m,mu,Sigma)
+	S.estim <- maxim.integrand(y,units.m,mu,Sigma,
+                                 poisson.llik=poisson.llik)
 	Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
 	A <- solve(Sigma.sroot)
 	Sigma.W.inv <- solve(A%*%Sigma%*%t(A))
 	mu.W <- as.numeric(A%*%(mu-S.estim$mode))
 	
 	cond.dens.W <- function(W,S) {
-	      n <- length(y)		
-	      diff.W <- W-mu.W
+          if(poisson.llik) {
+            llik <- sum(y*S-units.m*exp(S))
+          } else {
+            llik <- sum(y*S-units.m*log(1+exp(S)))
+          }
+
+	    n <- length(y)		
+	    diff.W <- W-mu.W
           -0.5*as.numeric(t(diff.W)%*%Sigma.W.inv%*%diff.W)+
-          sum(y*S-units.m*log(1+exp(S)))
-    }
+          llik
+      }
 
     lang.grad <- function(W,S) {
 	    diff.W <- W-mu.W
-        h <- as.numeric(units.m*exp(S)/(1+exp(S)))
+          if(poisson.llik) {
+            h <- as.numeric(units.m*exp(S))
+          } else {
+            h <- as.numeric(units.m*exp(S)/(1+exp(S)))
+          }
+
 	    as.numeric(-Sigma.W.inv%*%diff.W+
-        t(Sigma.sroot)%*%(y-h))
+          t(Sigma.sroot)%*%(y-h))
     }
   
     h <- control.mcmc$h
@@ -312,8 +358,8 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
 	      acc <- acc+1
 	      W.curr <- W.prop
 	      S.curr <- S.prop
-		  lp.curr <- lp.prop
-		  mean.curr <- mean.prop
+		lp.curr <- lp.prop
+		mean.curr <- mean.prop
 	   }
 
 	   if( i > burnin & (i-burnin)%%thin==0) {
@@ -342,16 +388,19 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
 }
 
 ##' @title Langevin-Hastings MCMC for conditional simulation (low-rank approximation)
-##' @description This function simulates from the conditional distribution of the random effects in a binomial mixed model.
+##' @description This function simulates from the conditional distribution of the random effects of binomial and Poisson models.
 ##' @param mu mean vector of the linear predictor.
 ##' @param sigma2 variance of the random effect.
 ##' @param K random effect design matrix, or kernel matrix for the low-rank approximation.
-##' @param y vector of binomial observations.
-##' @param units.m vector of binomial denominators.
+##' @param y vector of binomial/Poisson observations.
+##' @param units.m vector of binomial denominators, or offset if the Poisson model is used.
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
 ##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed.
-##' @details Conditionally on \eqn{Z}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. Let \eqn{K} denote the random effects design matrix; a logistic link function is used, thus the linear predictor assumes the form \deqn{\log(p/(1-p))=\mu + KZ} where \eqn{\mu} is the mean vector component defined through \code{mu}. The random effect \eqn{Z} has iid components distributed as zero-mean Gaussian variables with variance \code{sigma2}. 
+##' @param poisson.llik logical; if \code{poisson.llik=TRUE} a Poisson model is used or, if \code{poisson.llik=FALSE}, a binomial model is used.
+##' @details \bold{Binomial model.} Conditionally on \eqn{Z}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. Let \eqn{K} denote the random effects design matrix; a logistic link function is used, thus the linear predictor assumes the form \deqn{\log(p/(1-p))=\mu + KZ} where \eqn{\mu} is the mean vector component defined through \code{mu}.
+##' \bold{Poisson model.} Conditionally on \eqn{Z}, the data \code{y} follow a Poisson distribution with mean \eqn{m\lambda}, where \eqn{m} is an offset set through the argument \code{units.m}. Let \eqn{K} denote the random effects design matrix; a log link function is used, thus the linear predictor assumes the form \deqn{\log(\lambda)=\mu + KZ} where \eqn{\mu} is the mean vector component defined through \code{mu}.
+##' The random effect \eqn{Z} has iid components distributed as zero-mean Gaussian variables with variance \code{sigma2}. 
 ##'
 ##' \bold{Laplace sampling.} This function generates samples from the distribution of \eqn{Z} given the data \code{y}. Specifically, a Langevin-Hastings algorithm is used to update \eqn{\tilde{Z} = \tilde{\Sigma}^{-1/2}(Z-\tilde{z})} where \eqn{\tilde{\Sigma}} and \eqn{\tilde{z}} are the inverse of the negative Hessian and the mode of the distribution of \eqn{Z} given \code{y}, respectively. At each iteration a new value \eqn{\tilde{z}_{prop}} for \eqn{\tilde{Z}} is proposed from a multivariate Gaussian distribution with mean \deqn{\tilde{z}_{curr}+(h/2)\nabla \log f(\tilde{Z} | y),}
 ##' where \eqn{\tilde{z}_{curr}} is the current value for \eqn{\tilde{Z}}, \eqn{h} is a tuning parameter and \eqn{\nabla \log f(\tilde{Z} | y)} is the the gradient of the log-density of the distribution of \eqn{\tilde{Z}} given \code{y}. The tuning parameter \eqn{h} is updated according to the following adaptive scheme: the value of \eqn{h} at the \eqn{i}-th iteration, say \eqn{h_{i}}, is given by \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.547),}
@@ -366,36 +415,48 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 Laplace.sampling.lr <- function(mu,sigma2,K,y,units.m,
-                                                  control.mcmc,
-                                                  messages=TRUE,
-                                                  plot.correlogram=TRUE) {
+                                control.mcmc,
+                                messages=TRUE,
+                                plot.correlogram=TRUE,
+                                poisson.llik=FALSE) {
 	n.sim <- control.mcmc$n.sim
 	n <- length(y)
 	N <- ncol(K)
-	S.estim <- maxim.integrand.lr(y,units.m,mu,sigma2,K)
+	S.estim <- maxim.integrand.lr(y,units.m,mu,sigma2,K,
+                 poisson.llik=poisson.llik)
 	Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
 	A <- solve(Sigma.sroot)
 	Sigma.W.inv <- solve(sigma2*A%*%t(A))
 	mu.W <- -as.numeric(A%*%S.estim$mode)
 	
-    cond.dens.W <- function(W,Z) {
+      cond.dens.W <- function(W,Z) {
 	   diff.w <- W-mu.W
 	   S <- as.numeric(K%*%Z)
-       eta <- as.numeric(mu+S)
-       -0.5*as.numeric(t(diff.w)%*%Sigma.W.inv%*%diff.w)+
-       sum(y*eta-units.m*log(1+exp(eta)))
-    }
+         eta <- as.numeric(mu+S)
+         if(poisson.llik) {
+            llik <- sum(y*eta-units.m*exp(eta))
+         } else {
+            llik <- sum(y*eta-units.m*log(1+exp(eta)))
+         }
 
-    lang.grad <- function(W,Z) {
- 	    diff.w <- W-mu.W
- 	    S <- as.numeric(K%*%Z)
-        eta <- as.numeric(mu+S)
-        h <- units.m*exp(eta)/(1+exp(eta)) 
-    
-        grad.z <- t(K)%*%(y-h)
-        as.numeric(-Sigma.W.inv%*%(W-mu.W)+
-        t(Sigma.sroot)%*%c(grad.z))
-    }
+         -0.5*as.numeric(t(diff.w)%*%Sigma.W.inv%*%diff.w)+
+         llik
+      }
+
+      lang.grad <- function(W,Z) {
+ 	   diff.w <- W-mu.W
+ 	   S <- as.numeric(K%*%Z)
+         eta <- as.numeric(mu+S)
+         if(poisson.llik) {
+            h <- units.m*exp(eta)
+         } else {
+            h <- units.m*exp(eta)/(1+exp(eta)) 
+         }
+
+         grad.z <- t(K)%*%(y-h)
+         as.numeric(-Sigma.W.inv%*%(W-mu.W)+
+         t(Sigma.sroot)%*%c(grad.z))
+      }
 
     h <- control.mcmc$h    
     burnin <- control.mcmc$burnin
@@ -512,21 +573,20 @@ matern.kernel <- function(u,rho,kappa) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom geoR varcov.spatial
 ##' @importFrom maxLik maxBFGS
-binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
+geo.MCML <- function(formula,units.m,coords,data,ID.coords,
                                                    par0,control.mcmc,kappa,
                                                    fixed.rel.nugget,
                                                    start.cov.pars,
                                                    method,messages,
-                                                   plot.correlogram) {
+                                                   plot.correlogram,
+                                                   poisson.llik) {
     start.cov.pars <- as.numeric(start.cov.pars)
     if(any(start.cov.pars < 0)) stop("start.cov.pars must be positive")
     if((length(fixed.rel.nugget)==0 & length(start.cov.pars)!=2) |
        (length(fixed.rel.nugget)>0 & length(start.cov.pars)!=1)) stop("wrong values for start.cov.pars")
     kappa <- as.numeric(kappa)
     if(any(is.na(data))) stop("missing values are not accepted")     
-    units.m <-  as.numeric(model.frame(units.m,data)[,1])   
-    if(is.numeric(units.m)==FALSE) stop("binomial denominators must be numeric values.")                                             
-    
+        
     der.phi <- function(u,phi,kappa) {
         u <- u+10e-16
         if(kappa==0.5) {
@@ -587,17 +647,25 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
 
     mf <- model.frame(formula,data=data)
-	y <- as.numeric(model.response(mf))
-	n <- length(y)
-	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-	p <- ncol(D)
-	if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
-	beta0 <- par0[1:p]
-	mu0 <- as.numeric(D%*%beta0)
+    y <- as.numeric(model.response(mf))
+    n <- length(y)
+    if(poisson.llik && length(units.m)==0) {
+      units.m <- rep(1,n)
+    } else {
+      units.m <-  as.numeric(model.frame(units.m,data)[,1])  
+    }
+     
+    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+    
+    D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+    p <- ncol(D)
+    if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
+    beta0 <- par0[1:p]
+    mu0 <- as.numeric(D%*%beta0)
 		
-	sigma2.0 <- par0[p+1]
-	phi0 <- par0[p+2]
-	if(length(fixed.rel.nugget)>0){
+    sigma2.0 <- par0[p+1]
+    phi0 <- par0[p+2]
+    if(length(fixed.rel.nugget)>0){
 	   if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length")
 	   if(length(par0)!=(p+2)) stop("wrong length of par0")	
 	   tau2.0 <- fixed.rel.nugget	
@@ -613,17 +681,23 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 	                                        nugget=tau2.0,kappa=kappa)$varcov		
 
     n.sim <- control.mcmc$n.sim
-	S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,
-	              plot.correlogram=plot.correlogram,messages=messages)
-	S.sim <- S.sim.res$samples
+    S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,
+	             plot.correlogram=plot.correlogram,messages=messages,
+                   poisson.llik=poisson.llik)
+    S.sim <- S.sim.res$samples
 	
     log.integrand <- function(S,val) {
+       if(poisson.llik) {
+          llik <- sum(y*S-units.m*exp(S))
+       } else {
+          llik <- sum(y*S-units.m*log(1+exp(S)))
+       }
        diff.S <- S-val$mu
        q.f_S <-    t(diff.S)%*%val$R.inv%*%(diff.S)
        -0.5*(n*log(val$sigma2)+
        val$ldetR+
        q.f_S/val$sigma2)+
-       sum(y*S-units.m*log(1+exp(S)))
+       llik
     }	
    
     compute.log.f <- function(par,ldetR=NA,R.inv=NA) {            
@@ -870,7 +944,8 @@ binomial.geo.MCML <- function(formula,units.m,coords,data,ID.coords,
 	                                        	
     n.sim <- control.mcmc$n.sim
 	S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,ID.coords,
-	               plot.correlogram=plot.correlogram,messages=messages)
+	               plot.correlogram=plot.correlogram,messages=messages,
+                     poisson.llik=FALSE)
     S.sim <- S.sim.res$samples
     log.integrand <- function(S,val) {
         n <- length(y)
@@ -1206,16 +1281,16 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
     if(kappa < 0) stop("kappa must be positive.")
     if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
 	if(!low.rank) {
-		res <- binomial.geo.MCML(formula=formula,units.m=units.m,coords=coords,
+		res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
 		           data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
 		           kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
 		           start.cov.pars=start.cov.pars,method=method,messages=messages,
-		           plot.correlogram=plot.correlogram)
+		           plot.correlogram=plot.correlogram,poisson.llik=FALSE)
 	} else {
-		res <- binomial.geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
+		res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
 		           data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
 		           kappa=kappa,start.cov.pars=start.cov.pars,method=method,
-		           messages=messages,plot.correlogram=plot.correlogram)		
+		           messages=messages,plot.correlogram=plot.correlogram,poisson.llik=FALSE)		
 	}
 	res$call <- match.call()
 	return(res)
@@ -1276,7 +1351,8 @@ binomial.logistic.MCML <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##'
 ##' # Logit transformation
 ##' data_subset$logit <- log(data_subset$y+0.5)/
-##'                                  (data_subset$units.m-data_subset$y+0.5)                              
+##'                      (data_subset$units.m-
+##'                       data_subset$y+0.5)                              
 ##' knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
 ##' 
 ##' fit <- linear.model.MLE(formula=logit~1,coords=~x1+x2,data=data_subset,
@@ -1403,6 +1479,7 @@ linear.model.Bayes <- function(formula,coords,data,
 ##' @param ... further arguments passed to or from other methods.
 ##' @return A list with the following components
 ##' @return \code{linear}: logical value; \code{linear=TRUE} if a linear model was fitted and \code{linear=FALSE} otherwise.
+##' @return \code{poisson}: logical value; \code{poisson=TRUE} if a Poisson model was fitted and \code{poisson=FALSE} otherwise.
 ##' @return \code{ck}: logical value; \code{ck=TRUE} if a low-rank approximation was used and \code{ck=FALSE} otherwise.
 ##' @return \code{coefficients}: matrix of the estimates, standard errors and p-values of the estimates of the regression coefficients.
 ##' @return \code{cov.pars}: matrix of the estimates and standard errors of the covariance parameters.
@@ -1418,9 +1495,16 @@ summary.PrevMap <- function(object, log.cov.pars = TRUE,...) {
 	res <- list()
 	if(length(object$units.m)==0) {
     	   res$linear<-TRUE
-    } else {
+      } else {
     	   res$linear<-FALSE
-    }   
+      }
+
+      if(substr(object$call[1],1,7)=="poisson") {
+         res$poisson <- TRUE
+      } else {
+         res$poisson <- FALSE
+      }
+   
 	if(length(dim(object$knots))==0) {
 		res$ck<-FALSE
 	} else {
@@ -1532,8 +1616,6 @@ trace.plot.MCML <- function(object,component=NULL,...) {
 	   stop("'object' must be of class 'PrevMap'")	
 	}
 	
-	
-	
 	if(length(object$units.m)==0) {
 	   stop("'object' must be the output of a call to the 'binomial.logistic.MCML' function")
 	}
@@ -1558,10 +1640,12 @@ trace.plot.MCML <- function(object,component=NULL,...) {
 print.summary.PrevMap <- function(x,...) {
    if(x$ck==FALSE) {	
    if(x$linear) {
-   	  cat("Geostatistical linear Gaussian model \n")
-   	} else {
-      cat("Binomial geostatistical model \n")
-   }   
+   	cat("Geostatistical linear model \n")
+   } else if(x$poisson) {
+      cat("Geostatistical Poisson model \n")
+   } else {
+      cat("Geostatistical binomial model \n")
+   }  
    cat("Call: \n")
    print(x$call)
    cat("\n")	
@@ -1581,11 +1665,13 @@ print.summary.PrevMap <- function(x,...) {
    printCoefmat(x$cov.pars,P.values=FALSE)	
    }
    } else {
-   if(x$linear) {
-   	  cat("Geostatistical linear Gaussian model \n")
-   	} else {
-      cat("Binomial geostatistical logistic model \n")
-   }   	
+    if(x$linear) {
+   	cat("Geostatistical linear model \n")
+   } else if(x$poisson) {
+      cat("Geostatistical Poisson model \n")
+   } else {
+      cat("Geostatistical binomial model \n")
+   } 	
    cat("(low-rank approximation) \n")
    cat("Call: \n")
    print(x$call)
@@ -1609,7 +1695,7 @@ print.summary.PrevMap <- function(x,...) {
 }
 
 ##' @title Spatial predictions for the binomial logistic model using plug-in of MCML estimates
-##' @description This function performs spatial prediction for fixed parameters at the Monte Carlo maximum likelihood estimates of a geostatistical binomial logistic model.
+##' @description This function performs spatial prediction, fixing the model parameters at the Monte Carlo maximum likelihood estimates of a geostatistical binomial logistic model.
 ##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{binomial.logistic.MCML}}.
 ##' @param grid.pred a matrix of prediction locations.
 ##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
@@ -1685,7 +1771,7 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
 	object$mu <- object$D%*%beta	
 	Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
 	object$y,object$units.m,control.mcmc,
-	plot.correlogram=plot.correlogram,messages=messages)
+	plot.correlogram=plot.correlogram,messages=messages,poisson.llik=FALSE)
 	Z.sim <- Z.sim.res$samples
 	U.k.pred <- as.matrix(pdist(grid.pred,knots))
 	K.pred <- matern.kernel(U.k.pred,rho,kappa) 
@@ -1866,20 +1952,20 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,predictors=NULL,control.
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom maxLik maxBFGS
 ##' @importFrom pdist pdist
-binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
+geo.MCML.lr <- function(formula,units.m,coords,data,knots,
                                                    par0,control.mcmc,kappa,
                                                    start.cov.pars,
-                                                   method,plot.correlogram,messages) {
+                                                   method,plot.correlogram,messages,
+                                                   poisson.llik) {
     
     knots <- as.matrix(knots)
     start.cov.pars <- as.numeric(start.cov.pars)
     if(length(start.cov.pars)!=1) stop("wrong values for start.cov.pars")
     kappa <- as.numeric(kappa)
     coords <- as.matrix(model.frame(coords,data))
-    units.m <-  as.numeric(model.frame(units.m,data)[,1])   
+       
     if(any(is.na(data))) stop("missing values are not accepted")
-    if(is.numeric(units.m)==FALSE) stop("binomial denominators must be numeric values.")
-	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")                                                        
+    if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")                                                        
     if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
    
     der.rho <- function(u,rho,kappa) {
@@ -1917,10 +2003,16 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
         }
         out
     }
-    
     mf <- model.frame(formula,data=data)
 	y <- as.numeric(model.response(mf))
 	n <- length(y)
+    if(poisson.llik && length(units.m)==0) {
+      units.m <- rep(1,n)
+    } else {
+      units.m <-  as.numeric(model.frame(units.m,data)[,1])  
+    }
+    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+    
 	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
 	p <- ncol(D)
 	if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
@@ -1933,69 +2025,80 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
 	U <- as.matrix(pdist(coords,knots))
 	N <- nrow(knots)
 	K0 <- matern.kernel(U,rho0,kappa)
-    const.sigma2.0 <- mean(apply(K0,1,function(r) sqrt(sum(r^2))))
-    sigma2.0 <- sigma2.0/const.sigma2.0
+      const.sigma2.0 <- mean(apply(K0,1,function(r) sqrt(sum(r^2))))
+      sigma2.0 <- sigma2.0/const.sigma2.0
     
-    n.sim <- control.mcmc$n.sim
+      n.sim <- control.mcmc$n.sim
 	Z.sim.res <- Laplace.sampling.lr(mu0,sigma2.0,K0,y,units.m,control.mcmc,
 	              plot.correlogram=plot.correlogram,
-                  messages=messages)
-    Z.sim <- Z.sim.res$samples
+                  messages=messages,poisson.llik=poisson.llik)
+      Z.sim <- Z.sim.res$samples
 	log.integrand <- function(Z,val,K) {
-	   S <- as.numeric(K%*%Z)
-       eta <- as.numeric(val$mu+S)
-       -0.5*(N*log(val$sigma2)+sum(Z^2)/val$sigma2)+
-       sum(y*eta-units.m*log(1+exp(eta)))
-    }    
+         S <- as.numeric(K%*%Z)
+         eta <- as.numeric(val$mu+S)
+
+         if(poisson.llik) {
+            llik <- sum(y*eta-units.m*exp(eta))
+         } else {
+            llik <- sum(y*eta-units.m*log(1+exp(eta)))
+         }
+	   
+         -0.5*(N*log(val$sigma2)+sum(Z^2)/val$sigma2)+
+         llik        
+      }    
    
-    compute.log.f <- function(sub.par,K) {
-       beta <- sub.par[1:p];
-       val <- list()
-       val$sigma2 <- exp(sub.par[p+1])
-       val$mu <- as.numeric(D%*%beta)
-       sapply(1:(dim(Z.sim)[1]),function(i) log.integrand(Z.sim[i,],val,K))
-    }            
+      compute.log.f <- function(sub.par,K) {
+         beta <- sub.par[1:p];
+         val <- list()
+         val$sigma2 <- exp(sub.par[p+1])
+         val$mu <- as.numeric(D%*%beta)
+         sapply(1:(dim(Z.sim)[1]),function(i) log.integrand(Z.sim[i,],val,K))
+      }            
 
-    log.f.tilde <- compute.log.f(c(beta0,log(sigma2.0)),K0)
+      log.f.tilde <- compute.log.f(c(beta0,log(sigma2.0)),K0)
 
-    MC.log.lik <- function(par) {
-     	rho <- exp(par[p+2])
-        sub.par <- par[-(p+2)]	
-        K <- matern.kernel(U,rho,kappa)
-        log(mean(exp(compute.log.f(sub.par,K)-log.f.tilde)))
-     }          
+      MC.log.lik <- function(par) {
+         rho <- exp(par[p+2])
+         sub.par <- par[-(p+2)]	
+         K <- matern.kernel(U,rho,kappa)
+         log(mean(exp(compute.log.f(sub.par,K)-log.f.tilde)))
+      }          
     
-     grad.MC.log.lik <- function(par) {
-        beta <- par[1:p]; mu <- D%*%beta
-        sigma2 <- exp(par[p+1])
-        rho <- exp(par[p+2]) 
+      grad.MC.log.lik <- function(par) {
+         beta <- par[1:p]; mu <- D%*%beta
+         sigma2 <- exp(par[p+1])
+         rho <- exp(par[p+2]) 
 
-        K <- matern.kernel(U,rho,kappa)                           
+         K <- matern.kernel(U,rho,kappa)                           
                              
-        exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
-        L.m <- sum(exp.fact)
-        exp.fact <- exp.fact/L.m           
+         exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
+         L.m <- sum(exp.fact)
+         exp.fact <- exp.fact/L.m           
         
-        D.rho <- der.rho(U,rho,kappa)                        
+         D.rho <- der.rho(U,rho,kappa)                        
                                     
-        gradient.Z <- function(Z) {
-           S <- as.numeric(K%*%Z)
-           eta <- as.numeric(mu+S)
-           h <- units.m*exp(eta)/(1+exp(eta))
-           grad.beta <- as.numeric(t(D)%*%(y-h))
-           S.rho <- as.numeric(D.rho%*%Z)
+         gradient.Z <- function(Z) {
+            S <- as.numeric(K%*%Z)
+            eta <- as.numeric(mu+S)
+            if(poisson.llik) {
+               h <- units.m*exp(eta)
+            } else {
+               h <- units.m*exp(eta)/(1+exp(eta))
+            }
+            grad.beta <- as.numeric(t(D)%*%(y-h))
+            S.rho <- as.numeric(D.rho%*%Z)
            
-           grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2         
+            grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2         
 
-           grad.log.rho <- (t(S.rho)%*%(y-h))*rho
+            grad.log.rho <- (t(S.rho)%*%(y-h))*rho
 
-           c(grad.beta,grad.log.sigma2,grad.log.rho)
-        }
-        out <- rep(0,length(par))
-        for(i in 1:(dim(Z.sim)[1])) {
+            c(grad.beta,grad.log.sigma2,grad.log.rho)
+         } 
+         out <- rep(0,length(par))
+         for(i in 1:(dim(Z.sim)[1])) {
    	        out <- out + exp.fact[i]*gradient.Z(Z.sim[i,])
-        }
-        out
+         }
+         out
       }
    
       hess.MC.log.lik <- function(par) {
@@ -2016,18 +2119,28 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
         hessian.Z <- function(Z,ef) {
            S <- as.numeric(K%*%Z)
            eta <- as.numeric(mu+S)
-           h <- units.m*exp(eta)/(1+exp(eta))
+           
+           if(poisson.llik) {
+              h <- units.m*exp(eta)
+           } else {
+              h <- units.m*exp(eta)/(1+exp(eta))
+           }
+
            grad.beta <- as.numeric(t(D)%*%(y-h))
            S1.rho <- as.numeric(D1.rho%*%Z)
-           S2.rho <- as.numeric(D2.rho%*%Z)
-           
+           S2.rho <- as.numeric(D2.rho%*%Z)          
+
            grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2         
 
            grad.log.rho <- (t(S1.rho)%*%(y-h))*rho
 
            g <- c(grad.beta,grad.log.sigma2,grad.log.rho) 
            
-           h1 <- h/(1+exp(eta))
+           if(poisson.llik) {
+              h1 <- units.m*exp(eta)
+           } else {
+              h1 <- units.m*exp(eta)/((1+exp(eta))^2)
+           }
            
            grad2.log.beta.beta <- -t(D)%*%(D*h1)      
            grad2.log.beta.lrho <- -t(D)%*%(as.vector(D1.rho%*%Z)*h1)*rho                      
@@ -2041,24 +2154,24 @@ binomial.geo.MCML.lr <- function(formula,units.m,coords,data,knots,
 
            H[1:p,1:p] <-  grad2.log.beta.beta
            H[1:p,p+2] <- H[p+2,1:p]<- grad2.log.beta.lrho
-   	       H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
-   	       H[p+2,p+2] <- grad2.log.lrho.lrho
+   	     H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
+   	     H[p+2,p+2] <- grad2.log.lrho.lrho
                                                        
      
-   	       out <- list()
-   	       out$mat1<- ef*(g%*%t(g)+H)                             
-   	       out$g <- g*ef
-   	       out
-         }            
+   	     out <- list()
+   	     out$mat1<- ef*(g%*%t(g)+H)                             
+   	     out$g <- g*ef
+   	     out
+        }            
              
-         a <- rep(0,length(par))
-         A <- matrix(0,length(par),length(par))
+        a <- rep(0,length(par))
+        A <- matrix(0,length(par),length(par))
         for(i in 1:(dim(Z.sim)[1])) {
    	       out.i <- hessian.Z(Z.sim[i,],exp.fact[i])
    	       a <- a+out.i$g
            A <- A+out.i$mat1
         }  
-       (A-a%*%t(a))
+        (A-a%*%t(a))
       }
 
       if(messages) cat("Estimation: \n")
@@ -2163,7 +2276,7 @@ geo.linear.MLE <- function(formula,coords,data,kappa,fixed.rel.nugget=NULL,start
     sigma2.start <- as.numeric(t(diff.b)%*%R.inv%*%diff.b/length(y))
     start.par <- c(beta.start,sigma2.start,start.cov.pars)                           
     
-	start.par[-(1:p)] <- log(start.par[-(1:p)])
+    start.par[-(1:p)] <- log(start.par[-(1:p)])
     der.phi <- function(u,phi,kappa) {
         u <- u+10e-16
         if(kappa==0.5) {
@@ -2378,7 +2491,7 @@ geo.linear.MLE <- function(formula,coords,data,kappa,fixed.rel.nugget=NULL,start
 }
 
 ##' @title Spatial predictions for the geostatistical Linear Gaussian model using plug-in of ML estimates
-##' @description This function performs spatial prediction for fixed parameters at the maximum likelihood estimates of a linear geostatistical model.
+##' @description This function performs spatial prediction, fixing the model parameters at the maximum likelihood estimates of a linear geostatistical model.
 ##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.
 ##' @param grid.pred a matrix of prediction locations.
 ##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
@@ -3046,7 +3159,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
    if(length(control.mcmc$epsilon.S.lim)==0) stop("epsilon.S.lim must be provided in control.mcmc")
    	coords <- as.matrix(model.frame(coords,data))
     units.m <-  as.numeric(model.frame(units.m,data)[,1])   
-    if(is.numeric(units.m)==FALSE) stop("binomial denominators must be numeric values.")
+    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
 	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
    out <- list()
    if(length(ID.coords)==0) {
@@ -3614,7 +3727,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
        knots <- as.matrix(knots)
        coords <- as.matrix(model.frame(coords,data))
        units.m <-  as.numeric(model.frame(units.m,data)[,1])   
-       if(is.numeric(units.m)==FALSE) stop("binomial denominators must be numeric values.")
+       if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
 	   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")                                                       	                                                       	
    	   mf <- model.frame(formula,data=data)
 	   y <- as.numeric(model.response(mf))
@@ -3920,7 +4033,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##'                                      control.mcmc=control.mcmc,kappa=2)  
 ##' summary(fit.Bayes)
 ##'                                     
-##' par(mfrow=c(2,4))                                                                                            
+##' par(mfrow=c(2,4))
 ##' autocor.plot(fit.Bayes,param="S",component.S="all")
 ##' autocor.plot(fit.Bayes,param="beta",component.beta=1)
 ##' autocor.plot(fit.Bayes,param="sigma2")
@@ -5207,11 +5320,11 @@ coef.PrevMap <- function(object,...) {
 }
 
 ##' @title Plot of a predicted surface
-##' @description \code{plot.pred.PrevMap} displays predictions obtained from \code{\link{spatial.pred.linear.MLE}}, \code{\link{spatial.pred.linear.Bayes}},\code{\link{spatial.pred.binomial.MCML}} and \code{\link{spatial.pred.binomial.Bayes}}.
+##' @description \code{plot.pred.PrevMap} displays predictions obtained from \code{\link{spatial.pred.linear.MLE}}, \code{\link{spatial.pred.linear.Bayes}},\code{\link{spatial.pred.binomial.MCML}}, \code{\link{spatial.pred.binomial.Bayes}} and \code{\link{spatial.pred.poisson.MCML}}.
 ##' @param x an object of class "PrevMap".
-##' @param type a character indicating the type of prediction to display: 'prevalence','odds', 'logit' or 'probit'. Default is \code{NULL}.
+##' @param type a character indicating the type of prediction to display: 'prevalence','odds', 'logit' or 'probit' for binomial models; "log" or "exponential" for Poisson models. Default is \code{NULL}.
 ##' @param summary character indicating which summary to display: 'predictions','quantiles', 'standard.errors' or 'exceedance.prob'; default is 'predictions'. If \code{summary="exceedance.prob"}, the argument \code{type} is ignored.
-##' @param ... further arguments passed to \code{\link{plot}}.
+##' @param ... further arguments passed to \code{\link{plot}} of the 'raster' package.
 ##' @method plot pred.PrevMap
 ##' @importFrom raster rasterFromXYZ
 ##' @importFrom methods getMethod signature
@@ -5221,8 +5334,8 @@ coef.PrevMap <- function(object,...) {
 plot.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 	if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
 	if(length(type)>0 && 
-	   any(type==c("prevalence","odds","logit","probit"))==FALSE) {
-	   stop("type must be 'prevalence','odds', 'logit' or 'probit'")
+	   any(type==c("prevalence","odds","logit","probit","log","exponential"))==FALSE) {
+	   stop("type must be 'prevalence','odds', 'logit' or 'probit' for the binomial modl, and 'log' or 'exponential' for the Poisson model.")
 	}
 	
 	if(length(type)>0 & summary=="exceedance.prob") {
@@ -6418,4 +6531,313 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 	}
 	res$call <- match.call()
 	return(res)
+}
+
+##' @title Monte Carlo Maximum Likelihood estimation for the Poisson model
+##' @description This function performs Monte Carlo maximum likelihood (MCML) estimation for the geostatistical Poisson model with log link function.
+##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
+##' @param units.m an object of class \code{\link{formula}} indicating the multiplicative offset for the mean of the Poisson model; if not specified this is then internally set as 1.
+##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
+##' @param data a data frame containing the variables in the model. 
+##' @param par0 parameters of the importance sampling distribution: these should be given in the following order \code{c(beta,sigma2,phi,tau2)}, where \code{beta} are the regression coefficients, \code{sigma2} is the variance of the Gaussian process, \code{phi} is the scale parameter of the spatial correlation and \code{tau2} is the variance of the nugget effect (if included in the model).
+##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
+##' @param kappa fixed value for the shape parameter of the Matern covariance function.
+##' @param fixed.rel.nugget fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.
+##' @param start.cov.pars a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then \code{start.cov.pars} represents the starting value for \code{phi} only.
+##' @param method method of optimization. If \code{method="BFGS"} then the \code{\link{maxBFGS}} function is used; otherwise \code{method="nlminb"} to use the \code{\link{nlminb}} function. Default is \code{method="BFGS"}.
+##' @param low.rank logical; if \code{low.rank=TRUE} a low-rank approximation of the Gaussian spatial process is used when fitting the model. Default is \code{low.rank=FALSE}.
+##' @param knots if \code{low.rank=TRUE}, \code{knots} is a matrix of spatial knots that are used in the low-rank approximation. Default is \code{knots=NULL}. 
+##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
+##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the samples of the random effect is displayed after completion of conditional simulation. Default is \code{plot.correlogram=TRUE}.
+##' @details
+##' This function performs parameter estimation for a geostatistical Poisson model with log link function. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a Poisson distribution with mean \eqn{m\lambda}, where \eqn{m} is an offset defined through the argument \code{units.m}. A canonical log link is used, thus the linear predictor assumes the form
+##' \deqn{\log(\lambda) = d'\beta + S(x) + Z,}
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. 
+##' In the \code{poisson.log.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
+##' 
+##' \bold{Monte Carlo Maximum likelihood.}
+##' The Monte Carlo maximum likelihood method uses conditional simulation from the distribution of the random effect \eqn{T(x) = d(x)'\beta+S(x)+Z} given the data \code{y}, in order to approximate the high-dimensiional intractable integral given by the likelihood function. The resulting approximation of the likelihood is then maximized by a numerical optimization algorithm which uses analytic epression for computation of the gradient vector and Hessian matrix. The functions used for numerical optimization are \code{\link{maxBFGS}} (\code{method="BFGS"}), from the \pkg{maxLik} package, and \code{\link{nlminb}} (\code{method="nlminb"}).
+##' 
+##' \bold{Low-rank approximation.}
+##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), the parameter \code{sigma2} is then multiplied by a factor \code{constant.sigma2} so as to obtain a value that is closer to the actual variance of \eqn{S(x)}. 
+##' @return An object of class "PrevMap".
+##' The function \code{\link{summary.PrevMap}} is used to print a summary of the fitted model.
+##' The object is a list with the following components:
+##' @return \code{estimate}: estimates of the model parameters; use the function \code{\link{coef.PrevMap}} to obtain estimates of covariance parameters on the original scale.
+##' @return \code{covariance}: covariance matrix of the MCML estimates.
+##' @return \code{log.lik}: maximum value of the log-likelihood.
+##' @return \code{y}: observations.
+##' @return \code{units.m}: offset.
+##' @return \code{D}: matrix of covariates.
+##' @return \code{coords}: matrix of the observed sampling locations.
+##' @return \code{method}: method of optimization used.
+##' @return \code{kappa}: fixed value of the shape parameter of the Matern function.
+##' @return \code{knots}: matrix of the spatial knots used in the low-rank approximation.
+##' @return \code{const.sigma2}: adjustment factor for \code{sigma2} in the low-rank approximation.
+##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm; see \code{\link{Laplace.sampling}}, or \code{\link{Laplace.sampling.lr}} if a low-rank approximation is used.
+##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
+##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
+##' @return \code{call}: the matched call.
+##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
+##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @export
+poisson.log.MCML <- function(formula,units.m=NULL,coords,data,
+                             par0,control.mcmc,kappa,
+                             fixed.rel.nugget=NULL,
+                             start.cov.pars,
+                             method="BFGS",low.rank=FALSE,
+                             knots=NULL,
+                             messages=TRUE,
+                             plot.correlogram=TRUE) {
+    if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.") 
+    if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("control.mcmc must be of class 'mcmc.MCML.PrevMap'")
+    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+    if(length(units.m)>0 && class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the offset for the mean of the Poisson model.")
+    if(kappa < 0) stop("kappa must be positive.")
+    if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
+    if(!low.rank) {
+		res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
+		           data=data,ID.coords=NULL,par0=par0,control.mcmc=control.mcmc,
+		           kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
+		           start.cov.pars=start.cov.pars,method=method,messages=messages,
+		           plot.correlogram=plot.correlogram,poisson.llik=TRUE)
+    } else {
+		res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
+		           data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
+		           kappa=kappa,start.cov.pars=start.cov.pars,method=method,
+		           messages=messages,plot.correlogram=plot.correlogram,poisson.llik=TRUE)		
+    } 
+    res$call <- match.call()
+    return(res)
+}
+
+
+##' @title Spatial predictions for the Poisson model with log link function, using plug-in of MCML estimates
+##' @description This function performs spatial prediction, fixing the model parameters at the Monte Carlo maximum likelihood estimates of a geostatistical Poisson model with log link function.
+##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{poisson.log.MCML}}.
+##' @param grid.pred a matrix of prediction locations.
+##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
+##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only joint predictions are available.
+##' @param scale.predictions a character vector of maximum length 2, indicating the required scale on which spatial prediction is carried out: "log" and "exponential". Default is \code{scale.predictions=c("log","exponential")}.
+##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
+##' @param standard.errors logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.
+##' @param thresholds a vector of exceedance thresholds; default is \code{thresholds=NULL}.
+##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"log"} or \code{"exponential"}. Default is \code{scale.thresholds=NULL}.
+##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed. 
+##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
+##' @return A "pred.PrevMap" object list with the following components: \code{log}; \code{exponential}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the predictive samples at each prediction locations for the linear predictor of the Poisson model (if \code{scale.predictions="log"} this component is \code{NULL}); \code{grid.pred} prediction locations. 
+##' Each of the three components \code{log} and  \code{exponential} is also a list with the following components:
+##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (log or exponential).
+##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
+##' @return \code{quantiles}: a matrix of quantiles of the resulting predictions with each column corresponding to a quantile specified through the argument \code{quantiles}.
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk} 
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @importFrom pdist pdist
+##' @importFrom geoR varcov.spatial
+##' @importFrom geoR matern 
+##' @export 
+
+spatial.pred.poisson.MCML <- function(object,grid.pred,predictors=NULL,control.mcmc,
+                                     type="marginal",
+                                     scale.predictions=c("log","exponential"),
+                                     quantiles=c(0.025,0.975),
+                                     standard.errors=FALSE,                                                                                                                                                      
+                                     thresholds=NULL,
+                                     scale.thresholds=NULL,
+                                     plot.correlogram=FALSE,
+                                     messages=TRUE) {
+    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")       
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+    p <- object$p <- ncol(object$D)	
+    kappa <- object$kappa	
+    n.pred <- nrow(grid.pred)
+    coords <- object$coords
+    if(type=="marginal" & length(object$knots) > 0) warning("only joint predictions are avilable for the low-rank approximation.")
+    if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
+    for(i in 1:length(scale.predictions)) {
+       if(any(c("log","exponential")==scale.predictions[i])==FALSE) stop("invalid scale.predictions.")
+    }
+	
+    if(length(thresholds)>0) {
+       if(any(scale.predictions==scale.thresholds)==FALSE) {
+	    stop("scale thresholds must be equal to a scale prediction")
+       }
+    }
+	
+    if(length(thresholds)==0 & length(scale.thresholds)>0 |
+       length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
+
+    if(object$p==1) {
+       predictors <- matrix(1,nrow=n.pred)	
+    } else {
+	 if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")	
+	 predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+	 if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+	 if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+    }
+	
+    if(length(dim(object$knots)) > 0) {	
+	 beta <- object$estimate[1:p]
+	 sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
+	 rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
+	 knots <- object$knots
+	 U.k <- as.matrix(pdist(coords,knots))
+	 K <- matern.kernel(U.k,rho,kappa)
+	 mu.pred <- as.numeric(predictors%*%beta)
+	 object$mu <- object$D%*%beta	
+	 Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
+	 object$y,object$units.m,control.mcmc,
+	 plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE)
+	 Z.sim <- Z.sim.res$samples
+	 U.k.pred <- as.matrix(pdist(grid.pred,knots))
+	 K.pred <- matern.kernel(U.k.pred,rho,kappa) 
+	 out <- list()     
+       eta.sim <- sapply(1:(dim(Z.sim)[1]), function(i) mu.pred+K.pred%*%Z.sim[i,])           
+    
+       if(any(scale.predictions=="log")) {
+    	    if(messages) cat("Spatial predictions: log \n")    	   
+    	    out$log$predictions <- apply(eta.sim,1,mean)
+          if(standard.errors) {
+             out$log$standard.errors <- apply(eta.sim,1,sd)
+          }
+          if(length(quantiles) > 0) {
+             out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))         
+          }
+       
+          if(length(thresholds) > 0 && scale.thresholds=="log") {
+             out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+             colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+             for(j in 1:length(thresholds)) {
+               out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))	
+             } 
+          }		   
+       }
+       
+       if(any(scale.predictions=="exponential")) {
+          if(messages) cat("Spatial predictions: exponential \n") 
+          exponential.sim <- exp(eta.sim)    	   
+          out$exponential$predictions <- apply(exponential.sim,1,mean)
+          if(standard.errors) {
+             out$exponential$standard.errors <- apply(exponential.sim,1,sd)
+          }
+       
+          if(length(quantiles) > 0) {
+             out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))         
+          }
+       	
+          if(length(thresholds) > 0 && scale.thresholds=="exponential") {
+             out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+       	 colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+             for(j in 1:length(thresholds)) {
+                out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))	
+             } 
+          }	   
+       }  
+    } else {	
+       beta <- object$estimate[1:p]
+	 sigma2 <- exp(object$estimate[p+1])
+	 phi <- exp(object$estimate[p+2])
+	 if(length(object$fixed.rel.nugget)==0){		
+	    tau2 <- sigma2*exp(object$estimate[p+3]) 
+	 } else {
+	    tau2 <- object$fixed.rel.nugget*sigma2
+	 }
+	
+
+	 U <- dist(coords)
+	 U.pred.coords <- as.matrix(pdist(grid.pred,coords))	
+	 Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+	                cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov 
+	 Sigma.inv <- solve(Sigma)   	      
+       C <- sigma2*matern(U.pred.coords,phi,kappa)	                
+       A <- C%*%Sigma.inv
+       out <- list()  
+	 mu.pred <- as.numeric(predictors%*%beta)   
+	 object$mu <- object$D%*%beta      	             	
+    
+	 S.sim.res <- Laplace.sampling(object$mu,Sigma,
+	              object$y,object$units.m,control.mcmc,
+	              plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE) 	   	
+       S.sim <- S.sim.res$samples     
+       mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%(S.sim[i,]-object$mu))   	
+    
+	              
+       if(type=="marginal") {
+    	    if(messages) cat("Type of predictions:",type,"\n")
+    	    sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
+       } else if (type=="joint") {
+    	    if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
+    	    Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+	                  cov.pars=c(sigma2,phi),kappa=kappa)$varcov 
+	    Sigma.cond <- Sigma.pred - A%*%t(C)
+	    sd.cond <- sqrt(diag(Sigma.cond))	   
+       }  
+    
+       if((length(quantiles) > 0) | 
+          (any(scale.predictions=="exponential")) |
+          (length(scale.thresholds)>0)) {
+          if(type=="marginal") {
+             eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) rnorm(n.pred,mu.cond[,i],sd.cond))
+          } else if(type=="joint") {
+             Sigma.cond.sroot <- t(chol(Sigma.cond))
+             eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) mu.cond[,i]+
+                                                                   Sigma.cond.sroot%*%rnorm(n.pred))                                                                   
+          }      	
+       }
+    
+       if(any(scale.predictions=="log")) {
+    	    if(messages) cat("Spatial predictions: log \n")    	   
+    	       out$log$predictions <- apply(mu.cond,1,mean)
+          if(standard.errors) {
+             out$log$standard.errors <- sqrt(sd.cond^2+diag(A%*%cov(S.sim)%*%t(A)))
+          }
+          
+          if(length(quantiles) > 0) {
+             out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))         
+          }
+       
+          if(length(thresholds) > 0 && scale.thresholds=="log") {
+       	 out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+       	 colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+             for(j in 1:length(thresholds)) {
+                out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))	
+             } 
+          }		   
+       
+       }
+       
+       if(any(scale.predictions=="exponential")) {
+          if(messages) cat("Spatial predictions: exponential \n") 
+          exponential.sim <- exp(eta.sim)    	   
+          out$exponential$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
+          if(standard.errors) {
+             out$exponential$standard.errors <- apply(exponential.sim,1,sd)
+          }
+       
+          if(length(quantiles) > 0) {
+             out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))         
+          }
+       	
+          if(length(thresholds) > 0 && scale.thresholds=="exponential") {
+       	 out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+       	 colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+             for(j in 1:length(thresholds)) {
+                out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))	
+             } 
+          }	   
+       }
+    }
+    
+    if(any(scale.predictions=="exponential")) {
+       out$samples <- eta.sim	
+    }
+    out$grid <- grid.pred
+    class(out) <- "pred.PrevMap"
+    out
 }
