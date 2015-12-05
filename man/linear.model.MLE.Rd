@@ -4,9 +4,9 @@
 \alias{linear.model.MLE}
 \title{Maximum Likelihood estimation for the geostatistical linear Gaussian model}
 \usage{
-linear.model.MLE(formula, coords, data, kappa, fixed.rel.nugget = NULL,
-  start.cov.pars, method = "BFGS", low.rank = FALSE, knots = NULL,
-  messages = TRUE)
+linear.model.MLE(formula, coords, data, ID.coords = NULL, kappa,
+  fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
+  low.rank = FALSE, knots = NULL, messages = TRUE, profile.llik = FALSE)
 }
 \arguments{
 \item{formula}{an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -15,11 +15,13 @@ linear.model.MLE(formula, coords, data, kappa, fixed.rel.nugget = NULL,
 
 \item{data}{a data frame containing the variables in the model.}
 
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to define a geostatistical model where locations have multiple observations. Default is \code{ID.coords=NULL}. See the \bold{Details} section for more information.}
+
 \item{kappa}{shape parameter of the Matern covariance function.}
 
 \item{fixed.rel.nugget}{fixed value for the relative variance of the nugget effect; default is \code{fixed.rel.nugget=NULL} if this should be included in the estimation.}
 
-\item{start.cov.pars}{a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then start.cov.pars represents the starting value for \code{phi} only.}
+\item{start.cov.pars}{if \code{ID.coords=NULL}, a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm; if \code{ID.coords} is provided, a third starting value for the relative variance of the individual unexplained variation \code{nu2.star = omega2/sigma2} must be provided. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then start.cov.pars represents the starting value for \code{phi} only, if \code{ID.coords=NULL}, or for \code{phi} and \code{nu2.star}, otherwise.}
 
 \item{method}{method of optimization. If \code{method="BFGS"} then the \code{\link{maxBFGS}} function is used; otherwise \code{method="nlminb"} to use the \code{\link{nlminb}} function. Default is \code{method="BFGS"}.}
 
@@ -28,6 +30,8 @@ linear.model.MLE(formula, coords, data, kappa, fixed.rel.nugget = NULL,
 \item{knots}{if \code{low.rank=TRUE}, \code{knots} is a matrix of spatial knots that are used in the low-rank approximation. Default is \code{knots=NULL}.}
 
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
+
+\item{profile.llik}{logical; if \code{profile.llik=TRUE} the maximization of the profile likelihood is carried out. If \code{profile.llik=FALSE} the full-likelihood is used. Default is \code{profile.llik=FALSE}.}
 }
 \value{
 An object of class "PrevMap".
@@ -45,6 +49,8 @@ The object is a list with the following components:
 \code{D}: matrix of covariates.
 
 \code{coords}: matrix of the observed sampling locations.
+
+\code{ID.coords}: set of ID values defined through the argument \code{ID.coords}.
 
 \code{method}: method of optimization used.
 
@@ -65,6 +71,9 @@ This function performs maximum likelihood estimation for the geostatistical line
 This function estimates the parameters of a geostatistical linear Gaussian model, specified as
 \deqn{Y = d'\beta + S(x) + Z,}
 where \eqn{Y} is the measured outcome, \eqn{d} is a vector of coavariates, \eqn{\beta} is a vector of regression coefficients, \eqn{S(x)} is a stationary Gaussian spatial process and \eqn{Z} are independent zero-mean Gaussian variables with variance \code{tau2}. More specifically, \eqn{S(x)} has an isotropic Matern covariance function with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. In the estimation, the shape parameter \code{kappa} is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can be fixed though the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the variance of the nugget effect is also included in the estimation.
+
+\bold{Locations with multiple observations.}
+If multiple observations are available at any of the sampled locations the above model is modified as follows. Let \eqn{Y_{ij}} denote the random variable associated to the measured outcome for the j-th individual at location \eqn{x_{i}}. The linear geostatistical model assumes the form \deqn{Y_{ij} = d_{ij}'\beta + S(x_{i}) + Z{i} + U_{ij},} where \eqn{S(x_{i})} and \eqn{Z_{i}} are specified as mentioned above, and \eqn{U_{ij}} are i.i.d. zer0-mean Gaussian variable with variance \eqn{\omega^2}. his model can be fitted by specifing a vector of ID for the unique set locations thourgh the argument \code{ID.coords} (see also \code{\link{create.ID.coords}}).
 
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} can be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process, the parameter \code{sigma2} is adjusted by a factor\code{constant.sigma2}. See \code{\link{adjust.sigma2}} for more details on the the computation of the adjustment factor \code{constant.sigma2} in the low-rank approximation.

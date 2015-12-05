@@ -7,7 +7,8 @@
 spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
   type = "marginal", scale.predictions = c("logit", "prevalence", "odds"),
   quantiles = c(0.025, 0.975), n.sim.prev = 1000, standard.errors = FALSE,
-  thresholds = NULL, scale.thresholds = NULL, messages = TRUE)
+  thresholds = NULL, scale.thresholds = NULL, messages = TRUE,
+  include.nugget = FALSE)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.}
@@ -31,6 +32,8 @@ spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
 \item{scale.thresholds}{a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.}
 
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
+
+\item{include.nugget}{logical; if \code{include.nugget=TRUE} then the nugget effect is included in the predictions. This option is available only for fitted linear models with locations having multiple observations. Default is \code{include.nugget=FALSE}.}
 }
 \value{
 A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{grid.pred} prediction locations; \code{samples}, corresponding to the predictive samples of the linear predictor (only if \code{any(scale.predictions=="prevalence")}). 
