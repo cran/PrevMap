@@ -22,6 +22,8 @@ A list with the following components
 
 \code{ck}: logical value; \code{ck=TRUE} if a low-rank approximation was used and \code{ck=FALSE} otherwise.
 
+\code{spde}: logical value; \code{spde=TRUE} if the SPDE approximation was used and \code{spde=FALSE} otherwise.
+
 \code{coefficients}: matrix of the estimates, standard errors and p-values of the estimates of the regression coefficients.
 
 \code{cov.pars}: matrix of the estimates and standard errors of the covariance parameters.
@@ -29,6 +31,8 @@ A list with the following components
 \code{log.lik}: value of likelihood function at the maximum likelihood estimates.
 
 \code{kappa}: fixed value of the shape paramter of the Matern covariance function.
+
+\code{kappa.t}: fixed value of the shape paramter of the Matern covariance function for the temporal covariance matrix, if a spatio-temporal model has been fitted.
 
 \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 

@@ -4,17 +4,20 @@
 \alias{binomial.logistic.MCML}
 \title{Monte Carlo Maximum Likelihood estimation for the binomial logistic model}
 \usage{
-binomial.logistic.MCML(formula, units.m, coords, data, ID.coords = NULL, par0,
-  control.mcmc, kappa, fixed.rel.nugget = NULL, start.cov.pars,
-  method = "BFGS", low.rank = FALSE, knots = NULL, messages = TRUE,
-  plot.correlogram = TRUE)
+binomial.logistic.MCML(formula, units.m, coords, times = NULL, data,
+  ID.coords = NULL, par0, control.mcmc, kappa, kappa.t = NULL,
+  fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
+  low.rank = FALSE, SPDE = FALSE, knots = NULL, mesh = NULL,
+  messages = TRUE, plot.correlogram = TRUE)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
 
-\item{units.m}{an object of class \code{\link{formula}} indicating the binomial denominators.}
+\item{units.m}{an object of class \code{\link{formula}} indicating the binomial denominators in the data.}
 
-\item{coords}{an object of class \code{\link{formula}} indicating the geographic coordinates.}
+\item{coords}{an object of class \code{\link{formula}} indicating the spatial coordinates in the data.}
+
+\item{times}{an object of class \code{\link{formula}} indicating the times in the data, used in the spatio-temporal model.}
 
 \item{data}{a data frame containing the variables in the model.}
 
@@ -26,6 +29,8 @@ binomial.logistic.MCML(formula, units.m, coords, data, ID.coords = NULL, par0,
 
 \item{kappa}{fixed value for the shape parameter of the Matern covariance function.}
 
+\item{kappa.t}{fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.}
+
 \item{fixed.rel.nugget}{fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.}
 
 \item{start.cov.pars}{a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then \code{start.cov.pars} represents the starting value for \code{phi} only.}
@@ -34,7 +39,11 @@ binomial.logistic.MCML(formula, units.m, coords, data, ID.coords = NULL, par0,
 
 \item{low.rank}{logical; if \code{low.rank=TRUE} a low-rank approximation of the Gaussian spatial process is used when fitting the model. Default is \code{low.rank=FALSE}.}
 
+\item{SPDE}{logical; if \code{SPDE=TRUE} the SPDE approximation for the Gaussian spatial model is used. Default is \code{SPDE=FALSE}.}
+
 \item{knots}{if \code{low.rank=TRUE}, \code{knots} is a matrix of spatial knots that are used in the low-rank approximation. Default is \code{knots=NULL}.}
+
+\item{mesh}{an object obtained as result of a call to the function \code{inla.mesh.2d}.}
 
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
 
@@ -65,7 +74,11 @@ The object is a list with the following components:
 
 \code{kappa}: fixed value of the shape parameter of the Matern function.
 
+\code{kappa.t}: fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
+
 \code{knots}: matrix of the spatial knots used in the low-rank approximation.
+
+\code{mesh}: the mesh used in the SPDE approximation.
 
 \code{const.sigma2}: adjustment factor for \code{sigma2} in the low-rank approximation.
 
@@ -83,39 +96,17 @@ This function performs Monte Carlo maximum likelihood (MCML) estimation for the 
 \details{
 This function performs parameter estimation for a geostatistical binomial logistic model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. A canonical logistic link is used, thus the linear predictor assumes the form
 \deqn{\log(p/(1-p)) = d'\beta + S(x) + Z,}
-where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. 
+where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 In the \code{binomial.logistic.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 
 \bold{Monte Carlo Maximum likelihood.}
 The Monte Carlo maximum likelihood method uses conditional simulation from the distribution of the random effect \eqn{T(x) = d(x)'\beta+S(x)+Z} given the data \code{y}, in order to approximate the high-dimensiional intractable integral given by the likelihood function. The resulting approximation of the likelihood is then maximized by a numerical optimization algorithm which uses analytic epression for computation of the gradient vector and Hessian matrix. The functions used for numerical optimization are \code{\link{maxBFGS}} (\code{method="BFGS"}), from the \pkg{maxLik} package, and \code{\link{nlminb}} (\code{method="nlminb"}).
 
 \bold{Using a two-level model to include household-level and individual-level information.}
-When analysing data from household sruveys, some of the avilable information information might be at household-level (e.g. material of house, temperature) and some at individual-level (e.g. age, gender). In this case, the Gaussian spatial process \eqn{S(x)} and the nugget effect \eqn{Z} are defined at hosuehold-level in order to account for extra-binomial variation between and within households, respectively. 
+When analysing data from household sruveys, some of the avilable information information might be at household-level (e.g. material of house, temperature) and some at individual-level (e.g. age, gender). In this case, the Gaussian spatial process \eqn{S(x)} and the nugget effect \eqn{Z} are defined at hosuehold-level in order to account for extra-binomial variation between and within households, respectively.
 
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), the parameter \code{sigma2} is then multiplied by a factor \code{constant.sigma2} so as to obtain a value that is closer to the actual variance of \eqn{S(x)}.
-}
-\examples{
-set.seed(1234)
-data(data_sim)
-# Select a subset of data_sim with 50 observations
-n.subset <- 10
-data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-
-# Set the MCMC control parameters
-control.mcmc <- control.mcmc.MCML(n.sim=1000,burnin=0,thin=1,
-                           h=1.65/(n.subset^2/3))   
-
-# Set the parameters of the importance sampling distribution
-par0 <- c(0,1,0.15)
-
-# Estimate the model parameters using MCML
-fit.MCML <- binomial.logistic.MCML(y~1, units.m=~units.m, coords=~x1+x2,
-data=data_subset, control.mcmc=control.mcmc,
-fixed.rel.nugget=0,par0=par0,start.cov.pars=0.15,method="nlminb",kappa=2)            
-summary(fit.MCML,log.cov.pars=FALSE)
-coef(fit.MCML)
-
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

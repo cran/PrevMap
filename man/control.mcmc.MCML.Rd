@@ -4,7 +4,8 @@
 \alias{control.mcmc.MCML}
 \title{Control settings for the MCMC algorithm used for classical inference on a binomial logistic model}
 \usage{
-control.mcmc.MCML(n.sim, burnin, thin = 1, h, c1.h = 0.01, c2.h = 1e-04)
+control.mcmc.MCML(n.sim, burnin, thin = 1, h = NULL, c1.h = 0.01,
+  c2.h = 1e-04)
 }
 \arguments{
 \item{n.sim}{number of simulations.}
@@ -13,7 +14,7 @@ control.mcmc.MCML(n.sim, burnin, thin = 1, h, c1.h = 0.01, c2.h = 1e-04)
 
 \item{thin}{only every \code{thin} iterations, a sample is stored; default is \code{thin=1}.}
 
-\item{h}{tuning parameter of the proposal distribution; default is \code{h=0.05}.}
+\item{h}{tuning parameter of the proposal distribution used in the Langevin-Hastings MCMC algorithm (see \code{\link{Laplace.sampling}} and \code{\link{Laplace.sampling.lr}}); default is \code{h=NULL} and then set internally as \eqn{1.65/n^(1/6)}, where \eqn{n} is the dimension of the random effect.}
 
 \item{c1.h}{value of \eqn{c_{1}} used in the adaptive scheme for \code{h}; default is \code{c1.h=0.01}. See also 'Details' in \code{\link{binomial.logistic.MCML}}}
 

@@ -4,9 +4,10 @@
 \alias{linear.model.MLE}
 \title{Maximum Likelihood estimation for the geostatistical linear Gaussian model}
 \usage{
-linear.model.MLE(formula, coords, data, ID.coords = NULL, kappa,
+linear.model.MLE(formula, coords = NULL, data, ID.coords = NULL, kappa,
   fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
-  low.rank = FALSE, knots = NULL, messages = TRUE, profile.llik = FALSE)
+  low.rank = FALSE, knots = NULL, messages = TRUE, profile.llik = FALSE,
+  SPDE = FALSE, mesh = NULL, SPDE.analytic.hessian = FALSE)
 }
 \arguments{
 \item{formula}{an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -32,6 +33,12 @@ linear.model.MLE(formula, coords, data, ID.coords = NULL, kappa,
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
 
 \item{profile.llik}{logical; if \code{profile.llik=TRUE} the maximization of the profile likelihood is carried out. If \code{profile.llik=FALSE} the full-likelihood is used. Default is \code{profile.llik=FALSE}.}
+
+\item{SPDE}{logical; if \code{SPDE=TRUE} the SPDE approximation for the Gaussian spatial model is used. Default is \code{SPDE=FALSE}.}
+
+\item{mesh}{an object obtained as result of a call to the function \code{inla.mesh.2d}.}
+
+\item{SPDE.analytic.hessian}{logical; if \code{SPDE.analytic.hessian=TRUE} computation of the hessian matrix using the SPDE approximation is carried out using analytical expressions, otherwise a numerical approximation is used. Defauls is \code{SPDE.analytic.hessian=FALSE}.}
 }
 \value{
 An object of class "PrevMap".
@@ -62,6 +69,8 @@ The object is a list with the following components:
 
 \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 
+\code{mesh}: the mesh used in the SPDE approximation.
+
 \code{call}: the matched call.
 }
 \description{
@@ -83,9 +92,9 @@ data(loaloa)
 # Empirical logit transformation
 loaloa$logit <- log((loaloa$NO_INF+0.5)/(loaloa$NO_EXAM-loaloa$NO_INF+0.5))
 fit.MLE <- linear.model.MLE(logit ~ 1,coords=~LONGITUDE+LATITUDE,
-                data=loaloa, start.cov.pars=c(0.2,0.15), 
+                data=loaloa, start.cov.pars=c(0.2,0.15),
                  kappa=0.5)
-summary(fit.MLE)   
+summary(fit.MLE)
 
 # Low-rank approximation
 data(data_sim)
@@ -95,13 +104,13 @@ data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
 # Logit transformation
 data_subset$logit <- log(data_subset$y+0.5)/
                      (data_subset$units.m-
-                      data_subset$y+0.5)                              
+                      data_subset$y+0.5)
 knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
 
 fit <- linear.model.MLE(formula=logit~1,coords=~x1+x2,data=data_subset,
                              kappa=2,start.cov.pars=c(0.15,0.1),low.rank=TRUE,
                              knots=knots)
-summary(fit,log.cov.pars=FALSE)             
+summary(fit,log.cov.pars=FALSE)
 
 }
 \author{

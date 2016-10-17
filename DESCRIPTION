@@ -1,19 +1,22 @@
 Package: PrevMap
 Type: Package
 Title: Geostatistical Modelling of Spatially Referenced Prevalence Data
-Version: 1.3.2
-Date: 2015-12-01
+Version: 1.4
+Date: 2016-10-13
 Author: Emanuele Giorgi, Peter J. Diggle
 Maintainer: Emanuele Giorgi <e.giorgi@lancaster.ac.uk>
-Imports: splancs, truncnorm, methods
-Depends: geoR, maxLik, raster, pdist
+Imports: splancs, truncnorm, methods, numDeriv
+Depends: geoR, maxLik, raster, pdist, Matrix
 Description: It provides functions for both likelihood-based
     and Bayesian analysis of spatially referenced prevalence data, and is
     also an extension of the 'geoR' package.
 LazyData: true
 License: GPL (>= 2)
-RoxygenNote: 5.0.0
+Suggests: R.rsp, INLA, knitr, rmarkdown
+Additional_repositories: http://www.math.ntnu.no/inla/R/testing
+RoxygenNote: 5.0.1
+VignetteBuilder: R.rsp
 NeedsCompilation: no
-Packaged: 2015-12-04 11:01:11 UTC; giorgi
+Packaged: 2016-10-16 18:38:38 UTC; giorgi
 Repository: CRAN
-Date/Publication: 2015-12-05 15:35:31
+Date/Publication: 2016-10-17 00:44:51

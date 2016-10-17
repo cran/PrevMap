@@ -22,8 +22,8 @@ This function computes values of the Matern kernel for given distances and param
 \details{
 The Matern kernel is defined as:
 \deqn{
-K(u; \phi, \kappa) = \frac{\Gamma(\kappa + 1)^{1/2}\kappa^{(\kappa+1)/4}u^{(\kappa-1)/2}}{\pi^{1/2}\Gamma((\kappa+1)/2)\Gamma(\kappa)^{1/2}(2\kappa^{1/2}\phi)^{(\kappa+1)/2}}\mathcal{K}_{\kappa}(u/\phi), u > 0,	
-}	
+K(u; \phi, \kappa) = \frac{\Gamma(\kappa + 1)^{1/2}\kappa^{(\kappa+1)/4}u^{(\kappa-1)/2}}{\pi^{1/2}\Gamma((\kappa+1)/2)\Gamma(\kappa)^{1/2}(2\kappa^{1/2}\phi)^{(\kappa+1)/2}}\mathcal{K}_{\kappa}(u/\phi), u > 0,
+}
 where \eqn{\phi} and \eqn{\kappa} are the scale and shape parameters, respectively, and \eqn{\mathcal{K}_{\kappa}(.)} is the modified Bessel function of the third kind of order \eqn{\kappa}. The family is valid for \eqn{\phi > 0} and \eqn{\kappa > 0}.
 }
 \author{

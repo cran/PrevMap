@@ -20,7 +20,7 @@ A value corresponding to the adjustment factor for \code{sigma2}.
 This function computes the multiplicative constant used to adjust the value of \code{sigma2} in the low-rank approximation of a Gaussian process.
 }
 \details{
-Let \eqn{U} denote the \eqn{n} by \eqn{m} matrix of the distances between the \eqn{n} observed coordinates and \eqn{m} pre-defined spatial knots. This function computes the following quantity 
+Let \eqn{U} denote the \eqn{n} by \eqn{m} matrix of the distances between the \eqn{n} observed coordinates and \eqn{m} pre-defined spatial knots. This function computes the following quantity
 \deqn{\frac{1}{n}\sum_{i=1}^n \sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2,}
 where \eqn{K(.; \phi, \kappa)} is the Matern kernel (see \code{\link{matern.kernel}}) and \eqn{u_{ij}} is the distance between the \eqn{i}-th sampled location and the \eqn{j}-th spatial knot.
 }

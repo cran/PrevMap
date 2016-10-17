@@ -61,9 +61,9 @@ This function performs Bayesian estimation for the geostatistical linear Gaussia
 \details{
 This function performs Bayesian estimation for the geostatistical linear Gaussian model, specified as
 \deqn{Y = d'\beta + S(x) + Z,}
-where \eqn{Y} is the measured outcome, \eqn{d} is a vector of coavariates, \eqn{\beta} is a vector of regression coefficients, \eqn{S(x)} is a stationary Gaussian spatial process and \eqn{Z} are independent zero-mean Gaussian variables with variance \code{tau2}. More specifically, \eqn{S(x)} has an isotropic Matern covariance function with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. The shape parameter \code{kappa} is treated as fixed. 
+where \eqn{Y} is the measured outcome, \eqn{d} is a vector of coavariates, \eqn{\beta} is a vector of regression coefficients, \eqn{S(x)} is a stationary Gaussian spatial process and \eqn{Z} are independent zero-mean Gaussian variables with variance \code{tau2}. More specifically, \eqn{S(x)} has an isotropic Matern covariance function with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. The shape parameter \code{kappa} is treated as fixed.
 
-\bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \eqn{(\sigma^2,\phi,\tau^2)}; then each component of \eqn{\theta} can have independent priors freely defined by the user. However, uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}. 
+\bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \eqn{(\sigma^2,\phi,\tau^2)}; then each component of \eqn{\theta} can have independent priors freely defined by the user. However, uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}.
 
 \bold{Updating the covariance parameters using a Metropolis-Hastings algorithm.} In the MCMC algorithm implemented in \code{linear.model.Bayes}, the transformed parameters \deqn{(\theta_{1}, \theta_{2}, \theta_{3})=(\log(\sigma^2)/2,\log(\sigma^2/\phi^{2 \kappa}), \log(\tau^2))} are independently updated using a Metropolis Hastings algorithm. At the \eqn{i}-th iteration, a new value is proposed for each from a univariate Gaussian distrubion with variance, say \eqn{h_{i}^2}, tuned according the following adaptive scheme \deqn{h_{i} = h_{i-1}+c_{1}i^{-c_{2}}(\alpha_{i}-0.45),} where \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (0.45 is the optimal acceptance rate for a univariate Gaussian distribution) whilst \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants. The starting values \eqn{h_{1}} for each of the parameters \eqn{\theta_{1}}, \eqn{\theta_{2}} and \eqn{\theta_{3}} can be set using the function \code{\link{control.mcmc.Bayes}} through the arguments \code{h.theta1}, \code{h.theta2} and \code{h.theta3}. To define values for \eqn{c_{1}} and \eqn{c_{2}}, see the documentation of \code{\link{control.mcmc.Bayes}}.
 
@@ -84,11 +84,11 @@ control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
                            h.theta1=0.5,h.theta2=0.5,h.theta3=0.5,
                            c1.h.theta3=0.01,c2.h.theta3=0.0001,linear.model=TRUE,
                            start.beta=-2.3,start.sigma2=2.45,
-                           start.phi=0.65,start.nugget=0.34)                             
+                           start.phi=0.65,start.nugget=0.34)
 fit.Bayes <- linear.model.Bayes(logit ~ 1,coords=~LONGITUDE+LATITUDE,
                 data=loaloa,kappa=0.5, control.mcmc=control.mcmc,
                 control.prior = cp)
-summary(fit.Bayes)                
+summary(fit.Bayes)
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

@@ -36,7 +36,7 @@ To draw a sample of size \code{n}  from a spatially continuous region \eqn{A}, w
  Let \code{k}  be the required number of close pairs. Choose a value \code{rho}  such that a close pair  of points will be a pair of points separated by a distance of at most \code{rho}.
 \itemize{
 \item{Step 5.} Set \eqn{j  = 1} and draw a random sample of size 2 from the integers \eqn{1,2,\ldots,n}, say \eqn{(i_{1}; i_{2})};
-\item{Step 6.} Replace \eqn{x_{i_{1}}} by \eqn{x_{i_{2}} + u} , where \eqn{u}  is uniformly distributed on the disc with centre \eqn{x_{i_{2}}} and radius \code{rho}, increase \eqn{i} by 1 and return to step 5 if \eqn{i \le k}, otherwise stop.	
+\item{Step 6.} Replace \eqn{x_{i_{1}}} by \eqn{x_{i_{2}} + u} , where \eqn{u}  is uniformly distributed on the disc with centre \eqn{x_{i_{2}}} and radius \code{rho}, increase \eqn{i} by 1 and return to step 5 if \eqn{i \le k}, otherwise stop.
 }
 }
 \examples{
@@ -47,7 +47,7 @@ poly<-matrix(c(poly[,1],poly[,2]),dim(poly)[1],2,byrow=FALSE)
 set.seed(5871121)
 
 # Generate spatially regular sample
-xy.sample<-continuous.sample(poly,100,30) 
+xy.sample<-continuous.sample(poly,100,30)
 plot(poly,type="l",xlab="X",ylab="Y")
 points(xy.sample,pch=19,cex=0.5)
 

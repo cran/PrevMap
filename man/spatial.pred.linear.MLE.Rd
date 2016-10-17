@@ -36,7 +36,7 @@ spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
 \item{include.nugget}{logical; if \code{include.nugget=TRUE} then the nugget effect is included in the predictions. This option is available only for fitted linear models with locations having multiple observations. Default is \code{include.nugget=FALSE}.}
 }
 \value{
-A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{grid.pred} prediction locations; \code{samples}, corresponding to the predictive samples of the linear predictor (only if \code{any(scale.predictions=="prevalence")}). 
+A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{grid.pred} prediction locations; \code{samples}, corresponding to the predictive samples of the linear predictor (only if \code{any(scale.predictions=="prevalence")}).
 Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is also a list with the following components:
 
 \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).

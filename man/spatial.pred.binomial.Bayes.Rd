@@ -31,7 +31,7 @@ spatial.pred.binomial.Bayes(object, grid.pred, predictors = NULL,
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
 }
 \value{
-A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{probit};\code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor; \code{grid.pred} prediction locations. 
+A "pred.PrevMap" object list with the following components: \code{logit}; \code{prevalence}; \code{odds}; \code{probit};\code{exceedance.prob}, corresponding to a matrix of the exceedance probabilities where each column corresponds to a specified value in \code{thresholds}; \code{samples}, corresponding to a matrix of the posterior samples at each prediction locations for the linear predictor; \code{grid.pred} prediction locations.
 Each of the three components \code{logit}, \code{prevalence},  \code{odds} and \code{probit} is also a list with the following components:
 
 \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).

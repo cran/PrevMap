@@ -4,9 +4,9 @@
 \alias{poisson.log.MCML}
 \title{Monte Carlo Maximum Likelihood estimation for the Poisson model}
 \usage{
-poisson.log.MCML(formula, units.m = NULL, coords, data, par0, control.mcmc,
-  kappa, fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
-  low.rank = FALSE, knots = NULL, messages = TRUE,
+poisson.log.MCML(formula, units.m = NULL, coords, data, ID.coords = NULL,
+  par0, control.mcmc, kappa, fixed.rel.nugget = NULL, start.cov.pars,
+  method = "BFGS", low.rank = FALSE, knots = NULL, messages = TRUE,
   plot.correlogram = TRUE)
 }
 \arguments{
@@ -17,6 +17,8 @@ poisson.log.MCML(formula, units.m = NULL, coords, data, par0, control.mcmc,
 \item{coords}{an object of class \code{\link{formula}} indicating the geographic coordinates.}
 
 \item{data}{a data frame containing the variables in the model.}
+
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at location-level but some of the covariates are at individual level. \bold{Warning}: the spatial coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
 
 \item{par0}{parameters of the importance sampling distribution: these should be given in the following order \code{c(beta,sigma2,phi,tau2)}, where \code{beta} are the regression coefficients, \code{sigma2} is the variance of the Gaussian process, \code{phi} is the scale parameter of the spatial correlation and \code{tau2} is the variance of the nugget effect (if included in the model).}
 
@@ -55,6 +57,8 @@ The object is a list with the following components:
 
 \code{D}: matrix of covariates.
 
+\code{ID.coords}: set of ID values defined through the argument \code{ID.coords}.
+
 \code{coords}: matrix of the observed sampling locations.
 
 \code{method}: method of optimization used.
@@ -79,7 +83,7 @@ This function performs Monte Carlo maximum likelihood (MCML) estimation for the 
 \details{
 This function performs parameter estimation for a geostatistical Poisson model with log link function. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a Poisson distribution with mean \eqn{m\lambda}, where \eqn{m} is an offset defined through the argument \code{units.m}. A canonical log link is used, thus the linear predictor assumes the form
 \deqn{\log(\lambda) = d'\beta + S(x) + Z,}
-where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}. 
+where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 In the \code{poisson.log.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 
 \bold{Monte Carlo Maximum likelihood.}
