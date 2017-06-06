@@ -45,12 +45,11 @@ The Guassian process is also approximated using SPDE.
 \bold{Binomial model.} Conditionally on the random effect \eqn{S}, the data \code{y} follow a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. The logistic link function is used for the linear predictor, which assumes the form \deqn{\log(p/(1-p))=S.}
 The random effect \eqn{S} has a multivariate Gaussian distribution with mean \code{mu} and covariance matrix \code{Sigma}.
 }
+\seealso{
+\code{\link{control.mcmc.MCML}}.
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{control.mcmc.MCML}}.
-}
-

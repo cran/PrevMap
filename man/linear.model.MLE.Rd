@@ -113,15 +113,16 @@ fit <- linear.model.MLE(formula=logit~1,coords=~x1+x2,data=data_subset,
 summary(fit,log.cov.pars=FALSE)
 
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-
-Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
-}
 \references{
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
 \code{\link{shape.matern}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{maxBFGS}}, \code{\link{nlminb}}.
 }
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
+Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
+}

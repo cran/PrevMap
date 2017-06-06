@@ -6,9 +6,9 @@
 \usage{
 binomial.logistic.MCML(formula, units.m, coords, times = NULL, data,
   ID.coords = NULL, par0, control.mcmc, kappa, kappa.t = NULL,
-  fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
-  low.rank = FALSE, SPDE = FALSE, knots = NULL, mesh = NULL,
-  messages = TRUE, plot.correlogram = TRUE)
+  sst.model = NULL, fixed.rel.nugget = NULL, start.cov.pars,
+  method = "BFGS", low.rank = FALSE, SPDE = FALSE, knots = NULL,
+  mesh = NULL, messages = TRUE, plot.correlogram = TRUE)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -30,6 +30,13 @@ binomial.logistic.MCML(formula, units.m, coords, times = NULL, data,
 \item{kappa}{fixed value for the shape parameter of the Matern covariance function.}
 
 \item{kappa.t}{fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.}
+
+\item{sst.model}{a character value that specifies the spatio-temporal correlation function.
+\itemize{
+\item \code{sst.model="DM"} separable double-Matern.
+\item \code{sst.model="GN1"} separable correlation functions. Temporal correlation: \eqn{f(x) = 1/(1+x/\psi)}; Spatial correaltion: Matern function.
+}
+Deafault is \code{sst.model=NULL}, which is used when a purely spatial model is fitted.}
 
 \item{fixed.rel.nugget}{fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.}
 
@@ -108,12 +115,9 @@ When analysing data from household sruveys, some of the avilable information inf
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), the parameter \code{sigma2} is then multiplied by a factor \code{constant.sigma2} so as to obtain a value that is closer to the actual variance of \eqn{S(x)}.
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-
-Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
-}
 \references{
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
 Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -121,4 +125,8 @@ Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures
 \seealso{
 \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 }
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
+Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
+}

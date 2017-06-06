@@ -9,97 +9,97 @@
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom maxLik maxBFGS
 maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
-	if(length(ID.coords)==0) {
+  if(length(ID.coords)==0) {
     Sigma.inv <- solve(Sigma)
 
-	integrand <- function(S) {
-            if(poisson.llik) {
-               llik <- sum(y*S-units.m*exp(S))
-            } else {
-               llik <- sum(y*S-units.m*log(1+exp(S)))
-            }
-		diff.S <- S-mu
-		q.f_S <- t(diff.S)%*%Sigma.inv%*%(diff.S)
-		-0.5*(q.f_S)+
-		llik
-	}
+    integrand <- function(S) {
+      if(poisson.llik) {
+        llik <- sum(y*S-units.m*exp(S))
+      } else {
+        llik <- sum(y*S-units.m*log(1+exp(S)))
+      }
+      diff.S <- S-mu
+      q.f_S <- t(diff.S)%*%Sigma.inv%*%(diff.S)
+      -0.5*(q.f_S)+
+        llik
+    }
 
-      grad.integrand <- function(S) {
-		diff.S <- S-mu
-		if(poisson.llik) {
-               h <- units.m*exp(S)
-            } else {
-               h <- units.m*exp(S)/(1+exp(S))
-            }
-		as.numeric(-Sigma.inv%*%diff.S+(y-h))
-	}
+    grad.integrand <- function(S) {
+      diff.S <- S-mu
+      if(poisson.llik) {
+        h <- units.m*exp(S)
+      } else {
+        h <- units.m*exp(S)/(1+exp(S))
+      }
+      as.numeric(-Sigma.inv%*%diff.S+(y-h))
+    }
 
-	hessian.integrand <- function(S) {
-		if(poisson.llik) {
-               h1 <- units.m*exp(S)
-            } else {
-               h1 <- units.m*exp(S)/((1+exp(S))^2)
-            }
-		res <- -Sigma.inv
-		diag(res) <- diag(res)-h1
-		res
-	}
+    hessian.integrand <- function(S) {
+      if(poisson.llik) {
+        h1 <- units.m*exp(S)
+      } else {
+        h1 <- units.m*exp(S)/((1+exp(S))^2)
+      }
+      res <- -Sigma.inv
+      diag(res) <- diag(res)-h1
+      res
+    }
 
-      out <- list()
-	estim <- maxBFGS(function(x) integrand(x),function(x) grad.integrand(x),
-	            function(x) hessian.integrand(x),start=mu)
-	out$mode <- estim$estimate
-	out$Sigma.tilde <- solve(-estim$hessian)
+    out <- list()
+    estim <- maxBFGS(function(x) integrand(x),function(x) grad.integrand(x),
+                     function(x) hessian.integrand(x),start=mu)
+    out$mode <- estim$estimate
+    out$Sigma.tilde <- solve(-estim$hessian)
 
-    } else {
-     Sigma.inv <- solve(Sigma)
-     n.x <- dim(Sigma.inv)[1]
-	   C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
-	integrand <- function(S) {
-	  eta <- mu+as.numeric(S[ID.coords])
-	  if(poisson.llik) {
-	    llik <- sum(y*eta-units.m*exp(eta))
-	  } else {
-	    llik <- sum(y*eta-units.m*log(1+exp(eta)))
-	  }
-		q.f_S <- t(S)%*%Sigma.inv%*%(S)
+  } else {
+    Sigma.inv <- solve(Sigma)
+    n.x <- dim(Sigma.inv)[1]
+    C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
+    integrand <- function(S) {
+      eta <- mu+as.numeric(S[ID.coords])
+      if(poisson.llik) {
+        llik <- sum(y*eta-units.m*exp(eta))
+      } else {
+        llik <- sum(y*eta-units.m*log(1+exp(eta)))
+      }
+      q.f_S <- t(S)%*%Sigma.inv%*%(S)
 
-		-0.5*q.f_S+llik
-	}
+      -0.5*q.f_S+llik
+    }
 
-  grad.integrand <- function(S) {
-		eta <- as.numeric(mu+as.numeric(S[ID.coords]))
-		if(poisson.llik) {
-		  h <- units.m*exp(eta)
-		} else {
-		  h <- units.m*exp(eta)/(1+exp(eta))
-		}
+    grad.integrand <- function(S) {
+      eta <- as.numeric(mu+as.numeric(S[ID.coords]))
+      if(poisson.llik) {
+        h <- units.m*exp(eta)
+      } else {
+        h <- units.m*exp(eta)/(1+exp(eta))
+      }
 
-		as.numeric(-Sigma.inv%*%S+
-		 sapply(1:n.x,function(i) sum((y-h)[C.S[i,]]))	)
-	}
+      as.numeric(-Sigma.inv%*%S+
+                   sapply(1:n.x,function(i) sum((y-h)[C.S[i,]]))	)
+    }
 
-	hessian.integrand <- function(S) {
-		eta <- as.numeric(mu+as.numeric(S[ID.coords]))
-		if(poisson.llik) {
-		  h <- units.m*exp(eta)
-		  h1 <- h
-		} else {
-		  h <- units.m*exp(eta)/(1+exp(eta))
-		  h1 <- h/(1+exp(eta))
-		}
+    hessian.integrand <- function(S) {
+      eta <- as.numeric(mu+as.numeric(S[ID.coords]))
+      if(poisson.llik) {
+        h <- units.m*exp(eta)
+        h1 <- h
+      } else {
+        h <- units.m*exp(eta)/(1+exp(eta))
+        h1 <- h/(1+exp(eta))
+      }
 
-		grad.S.S <-  -Sigma.inv
-		diag(grad.S.S) <- diag(grad.S.S)-sapply(1:n.x,function(i) sum(h1[C.S[i,]]))
-		as.matrix(grad.S.S)
-	}
-	  out <- list()
-	  estim <- maxBFGS(integrand,grad.integrand,hessian.integrand,rep(0,n.x))
-	  out$mode <- estim$estimate
-	  out$Sigma.tilde <- solve(-estim$hessian)
+      grad.S.S <-  -Sigma.inv
+      diag(grad.S.S) <- diag(grad.S.S)-sapply(1:n.x,function(i) sum(h1[C.S[i,]]))
+      as.matrix(grad.S.S)
+    }
+    out <- list()
+    estim <- maxBFGS(integrand,grad.integrand,hessian.integrand,rep(0,n.x))
+    out$mode <- estim$estimate
+    out$Sigma.tilde <- solve(-estim$hessian)
   }
 
-    return(out)
+  return(out)
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -107,50 +107,50 @@ maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
 ##' @importFrom Matrix forceSymmetric solve
 maxim.integrand.SPDE <- function(y,units.m,mu,sigma2,phi,kappa,coords,mesh,
                                  poisson.llik=poisson.llik) {
-   spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
-   Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,-log(phi))))
-   sigma2.t <- 4*pi*sigma2/(phi^2)
-   A <- INLA::inla.spde.make.A(mesh,loc=coords)
+  spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
+  Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,-log(phi))))
+  sigma2.t <- 4*pi*sigma2/(phi^2)
+  A <- INLA::inla.spde.make.A(mesh,loc=coords)
 
-   der.S <- function(S,S.i,Q,sigma2.t) {
-      eta <- S.i+mu
-      if(poisson.llik) {
-        mean.y <- units.m*exp(eta)
-        grad.mean.y <- mean.y
-      } else {
-        mean.y <- units.m*exp(eta)/(1+exp(eta))
-        grad.mean.y <- mean.y/(1+exp(eta))
+  der.S <- function(S,S.i,Q,sigma2.t) {
+    eta <- S.i+mu
+    if(poisson.llik) {
+      mean.y <- units.m*exp(eta)
+      grad.mean.y <- mean.y
+    } else {
+      mean.y <- units.m*exp(eta)/(1+exp(eta))
+      grad.mean.y <- mean.y/(1+exp(eta))
+    }
+
+    diff.y <- y-mean.y
+    out <- list()
+    out$grad <- as.numeric(-Q%*%S/sigma2.t+t(A)%*%diff.y)
+    out$hess <- forceSymmetric(-Q/sigma2.t-t(A)%*%(A*grad.mean.y))
+    return(out)
+  }
+
+  est.NR <- function(x) {
+    n.iter <- 0
+    done <- FALSE
+    compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
+    while(!done) {
+      n.iter <- n.iter+1
+      x <- x-solve(compute.der$hess,compute.der$grad)
+      compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
+      if(sqrt(sum(compute.der$grad^2)) < 10e-11) {
+        done <- TRUE
+      } else if(n.iter > 50) {
+        warning("the Newton-Raphson algorithm has reached the
+                maximum number of iterations.")
+      }
       }
 
-      diff.y <- y-mean.y
-      out <- list()
-      out$grad <- as.numeric(-Q%*%S/sigma2.t+t(A)%*%diff.y)
-      out$hess <- forceSymmetric(-Q/sigma2.t-t(A)%*%(A*grad.mean.y))
-      return(out)
-   }
-
-   est.NR <- function(x) {
-      n.iter <- 0
-      done <- FALSE
-      compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
-      while(!done) {
-         n.iter <- n.iter+1
-         x <- x-solve(compute.der$hess,compute.der$grad)
-         compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
-         if(sqrt(sum(compute.der$grad^2)) < 10e-11) {
-            done <- TRUE
-         } else if(n.iter > 50) {
-            warning("the Newton-Raphson algorithm has reached the
-            maximum number of iterations.")
-         }
-      }
-
-      compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
-      return(list(x=x,grad=compute.der$grad,hess=compute.der$hess))
-   }
-   n.spde <- mesh$n
-   est <- est.NR(rep(0,n.spde))
-   return(est)
+    compute.der <- der.S(x,as.numeric(A%*%x),Q,sigma2.t)
+    return(list(x=x,grad=compute.der$grad,hess=compute.der$hess))
+    }
+  n.spde <- mesh$n
+  est <- est.NR(rep(0,n.spde))
+  return(est)
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -158,51 +158,51 @@ maxim.integrand.SPDE <- function(y,units.m,mu,sigma2,phi,kappa,coords,mesh,
 ##' @importFrom maxLik maxBFGS
 maxim.integrand.lr <- function(y,units.m,mu,sigma2,K,poisson.llik) {
 
-	integrand <- function(z) {
+  integrand <- function(z) {
 
-		s <- as.numeric(K%*%z)
-		eta <- as.numeric(mu+s)
-            if(poisson.llik) {
-               llik <- sum(y*eta-units.m*exp(eta))
-            } else {
-               llik <- sum(y*eta-units.m*log(1+exp(eta)))
-            }
-		-0.5*(sum(z^2)/sigma2)+
-		llik
-	}
+    s <- as.numeric(K%*%z)
+    eta <- as.numeric(mu+s)
+    if(poisson.llik) {
+      llik <- sum(y*eta-units.m*exp(eta))
+    } else {
+      llik <- sum(y*eta-units.m*log(1+exp(eta)))
+    }
+    -0.5*(sum(z^2)/sigma2)+
+      llik
+  }
 
-      grad.integrand <- function(z) {
-		s <- as.numeric(K%*%z)
-		eta <- as.numeric(mu+s)
-            if(poisson.llik) {
-               h <- units.m*exp(eta)
-            } else {
-               h <- units.m*exp(eta)/(1+exp(eta))
-            }
-		as.numeric(-z/sigma2+t(K)%*%(y-h))
-	}
+  grad.integrand <- function(z) {
+    s <- as.numeric(K%*%z)
+    eta <- as.numeric(mu+s)
+    if(poisson.llik) {
+      h <- units.m*exp(eta)
+    } else {
+      h <- units.m*exp(eta)/(1+exp(eta))
+    }
+    as.numeric(-z/sigma2+t(K)%*%(y-h))
+  }
 
-	hessian.integrand <- function(z) {
-		s <- as.numeric(K%*%z)
-		eta <- as.numeric(mu+s)
-		if(poisson.llik) {
-               h1 <- units.m*exp(eta)
-            } else {
-               h1 <- units.m*exp(eta)/((1+exp(eta))^2)
-            }
-		out <- -t(K)%*%(K*h1)
-		diag(out) <- diag(out)-1/sigma2
-		out
-	}
-	N <- ncol(K)
-      out <- list()
-	estim <- maxBFGS(function(x) integrand(x),
-	                             function(x) grad.integrand(x),
-	                             function(x) hessian.integrand(x),rep(0,N))
-	out$mode <- estim$estimate
-	out$Sigma.tilde <- solve(-estim$hessian)
+  hessian.integrand <- function(z) {
+    s <- as.numeric(K%*%z)
+    eta <- as.numeric(mu+s)
+    if(poisson.llik) {
+      h1 <- units.m*exp(eta)
+    } else {
+      h1 <- units.m*exp(eta)/((1+exp(eta))^2)
+    }
+    out <- -t(K)%*%(K*h1)
+    diag(out) <- diag(out)-1/sigma2
+    out
+  }
+  N <- ncol(K)
+  out <- list()
+  estim <- maxBFGS(function(x) integrand(x),
+                   function(x) grad.integrand(x),
+                   function(x) hessian.integrand(x),rep(0,N))
+  out$mode <- estim$estimate
+  out$Sigma.tilde <- solve(-estim$hessian)
 
-      return(out)
+  return(out)
 }
 
 
@@ -223,20 +223,20 @@ maxim.integrand.lr <- function(y,units.m,mu,sigma2,K,poisson.llik) {
 ##' @export
 
 create.ID.coords <- function(data,coords) {
-	if(class(data)!="data.frame") stop("data must be a data frame.")
-	if(class(coords)!="formula") stop("coords must a 'formula' object indicating the spatial coordinates in the data.")
-    coords <- as.matrix(model.frame(coords,data))
-	if(any(is.na(coords))) stop("missing values are not accepted.")
-	n <- nrow(coords)
-	ID.coords <- rep(NA,n)
-	coords.uni <- unique(coords)
-	if(nrow(coords.uni)==n) warning("the unique set of coordinates concides with the provided spatial coordinates in 'coords'.")
-	for(i in 1:nrow(coords.uni)) {
-		ind <- which(coords.uni[i,1]==coords[,1] &
-		                     coords.uni[i,2]==coords[,2])
-        ID.coords[ind] <- i
-	}
-	return(ID.coords)
+  if(class(data)!="data.frame") stop("data must be a data frame.")
+  if(class(coords)!="formula") stop("coords must a 'formula' object indicating the spatial coordinates in the data.")
+  coords <- as.matrix(model.frame(coords,data))
+  if(any(is.na(coords))) stop("missing values are not accepted.")
+  n <- nrow(coords)
+  ID.coords <- rep(NA,n)
+  coords.uni <- unique(coords)
+  if(nrow(coords.uni)==n) warning("the unique set of coordinates concides with the provided spatial coordinates in 'coords'.")
+  for(i in 1:nrow(coords.uni)) {
+    ind <- which(coords.uni[i,1]==coords[,1] &
+                   coords.uni[i,2]==coords[,2])
+    ID.coords[ind] <- i
+  }
+  return(ID.coords)
 }
 
 ##' @title Langevin-Hastings MCMC for conditional simulation
@@ -285,39 +285,39 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
                              messages=TRUE,
                              plot.correlogram=TRUE,poisson.llik=FALSE) {
 
-   if(length(ID.coords)==0) {
-	n.sim <- control.mcmc$n.sim
-	n <- length(y)
-	S.estim <- maxim.integrand(y,units.m,mu,Sigma,
-                                 poisson.llik=poisson.llik)
-	Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
-	A <- solve(Sigma.sroot)
-	Sigma.W.inv <- solve(A%*%Sigma%*%t(A))
-	mu.W <- as.numeric(A%*%(mu-S.estim$mode))
+  if(length(ID.coords)==0) {
+    n.sim <- control.mcmc$n.sim
+    n <- length(y)
+    S.estim <- maxim.integrand(y,units.m,mu,Sigma,
+                               poisson.llik=poisson.llik)
+    Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
+    A <- solve(Sigma.sroot)
+    Sigma.W.inv <- solve(A%*%Sigma%*%t(A))
+    mu.W <- as.numeric(A%*%(mu-S.estim$mode))
 
-	cond.dens.W <- function(W,S) {
-          if(poisson.llik) {
-            llik <- sum(y*S-units.m*exp(S))
-          } else {
-            llik <- sum(y*S-units.m*log(1+exp(S)))
-          }
-
-	    n <- length(y)
-	    diff.W <- W-mu.W
-          -0.5*as.numeric(t(diff.W)%*%Sigma.W.inv%*%diff.W)+
-          llik
+    cond.dens.W <- function(W,S) {
+      if(poisson.llik) {
+        llik <- sum(y*S-units.m*exp(S))
+      } else {
+        llik <- sum(y*S-units.m*log(1+exp(S)))
       }
 
-    lang.grad <- function(W,S) {
-	    diff.W <- W-mu.W
-          if(poisson.llik) {
-            h <- as.numeric(units.m*exp(S))
-          } else {
-            h <- as.numeric(units.m*exp(S)/(1+exp(S)))
-          }
+      n <- length(y)
+      diff.W <- W-mu.W
+      -0.5*as.numeric(t(diff.W)%*%Sigma.W.inv%*%diff.W)+
+        llik
+    }
 
-	    as.numeric(-Sigma.W.inv%*%diff.W+
-          t(Sigma.sroot)%*%(y-h))
+    lang.grad <- function(W,S) {
+      diff.W <- W-mu.W
+      if(poisson.llik) {
+        h <- as.numeric(units.m*exp(S))
+      } else {
+        h <- as.numeric(units.m*exp(S)/(1+exp(S)))
+      }
+
+      as.numeric(-Sigma.W.inv%*%diff.W+
+                   t(Sigma.sroot)%*%(y-h))
     }
 
     h <- control.mcmc$h
@@ -335,139 +335,139 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
     if(messages) cat("Conditional simulation (burnin=",control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
     h.vec <- rep(NA,n.sim)
     for(i in 1:n.sim) {
-     W.prop <- mean.curr+h*rnorm(n)
-     S.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
-     mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,S.prop))
-     lp.prop <- cond.dens.W(W.prop,S.prop)
+      W.prop <- mean.curr+h*rnorm(n)
+      S.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
+      mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,S.prop))
+      lp.prop <- cond.dens.W(W.prop,S.prop)
 
-     dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
-	   dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
+      dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
+      dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
 
-	   log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
+      log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
 
-	   if(log(runif(1)) < log.prob) {
-	      acc <- acc+1
-	      W.curr <- W.prop
-	      S.curr <- S.prop
-		    lp.curr <- lp.prop
-		    mean.curr <- mean.prop
-	   }
-
-	   if( i > burnin & (i-burnin)%%thin==0) {
-	 	 sim[(i-burnin)/thin,] <- S.curr
-	   }
-
-	   h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
-       if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-       flush.console()
-       }
-       if(plot.correlogram) {
-       acf.plot <- acf(sim[,1],plot=FALSE)
-       plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
-                 ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
-       for(i in 2:ncol(sim)) {
-          acf.plot <- acf(sim[,i],plot=FALSE)
-          lines(acf.plot$lag,acf.plot$acf)
-       }
-       abline(h=0,lty="dashed",col=2)
-    }
-    if(messages) cat("\n")
-    } else {
-       n.sim <- control.mcmc$n.sim
-	     n <- length(y)
-	     n.x <- dim(Sigma)[1]
-	     S.estim <- maxim.integrand(y=y,units.m=units.m,mu=mu,
-	                                Sigma=Sigma,ID.coords=ID.coords,
-	                                poisson.llik = poisson.llik)
-	     Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
-	     A <- solve(Sigma.sroot)
-	     Sigma.w.inv <- solve(A%*%Sigma%*%t(A))
-	     mu.w <- -as.numeric(A%*%S.estim$mode)
-
-	     cond.dens.W <- function(W,S) {
-	       eta <- mu+as.numeric(S[ID.coords])
-	       if(poisson.llik) {
-	          llik <- sum(y*eta-units.m*exp(eta))
-         } else {
-	          llik <- sum(y*eta-units.m*log(1+exp(eta)))
-	       }
-	       diff.w <- W-mu.w
-	       -0.5*as.numeric(t(diff.w)%*%Sigma.w.inv%*%diff.w)+
-                llik
-       }
-
-      lang.grad <- function(W,S) {
-	      diff.w <- W-mu.w
-	      eta <- mu+as.numeric(S[ID.coords])
-	      if(poisson.llik) {
-	        der <- units.m*exp(eta)
-	      } else {
-	        der <- units.m*exp(eta)/(1+exp(eta))
-	      }
-
-        grad.S <- sapply(1:n.x,function(i) sum((y-der)[C.S[i,]]))
-	      as.numeric(-Sigma.w.inv%*%(W-mu.w)+
-        t(Sigma.sroot)%*%grad.S)
+      if(log(runif(1)) < log.prob) {
+        acc <- acc+1
+        W.curr <- W.prop
+        S.curr <- S.prop
+        lp.curr <- lp.prop
+        mean.curr <- mean.prop
       }
 
-      h <- control.mcmc$h
-      if(h==Inf) h <- 1.65/(n.x^(1/6))
-      burnin <- control.mcmc$burnin
-      thin <- control.mcmc$thin
-      c1.h <- control.mcmc$c1.h
-      c2.h <- control.mcmc$c2.h
-      W.curr <- rep(0,n.x)
-      S.curr <- as.numeric(Sigma.sroot%*%W.curr+S.estim$mode)
-      C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
-      mean.curr <- as.numeric(W.curr + (h^2/2)*lang.grad(W.curr,S.curr))
-      lp.curr <- cond.dens.W(W.curr,S.curr)
-      acc <- 0
-      sim <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
-      if(messages) cat("Conditional simulation (burnin=",
-      control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
-      h.vec <- rep(NA,n.sim)
-      for(i in 1:n.sim) {
-       W.prop <- mean.curr+h*rnorm(n.x)
-       S.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
-       mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,S.prop))
-       lp.prop <- cond.dens.W(W.prop,S.prop)
+      if( i > burnin & (i-burnin)%%thin==0) {
+        sim[(i-burnin)/thin,] <- S.curr
+      }
 
-       dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
-	     dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
-
-	     log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
-
-	    if(log(runif(1)) < log.prob) {
-	      acc <- acc+1
-	      W.curr <- W.prop
-	      S.curr <- S.prop
-		    lp.curr <- lp.prop
-	    	mean.curr <- mean.prop
-	   }
-
-	   if( i > burnin & (i-burnin)%%thin==0) {
-	 	 sim[(i-burnin)/thin,] <- S.curr
-	   }
-
-	   h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
-       if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-       flush.console()
-       }
-        if(plot.correlogram) {
-       acf.plot <- acf(sim[,1],plot=FALSE)
-       plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
-                 ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
-       for(i in 2:ncol(sim)) {
-          acf.plot <- acf(sim[,i],plot=FALSE)
-          lines(acf.plot$lag,acf.plot$acf)
-       }
-       abline(h=0,lty="dashed",col=2)
-       }
-       if(messages) cat("\n")
+      h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
+      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+      flush.console()
     }
-    out.sim <- list(samples=sim,h=h.vec)
-    class(out.sim) <- "mcmc.PrevMap"
-    return(out.sim)
+    if(plot.correlogram) {
+      acf.plot <- acf(sim[,1],plot=FALSE)
+      plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
+           ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
+      for(i in 2:ncol(sim)) {
+        acf.plot <- acf(sim[,i],plot=FALSE)
+        lines(acf.plot$lag,acf.plot$acf)
+      }
+      abline(h=0,lty="dashed",col=2)
+    }
+    if(messages) cat("\n")
+  } else {
+    n.sim <- control.mcmc$n.sim
+    n <- length(y)
+    n.x <- dim(Sigma)[1]
+    S.estim <- maxim.integrand(y=y,units.m=units.m,mu=mu,
+                               Sigma=Sigma,ID.coords=ID.coords,
+                               poisson.llik = poisson.llik)
+    Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
+    A <- solve(Sigma.sroot)
+    Sigma.w.inv <- solve(A%*%Sigma%*%t(A))
+    mu.w <- -as.numeric(A%*%S.estim$mode)
+
+    cond.dens.W <- function(W,S) {
+      eta <- mu+as.numeric(S[ID.coords])
+      if(poisson.llik) {
+        llik <- sum(y*eta-units.m*exp(eta))
+      } else {
+        llik <- sum(y*eta-units.m*log(1+exp(eta)))
+      }
+      diff.w <- W-mu.w
+      -0.5*as.numeric(t(diff.w)%*%Sigma.w.inv%*%diff.w)+
+        llik
+    }
+
+    lang.grad <- function(W,S) {
+      diff.w <- W-mu.w
+      eta <- mu+as.numeric(S[ID.coords])
+      if(poisson.llik) {
+        der <- units.m*exp(eta)
+      } else {
+        der <- units.m*exp(eta)/(1+exp(eta))
+      }
+
+      grad.S <- sapply(1:n.x,function(i) sum((y-der)[C.S[i,]]))
+      as.numeric(-Sigma.w.inv%*%(W-mu.w)+
+                   t(Sigma.sroot)%*%grad.S)
+    }
+
+    h <- control.mcmc$h
+    if(h==Inf) h <- 1.65/(n.x^(1/6))
+    burnin <- control.mcmc$burnin
+    thin <- control.mcmc$thin
+    c1.h <- control.mcmc$c1.h
+    c2.h <- control.mcmc$c2.h
+    W.curr <- rep(0,n.x)
+    S.curr <- as.numeric(Sigma.sroot%*%W.curr+S.estim$mode)
+    C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
+    mean.curr <- as.numeric(W.curr + (h^2/2)*lang.grad(W.curr,S.curr))
+    lp.curr <- cond.dens.W(W.curr,S.curr)
+    acc <- 0
+    sim <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
+    if(messages) cat("Conditional simulation (burnin=",
+                     control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
+    h.vec <- rep(NA,n.sim)
+    for(i in 1:n.sim) {
+      W.prop <- mean.curr+h*rnorm(n.x)
+      S.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
+      mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,S.prop))
+      lp.prop <- cond.dens.W(W.prop,S.prop)
+
+      dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
+      dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
+
+      log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
+
+      if(log(runif(1)) < log.prob) {
+        acc <- acc+1
+        W.curr <- W.prop
+        S.curr <- S.prop
+        lp.curr <- lp.prop
+        mean.curr <- mean.prop
+      }
+
+      if( i > burnin & (i-burnin)%%thin==0) {
+        sim[(i-burnin)/thin,] <- S.curr
+      }
+
+      h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
+      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+      flush.console()
+    }
+    if(plot.correlogram) {
+      acf.plot <- acf(sim[,1],plot=FALSE)
+      plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
+           ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
+      for(i in 2:ncol(sim)) {
+        acf.plot <- acf(sim[,i],plot=FALSE)
+        lines(acf.plot$lag,acf.plot$acf)
+      }
+      abline(h=0,lty="dashed",col=2)
+    }
+    if(messages) cat("\n")
+  }
+  out.sim <- list(samples=sim,h=h.vec)
+  class(out.sim) <- "mcmc.PrevMap"
+  return(out.sim)
 }
 
 
@@ -497,86 +497,86 @@ Laplace.sampling <- function(mu,Sigma,y,units.m,
 ##' @importFrom Matrix forceSymmetric chol solve t diag
 ##' @export
 Laplace.sampling.SPDE <- function(mu,sigma2,phi,kappa,y,units.m,coords,mesh,
-                         control.mcmc,messages=TRUE,
-                         plot.correlogram=TRUE,poisson.llik) {
-   n.sim <- control.mcmc$n.sim
-   n <- length(y)
-   n.spde <- mesh$n
-   spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
-   Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,-log(phi))))
-   A <- INLA::inla.spde.make.A(mesh,loc=coords)
-   sigma2.t <- 4*pi*sigma2/(phi^2)
+                                  control.mcmc,messages=TRUE,
+                                  plot.correlogram=TRUE,poisson.llik) {
+  n.sim <- control.mcmc$n.sim
+  n <- length(y)
+  n.spde <- mesh$n
+  spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
+  Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,-log(phi))))
+  A <- INLA::inla.spde.make.A(mesh,loc=coords)
+  sigma2.t <- 4*pi*sigma2/(phi^2)
 
-   S.estim <- maxim.integrand.SPDE(y=y,
-              units.m=units.m,mu=mu,sigma2=sigma2,phi=phi,
-              kappa=kappa,coords=coords,mesh=mesh,
-              poisson.llik=poisson.llik)
-   L <- chol(-S.estim$hess)
+  S.estim <- maxim.integrand.SPDE(y=y,
+                                  units.m=units.m,mu=mu,sigma2=sigma2,phi=phi,
+                                  kappa=kappa,coords=coords,mesh=mesh,
+                                  poisson.llik=poisson.llik)
+  L <- chol(-S.estim$hess)
 
-   burnin <- control.mcmc$burnin
-   thin <- control.mcmc$thin
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
 
-   log.dens <- function(S,S.i) {
-      eta <- S.i+mu
-      if(poisson.llik) {
-        llik <- sum(y*eta-units.m*exp(eta))
-      } else {
-        llik <- sum(y*eta-units.m*log(1+exp(eta)))
-      }
-      q.f <- as.numeric(t(S)%*%Q%*%S)
-      -0.5*q.f/sigma2.t+llik
-   }
+  log.dens <- function(S,S.i) {
+    eta <- S.i+mu
+    if(poisson.llik) {
+      llik <- sum(y*eta-units.m*exp(eta))
+    } else {
+      llik <- sum(y*eta-units.m*log(1+exp(eta)))
+    }
+    q.f <- as.numeric(t(S)%*%Q%*%S)
+    -0.5*q.f/sigma2.t+llik
+  }
 
-   z.curr <- rep(0,n.spde)
-   S.curr <- as.numeric(S.estim$x)
-   dp.prop <- -0.5*sum(z.curr^2)
-   S.i.curr <- as.numeric(A%*%S.curr)
-   lp.curr <- log.dens(S.curr,S.i.curr)
-   acc <- 0
-   n.samples <- (n.sim-burnin)/thin
-   sim <- matrix(NA,nrow=n.samples,ncol=n.spde)
-   if(messages) cat("Conditional simulation (burnin=",control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
+  z.curr <- rep(0,n.spde)
+  S.curr <- as.numeric(S.estim$x)
+  dp.prop <- -0.5*sum(z.curr^2)
+  S.i.curr <- as.numeric(A%*%S.curr)
+  lp.curr <- log.dens(S.curr,S.i.curr)
+  acc <- 0
+  n.samples <- (n.sim-burnin)/thin
+  sim <- matrix(NA,nrow=n.samples,ncol=n.spde)
+  if(messages) cat("Conditional simulation (burnin=",control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
 
-   for(i in 1:n.sim) {
-      z.prop <- rnorm(n.spde)
-      S.prop <- as.numeric(S.estim$x+solve(L,z.prop))
-      S.i.prop <- as.numeric(A%*%S.prop)
-      lp.prop <- log.dens(S.prop,S.i.prop)
+  for(i in 1:n.sim) {
+    z.prop <- rnorm(n.spde)
+    S.prop <- as.numeric(S.estim$x+solve(L,z.prop))
+    S.i.prop <- as.numeric(A%*%S.prop)
+    lp.prop <- log.dens(S.prop,S.i.prop)
 
-      dp.curr <- -0.5*sum(z.prop^2)
+    dp.curr <- -0.5*sum(z.prop^2)
 
-      log.prob <- lp.prop+dp.prop-lp.curr-dp.curr
+    log.prob <- lp.prop+dp.prop-lp.curr-dp.curr
 
-	if(log(runif(1)) < log.prob) {
-	   acc <- acc+1
-         lp.curr <- lp.prop
-         S.curr <- S.prop
-         S.i.curr <- S.i.prop
-         dp.prop <- dp.curr
-      }
+    if(log(runif(1)) < log.prob) {
+      acc <- acc+1
+      lp.curr <- lp.prop
+      S.curr <- S.prop
+      S.i.curr <- S.i.prop
+      dp.prop <- dp.curr
+    }
 
-      if( i > burnin & (i-burnin)%%thin==0) {
-	   sim[(i-burnin)/thin,] <- S.curr
-	}
+    if( i > burnin & (i-burnin)%%thin==0) {
+      sim[(i-burnin)/thin,] <- S.curr
+    }
 
-      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-      flush.console()
-   }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
 
-   if(plot.correlogram) {
-      acf.plot <- acf(sim[,1],plot=FALSE)
-      plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
-      ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
-      for(i in 2:ncol(sim)) {
-         acf.plot <- acf(sim[,i],plot=FALSE)
-         lines(acf.plot$lag,acf.plot$acf)
-      }
-      abline(h=0,lty="dashed",col=2)
-   }
-   if(messages) cat("\n")
-   out.sim <- list(samples=sim)
-   class(out.sim) <- "mcmc.PrevMap"
-   return(out.sim)
+  if(plot.correlogram) {
+    acf.plot <- acf(sim[,1],plot=FALSE)
+    plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
+         ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
+    for(i in 2:ncol(sim)) {
+      acf.plot <- acf(sim[,i],plot=FALSE)
+      lines(acf.plot$lag,acf.plot$acf)
+    }
+    abline(h=0,lty="dashed",col=2)
+  }
+  if(messages) cat("\n")
+  out.sim <- list(samples=sim)
+  class(out.sim) <- "mcmc.PrevMap"
+  return(out.sim)
 }
 
 
@@ -612,100 +612,100 @@ Laplace.sampling.lr <- function(mu,sigma2,K,y,units.m,
                                 messages=TRUE,
                                 plot.correlogram=TRUE,
                                 poisson.llik=FALSE) {
-	n.sim <- control.mcmc$n.sim
-	n <- length(y)
-	N <- ncol(K)
-	S.estim <- maxim.integrand.lr(y,units.m,mu,sigma2,K,
-                 poisson.llik=poisson.llik)
-	Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
-	A <- solve(Sigma.sroot)
-	Sigma.W.inv <- solve(sigma2*A%*%t(A))
-	mu.W <- -as.numeric(A%*%S.estim$mode)
+  n.sim <- control.mcmc$n.sim
+  n <- length(y)
+  N <- ncol(K)
+  S.estim <- maxim.integrand.lr(y,units.m,mu,sigma2,K,
+                                poisson.llik=poisson.llik)
+  Sigma.sroot <- t(chol(S.estim$Sigma.tilde))
+  A <- solve(Sigma.sroot)
+  Sigma.W.inv <- solve(sigma2*A%*%t(A))
+  mu.W <- -as.numeric(A%*%S.estim$mode)
 
-      cond.dens.W <- function(W,Z) {
-	   diff.w <- W-mu.W
-	   S <- as.numeric(K%*%Z)
-         eta <- as.numeric(mu+S)
-         if(poisson.llik) {
-            llik <- sum(y*eta-units.m*exp(eta))
-         } else {
-            llik <- sum(y*eta-units.m*log(1+exp(eta)))
-         }
+  cond.dens.W <- function(W,Z) {
+    diff.w <- W-mu.W
+    S <- as.numeric(K%*%Z)
+    eta <- as.numeric(mu+S)
+    if(poisson.llik) {
+      llik <- sum(y*eta-units.m*exp(eta))
+    } else {
+      llik <- sum(y*eta-units.m*log(1+exp(eta)))
+    }
 
-         -0.5*as.numeric(t(diff.w)%*%Sigma.W.inv%*%diff.w)+
-         llik
-      }
+    -0.5*as.numeric(t(diff.w)%*%Sigma.W.inv%*%diff.w)+
+      llik
+  }
 
-      lang.grad <- function(W,Z) {
- 	   diff.w <- W-mu.W
- 	   S <- as.numeric(K%*%Z)
-         eta <- as.numeric(mu+S)
-         if(poisson.llik) {
-            h <- units.m*exp(eta)
-         } else {
-            h <- units.m*exp(eta)/(1+exp(eta))
-         }
+  lang.grad <- function(W,Z) {
+    diff.w <- W-mu.W
+    S <- as.numeric(K%*%Z)
+    eta <- as.numeric(mu+S)
+    if(poisson.llik) {
+      h <- units.m*exp(eta)
+    } else {
+      h <- units.m*exp(eta)/(1+exp(eta))
+    }
 
-         grad.z <- t(K)%*%(y-h)
-         as.numeric(-Sigma.W.inv%*%(W-mu.W)+
-         t(Sigma.sroot)%*%c(grad.z))
-      }
+    grad.z <- t(K)%*%(y-h)
+    as.numeric(-Sigma.W.inv%*%(W-mu.W)+
+                 t(Sigma.sroot)%*%c(grad.z))
+  }
 
-    h <- control.mcmc$h
-    if(h==Inf) h <- 1.65/(N^(1/6))
-    burnin <- control.mcmc$burnin
-    thin <- control.mcmc$thin
-    c1.h <- control.mcmc$c1.h
-    c2.h <- control.mcmc$c2.h
-    W.curr <- rep(0,N)
-    Z.curr <- as.numeric(Sigma.sroot%*%W.curr+S.estim$mode)
-    mean.curr <- as.numeric(W.curr + (h^2/2)*lang.grad(W.curr,Z.curr))
-    lp.curr <- cond.dens.W(W.curr,Z.curr)
-    acc <- 0
-    sim <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
-    if(messages) cat("Conditional simulation (burnin=",control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
-    h.vec <- rep(NA,n.sim)
-    for(i in 1:n.sim) {
-       W.prop <- mean.curr+h*rnorm(N)
-       Z.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
-       mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,Z.prop))
-       lp.prop <- cond.dens.W(W.prop,Z.prop)
+  h <- control.mcmc$h
+  if(h==Inf) h <- 1.65/(N^(1/6))
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  c1.h <- control.mcmc$c1.h
+  c2.h <- control.mcmc$c2.h
+  W.curr <- rep(0,N)
+  Z.curr <- as.numeric(Sigma.sroot%*%W.curr+S.estim$mode)
+  mean.curr <- as.numeric(W.curr + (h^2/2)*lang.grad(W.curr,Z.curr))
+  lp.curr <- cond.dens.W(W.curr,Z.curr)
+  acc <- 0
+  sim <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
+  if(messages) cat("Conditional simulation (burnin=",control.mcmc$burnin,", thin=",control.mcmc$thin,"): \n",sep="")
+  h.vec <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
+    W.prop <- mean.curr+h*rnorm(N)
+    Z.prop <-  as.numeric(Sigma.sroot%*%W.prop+S.estim$mode)
+    mean.prop <- as.numeric(W.prop + (h^2/2)*lang.grad(W.prop,Z.prop))
+    lp.prop <- cond.dens.W(W.prop,Z.prop)
 
-       dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
-	   dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
+    dprop.curr <- -sum((W.prop-mean.curr)^2)/(2*(h^2))
+    dprop.prop <- -sum((W.curr-mean.prop)^2)/(2*(h^2))
 
-	   log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
+    log.prob <- lp.prop+dprop.prop-lp.curr-dprop.curr
 
-	   if(log(runif(1)) < log.prob) {
-	      acc <- acc+1
-	      W.curr <- W.prop
-	      Z.curr <- Z.prop
-		  lp.curr <- lp.prop
-		  mean.curr <- mean.prop
-	   }
+    if(log(runif(1)) < log.prob) {
+      acc <- acc+1
+      W.curr <- W.prop
+      Z.curr <- Z.prop
+      lp.curr <- lp.prop
+      mean.curr <- mean.prop
+    }
 
-	   if( i > burnin & (i-burnin)%%thin==0) {
-	 	 sim[(i-burnin)/thin,] <- Z.curr
-	   }
+    if( i > burnin & (i-burnin)%%thin==0) {
+      sim[(i-burnin)/thin,] <- Z.curr
+    }
 
-	   h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
-       if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-       flush.console()
-       }
-       if(plot.correlogram) {
-          acf.plot <- acf(sim[,1],plot=FALSE)
-          plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
-                 ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
-          for(i in 2:ncol(sim)) {
-          	 acf.plot <- acf(sim[,i],plot=FALSE)
-             lines(acf.plot$lag,acf.plot$acf)
-          }
-          abline(h=0,lty="dashed",col=2)
-       }
-       if(messages) cat("\n")
-       out.sim <- list(samples=sim,h=h.vec)
-       class(out.sim) <- "mcmc.PrevMap"
-       return(out.sim)
+    h.vec[i] <- h <- max(0,h + c1.h*i^(-c2.h)*(acc/i-0.57))
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
+  if(plot.correlogram) {
+    acf.plot <- acf(sim[,1],plot=FALSE)
+    plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
+         ylim=c(-0.1,1),main="Autocorrelogram of the simulated samples")
+    for(i in 2:ncol(sim)) {
+      acf.plot <- acf(sim[,i],plot=FALSE)
+      lines(acf.plot$lag,acf.plot$acf)
+    }
+    abline(h=0,lty="dashed",col=2)
+  }
+  if(messages) cat("\n")
+  out.sim <- list(samples=sim,h=h.vec)
+  class(out.sim) <- "mcmc.PrevMap"
+  return(out.sim)
 }
 
 ##' @title Control settings for the MCMC algorithm used for classical inference on a binomial logistic model
@@ -724,16 +724,16 @@ Laplace.sampling.lr <- function(mu,sigma2,K,y,units.m,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 control.mcmc.MCML <- function(n.sim,burnin,thin=1,h=NULL,c1.h=0.01,c2.h=0.0001) {
-   if(length(h)==0) h <- Inf
-   if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
-   if(thin <= 0) stop("thin must be positive")
-   if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
-   if(h < 0) stop("h must be positive.")
-   if(c1.h < 0) stop("c1.h must be positive.")
-   if(c2.h < 0 | c2.h > 1) stop("c2.h must be between 0 and 1.")
-   res <- list(n.sim=n.sim,burnin=burnin,thin=thin,h=h,c1.h=c1.h,c2.h=c2.h)
-   class(res) <- "mcmc.MCML.PrevMap"
-   return(res)
+  if(length(h)==0) h <- Inf
+  if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
+  if(thin <= 0) stop("thin must be positive")
+  if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
+  if(h < 0) stop("h must be positive.")
+  if(c1.h < 0) stop("c1.h must be positive.")
+  if(c2.h < 0 | c2.h > 1) stop("c2.h must be between 0 and 1.")
+  res <- list(n.sim=n.sim,burnin=burnin,thin=thin,h=h,c1.h=c1.h,c2.h=c2.h)
+  class(res) <- "mcmc.MCML.PrevMap"
+  return(res)
 }
 
 ##' @title Matern kernel
@@ -751,16 +751,16 @@ control.mcmc.MCML <- function(n.sim,burnin,thin=1,h=NULL,c1.h=0.01,c2.h=0.0001) 
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 matern.kernel <- function(u,rho,kappa) {
-	u <- u+1e-100
-	if(kappa==2) {
-		out <- 4*exp(-2*sqrt(2)*u/rho)/((pi^0.5)*rho)
-	} else  {
-		out <- (2*gamma(kappa+1)^(0.5))*((kappa)^((kappa+1)/4))*
-		          (u^((kappa-1)/2))/((pi^0.5)*gamma((kappa+1)/2)*
-		           (gamma(kappa)^0.5)*(rho^((kappa+1)/2)))*
-		           besselK(2*sqrt(kappa)*u/rho,(kappa-1)/2)
-	}
-    out
+  u <- u+1e-100
+  if(kappa==2) {
+    out <- 4*exp(-2*sqrt(2)*u/rho)/((pi^0.5)*rho)
+  } else  {
+    out <- (2*gamma(kappa+1)^(0.5))*((kappa)^((kappa+1)/4))*
+      (u^((kappa-1)/2))/((pi^0.5)*gamma((kappa+1)/2)*
+                           (gamma(kappa)^0.5)*(rho^((kappa+1)/2)))*
+      besselK(2*sqrt(kappa)*u/rho,(kappa-1)/2)
+  }
+  out
 }
 
 
@@ -769,820 +769,874 @@ matern.kernel <- function(u,rho,kappa) {
 ##' @importFrom geoR varcov.spatial
 ##' @importFrom maxLik maxBFGS
 geo.MCML <- function(formula,units.m,coords,times=NULL,
-            data,ID.coords,par0,control.mcmc,kappa,kappa.t=NULL,
-            fixed.rel.nugget,
-            start.cov.pars,method,messages,
-            plot.correlogram,poisson.llik) {
+                     data,ID.coords,par0,control.mcmc,kappa,
+                     kappa.t=NULL,
+                     fixed.rel.nugget,
+                     start.cov.pars,method,messages,
+                     plot.correlogram,poisson.llik,
+                     sst.model) {
 
-   start.cov.pars <- as.numeric(start.cov.pars)
-   sst <- length(times)>0
-   if(any(start.cov.pars < 0)) stop("start.cov.pars must be positive")
-   if((length(fixed.rel.nugget)==0 & !sst & length(start.cov.pars)!=2) |
-      (length(fixed.rel.nugget)>0 & !sst & length(start.cov.pars)!=1) |
-      (length(fixed.rel.nugget)==0 & sst & length(start.cov.pars)!=3) |
-      (length(fixed.rel.nugget)>0 & sst & length(start.cov.pars)!=2)) stop("wrong values for start.cov.pars")
-   kappa <- as.numeric(kappa)
+  start.cov.pars <- as.numeric(start.cov.pars)
+  sst <- length(times)>0
+  if(any(start.cov.pars < 0)) stop("start.cov.pars must be positive")
+  if((length(fixed.rel.nugget)==0 & !sst & length(start.cov.pars)!=2) |
+     (length(fixed.rel.nugget)>0 & !sst & length(start.cov.pars)!=1) |
+     (length(fixed.rel.nugget)==0 & sst & length(start.cov.pars)!=3) |
+     (length(fixed.rel.nugget)>0 & sst & length(start.cov.pars)!=2)) stop("wrong values for start.cov.pars")
+  kappa <- as.numeric(kappa)
 
-   if(class(formula)!="formula") stop("'formula' must be a formula object.")
+  if(class(formula)!="formula") stop("'formula' must be a formula object.")
 
-   if(sst) kappa.t <- as.numeric(kappa.t)
+  if(sst) {
+    if(sst.model=="DM") {
+      kappa.t <- as.numeric(kappa.t)
+    }
+  }
 
-   if(any(is.na(data))) stop("missing values are not accepted")
+  if(any(is.na(data))) stop("missing values are not accepted")
 
-   der.phi <- function(u,phi,kappa) {
-      u <- u+10e-16
-      if(kappa==0.5) {
-         out <- (u*exp(-u/phi))/phi^2
+  der.phi <- function(u,phi,kappa) {
+    u <- u+10e-16
+    if(kappa==0.5) {
+      out <- (u*exp(-u/phi))/phi^2
+    } else {
+      out <- ((besselK(u/phi,kappa+1)+besselK(u/phi,kappa-1))*
+                phi^(-kappa-2)*u^(kappa+1))/(2^kappa*gamma(kappa))-
+        (kappa*2^(1-kappa)*besselK(u/phi,kappa)*phi^(-kappa-1)*
+           u^kappa)/gamma(kappa)
+    }
+    out
+  }
+
+  der2.phi <- function(u,phi,kappa) {
+    u <- u+10e-16
+    if(kappa==0.5) {
+      out <- (u*(u-2*phi)*exp(-u/phi))/phi^4
+    } else {
+      bk <- besselK(u/phi,kappa)
+      bk.p1 <- besselK(u/phi,kappa+1)
+      bk.p2 <- besselK(u/phi,kappa+2)
+      bk.m1 <- besselK(u/phi,kappa-1)
+      bk.m2 <- besselK(u/phi,kappa-2)
+      out <- (2^(-kappa-1)*phi^(-kappa-4)*u^kappa*(bk.p2*u^2+2*bk*u^2+
+                                                     bk.m2*u^2-4*kappa*bk.p1*phi*u-4*
+                                                     bk.p1*phi*u-4*kappa*bk.m1*phi*u-4*bk.m1*phi*u+
+                                                     4*kappa^2*bk*phi^2+4*kappa*bk*phi^2))/(gamma(kappa))
+    }
+    out
+  }
+
+  matern.grad.phi <- function(U,phi,kappa) {
+    n <- attr(U,"Size")
+    grad.phi.mat <- matrix(NA,nrow=n,ncol=n)
+    ind <- lower.tri(grad.phi.mat)
+    grad.phi <- der.phi(as.numeric(U),phi,kappa)
+    grad.phi.mat[ind] <-  grad.phi
+    grad.phi.mat <- t(grad.phi.mat)
+    grad.phi.mat[ind] <-  grad.phi
+    diag(grad.phi.mat) <- rep(der.phi(0,phi,kappa),n)
+    grad.phi.mat
+  }
+
+  matern.hessian.phi <- function(U,phi,kappa) {
+    n <- attr(U,"Size")
+    hess.phi.mat <- matrix(NA,nrow=n,ncol=n)
+    ind <- lower.tri(hess.phi.mat)
+    hess.phi <- der2.phi(as.numeric(U),phi,kappa)
+    hess.phi.mat[ind] <-  hess.phi
+    hess.phi.mat <- t(hess.phi.mat)
+    hess.phi.mat[ind] <-  hess.phi
+    diag(hess.phi.mat) <- rep(der2.phi(0,phi,kappa),n)
+    hess.phi.mat
+  }
+
+  if(length(ID.coords)==0) {
+    coords <- as.matrix(model.frame(coords,data))
+    if(sst) {
+      times <- as.matrix(model.frame(times,data))
+      if(!is.integer(times) & !is.numeric(times)) stop("the provided column for 'times' in the data does not correspond to a numeric sequence of observation times")
+    }
+    if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
+    if(sst && length(times)!=nrow(data)) stop("wrong set of times.")
+    mf <- model.frame(formula,data=data)
+    y <- as.numeric(model.response(mf))
+    n <- length(y)
+    if(poisson.llik && length(units.m)==0) {
+      units.m <- rep(1,n)
+    } else {
+      units.m <-  as.numeric(model.frame(units.m,data)[,1])
+    }
+
+    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+
+    D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+    p <- ncol(D)
+    if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
+    beta0 <- par0[1:p]
+    mu0 <- as.numeric(D%*%beta0)
+
+    sigma2.0 <- par0[p+1]
+    phi0 <- par0[p+2]
+
+    if(length(fixed.rel.nugget)>0){
+      if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length")
+      if((!sst&&length(par0)!=(p+2)) ||
+         (sst&&(length(par0)!=(p+3)))) stop("wrong length of par0")
+      tau2.0 <- fixed.rel.nugget
+      if(sst) psi0 <- par0[p+3]
+      cat("Fixed relative variance of the nugget effect:",tau2.0,"\n")
+    } else {
+      if((!sst&&length(par0)!=(p+3)) ||
+         (sst&&(length(par0)!=(p+4)))) stop("wrong length of par0")
+      tau2.0 <- par0[p+3]
+      if(sst) psi0 <- par0[p+4]
+    }
+
+    gn1.t <- function(U.t,psi) {
+      n <- attr(U.t,"Size")
+      R <- matrix(NA,nrow=n,ncol=n)
+      ind <- lower.tri(R)
+      r.psi <- 1/(1+as.numeric(U.t)/psi)
+      R[ind] <-  r.psi
+      R <- t(R)
+      R[ind] <-  r.psi
+      diag(R) <- 1
+      R
+    }
+
+    U <- dist(coords)
+    if(sst) U.t <- dist(times)
+
+    if(sst) {
+      R0.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi0),
+                             nugget=0,kappa=kappa)$varcov
+      if(sst.model=="DM") {
+        suppressWarnings(R0.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+                                                cov.pars=c(1,psi0),
+                                                nugget=0,kappa=kappa.t)$varcov)
+      } else if(sst.model=="GN1") {
+        R0.t <- gn1.t(U.t,psi0)
+      }
+
+      Sigma0 <- sigma2.0*R0.s*R0.t
+      diag(Sigma0) <- diag(Sigma0)+tau2.0
+    } else {
+      Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                               cov.pars=c(sigma2.0,phi0),
+                               nugget=tau2.0,kappa=kappa)$varcov
+    }
+
+    n.sim <- control.mcmc$n.sim
+    S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,
+                                  plot.correlogram=plot.correlogram,messages=messages,
+                                  poisson.llik=poisson.llik)
+    S.sim <- S.sim.res$samples
+
+    log.integrand <- function(S,val) {
+      if(poisson.llik) {
+        llik <- sum(y*S-units.m*exp(S))
       } else {
-         out <- ((besselK(u/phi,kappa+1)+besselK(u/phi,kappa-1))*
-                 phi^(-kappa-2)*u^(kappa+1))/(2^kappa*gamma(kappa))-
-                 (kappa*2^(1-kappa)*besselK(u/phi,kappa)*phi^(-kappa-1)*
-                 u^kappa)/gamma(kappa)
+        llik <- sum(y*S-units.m*log(1+exp(S)))
       }
-      out
-   }
-
-   der2.phi <- function(u,phi,kappa) {
-      u <- u+10e-16
-      if(kappa==0.5) {
-         out <- (u*(u-2*phi)*exp(-u/phi))/phi^4
-      } else {
-         bk <- besselK(u/phi,kappa)
-         bk.p1 <- besselK(u/phi,kappa+1)
-         bk.p2 <- besselK(u/phi,kappa+2)
-         bk.m1 <- besselK(u/phi,kappa-1)
-         bk.m2 <- besselK(u/phi,kappa-2)
-         out <- (2^(-kappa-1)*phi^(-kappa-4)*u^kappa*(bk.p2*u^2+2*bk*u^2+
-                bk.m2*u^2-4*kappa*bk.p1*phi*u-4*
-                bk.p1*phi*u-4*kappa*bk.m1*phi*u-4*bk.m1*phi*u+
-                4*kappa^2*bk*phi^2+4*kappa*bk*phi^2))/(gamma(kappa))
-      }
-      out
-   }
-
-   matern.grad.phi <- function(U,phi,kappa) {
-      n <- attr(U,"Size")
-      grad.phi.mat <- matrix(NA,nrow=n,ncol=n)
-      ind <- lower.tri(grad.phi.mat)
-      grad.phi <- der.phi(as.numeric(U),phi,kappa)
-      grad.phi.mat[ind] <-  grad.phi
-      grad.phi.mat <- t(grad.phi.mat)
-      grad.phi.mat[ind] <-  grad.phi
-      diag(grad.phi.mat) <- rep(der.phi(0,phi,kappa),n)
-      grad.phi.mat
-   }
-
-   matern.hessian.phi <- function(U,phi,kappa) {
-     	n <- attr(U,"Size")
-	    hess.phi.mat <- matrix(NA,nrow=n,ncol=n)
-      ind <- lower.tri(hess.phi.mat)
-      hess.phi <- der2.phi(as.numeric(U),phi,kappa)
-      hess.phi.mat[ind] <-  hess.phi
-      hess.phi.mat <- t(hess.phi.mat)
-      hess.phi.mat[ind] <-  hess.phi
-      diag(hess.phi.mat) <- rep(der2.phi(0,phi,kappa),n)
-      hess.phi.mat
-   }
-
-   if(length(ID.coords)==0) {
-      coords <- as.matrix(model.frame(coords,data))
-      if(sst) {
-         times <- as.matrix(model.frame(times,data))
-         if(!is.integer(times) | !is.numeric(times)) stop("the provided column for 'times' in the data does not correspond to a numeric sequence of observation times")
-      }
-      if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
-      if(sst && length(times)!=nrow(data)) stop("wrong set of times.")
-      mf <- model.frame(formula,data=data)
-      y <- as.numeric(model.response(mf))
-      n <- length(y)
-      if(poisson.llik && length(units.m)==0) {
-         units.m <- rep(1,n)
-      } else {
-         units.m <-  as.numeric(model.frame(units.m,data)[,1])
-      }
-
-      if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
-
-      D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-      p <- ncol(D)
-      if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
-      beta0 <- par0[1:p]
-      mu0 <- as.numeric(D%*%beta0)
-
-      sigma2.0 <- par0[p+1]
-      phi0 <- par0[p+2]
-
-      if(length(fixed.rel.nugget)>0){
-	   if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length")
-	   if((!sst&&length(par0)!=(p+2)) ||
-            (sst&&(length(par0)!=(p+3)))) stop("wrong length of par0")
-	   tau2.0 <- fixed.rel.nugget
-         if(sst) psi0 <- par0[p+3]
-	   cat("Fixed relative variance of the nugget effect:",tau2.0,"\n")
-	} else {
-	   if((!sst&&length(par0)!=(p+3)) ||
-            (sst&&(length(par0)!=(p+4)))) stop("wrong length of par0")
-	   tau2.0 <- par0[p+3]
-         if(sst) psi0 <- par0[p+4]
-	}
-
-	U <- dist(coords)
-      if(sst) U.t <- dist(times)
-
-      if(sst) {
-         R0.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                            cov.pars=c(1,phi0),
-	                            nugget=0,kappa=kappa)$varcov
-         suppressWarnings(R0.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
-	                            cov.pars=c(1,psi0),
-	                            nugget=0,kappa=kappa.t)$varcov)
-         Sigma0 <- sigma2.0*R0.s*R0.t
-         diag(Sigma0) <- diag(Sigma0)+tau2.0
-      } else {
-	   Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                            cov.pars=c(sigma2.0,phi0),
-	                            nugget=tau2.0,kappa=kappa)$varcov
-      }
-
-      n.sim <- control.mcmc$n.sim
-      S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,
-	             plot.correlogram=plot.correlogram,messages=messages,
-                   poisson.llik=poisson.llik)
-      S.sim <- S.sim.res$samples
-
-      log.integrand <- function(S,val) {
-         if(poisson.llik) {
-            llik <- sum(y*S-units.m*exp(S))
-         } else {
-            llik <- sum(y*S-units.m*log(1+exp(S)))
-         }
-         diff.S <- S-val$mu
-         q.f_S <-    t(diff.S)%*%val$R.inv%*%(diff.S)
-         -0.5*(n*log(val$sigma2)+
-         val$ldetR+
-         q.f_S/val$sigma2)+
-         llik
-      }
-
-      compute.log.f <- function(par,ldetR=NA,R.inv=NA) {
-         beta <- par[1:p]
-         phi <- exp(par[p+2])
-         if(length(fixed.rel.nugget)>0) {
-            nu2 <- fixed.rel.nugget
-            if(sst) psi <- exp(par[p+3])
-         } else {
-            nu2 <- exp(par[p+3])
-            if(sst) psi <- exp(par[p+4])
-         }
-         val <- list()
-         val$mu <- as.numeric(D%*%beta)
-         val$sigma2 <- exp(par[p+1])
-         if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
-            if(sst) {
-               R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                               cov.pars=c(1,phi),
-	                               nugget=0,kappa=kappa)$varcov
-               suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
-	                               cov.pars=c(1,psi),
-	                               nugget=0,kappa=kappa.t)$varcov)
-               R <- R.s*R.t
-               diag(R) <- diag(R)+nu2
-            } else {
-               R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                     cov.pars=c(1,phi),
-	                                     nugget=nu2,kappa=kappa)$varcov
-            }
-            val$ldetR <- determinant(R)$modulus
-            val$R.inv <- solve(R)
-         } else {
-   	      val$ldetR <- ldetR
-            val$R.inv <- R.inv
-         }
-         sapply(1:(dim(S.sim)[1]),function(i) log.integrand(S.sim[i,],val))
-      }
-
-      if(!sst) {
-         if(length(fixed.rel.nugget)==0) {
-            log.f.tilde <- compute.log.f(c(beta0,
-                           log(c(sigma2.0,phi0,tau2.0/sigma2.0))))
-         } else {
-            log.f.tilde <- compute.log.f(c(beta0,
-                           log(c(sigma2.0,phi0))))
-         }
-      } else {
-         if(length(fixed.rel.nugget)==0) {
-            log.f.tilde <- compute.log.f(c(beta0,
-                           log(c(sigma2.0,phi0,tau2.0/sigma2.0,psi0))))
-         } else {
-            log.f.tilde <- compute.log.f(c(beta0,
-                           log(c(sigma2.0,phi0,psi0))))
-         }
-      }
-
-      MC.log.lik <- function(par) {
-         log(mean(exp(compute.log.f(par)-log.f.tilde)))
-      }
-
-      grad.MC.log.lik <- function(par) {
-         beta <- par[1:p]; mu <- D%*%beta
-         sigma2 <- exp(par[p+1])
-         phi <- exp(par[p+2])
-         if(length(fixed.rel.nugget) > 0) {
-            nu2 <- fixed.rel.nugget
-            if(sst) psi <- exp(par[p+3])
-         } else {
-            nu2 <- exp(par[p+3])
-            if(sst) psi <- exp(par[p+4])
-         }
-
-         if(sst) {
-            R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                            cov.pars=c(1,phi),
-	                            nugget=0,kappa=kappa)$varcov
-            suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
-	                            cov.pars=c(1,psi),
-	                            nugget=0,kappa=kappa.t)$varcov)
-            R <- R.s*R.t
-            diag(R) <- diag(R)+nu2
-         } else {
-            R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                          cov.pars=c(1,phi),
-	                          nugget=nu2,kappa=kappa)$varcov
-         }
-         R.inv <- solve(R)
-         ldetR <- determinant(R)$modulus
-
-         exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
-         L.m <- sum(exp.fact)
-         exp.fact <- exp.fact/L.m
-
-         if(sst) {
-            R1.phi <- matern.grad.phi(U,phi,kappa)*R.t
-
-            R1.psi <- matern.grad.phi(U.t,psi,kappa.t)*R.s
-            m1.psi <- R.inv%*%R1.psi
-            t1.psi <- -0.5*sum(diag(m1.psi))
-            m2.psi <- m1.psi%*%R.inv
-         } else  {
-            R1.phi <- matern.grad.phi(U,phi,kappa)
-         }
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
-
-         if(length(fixed.rel.nugget)==0) {
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-         }
-
-         gradient.S <- function(S) {
-
-            diff.S <- S-mu
-            q.f <- t(diff.S)%*%R.inv%*%diff.S
-            grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
-
-            grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-
-            grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.S)%*%m2.phi%*%(diff.S))/sigma2)*phi
-
-            if(sst) grad.log.psi <- (t1.psi+0.5*as.numeric(t(diff.S)%*%m2.psi%*%(diff.S))/sigma2)*psi
-
-            if(length(fixed.rel.nugget)==0){
-           	   grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.S)%*%m2.nu2%*%(diff.S))/sigma2)*nu2
-               if(sst) {
-                  out <- c(grad.beta,grad.log.sigma2,
-                           grad.log.phi,grad.log.nu2,
-                           grad.log.psi)
-               } else {
-                  out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
-               }
-            } else {
-               if(sst) {
-                  out <- c(grad.beta,grad.log.sigma2,
-                           grad.log.phi,grad.log.psi)
-               } else {
-                  out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
-               }
-            }
-            return(out)
-         }
-         out <- rep(0,length(par))
-         for(i in 1:(dim(S.sim)[1])) {
-   	      out <- out + exp.fact[i]*gradient.S(S.sim[i,])
-         }
-         out
-      }
-
-      hess.MC.log.lik <- function(par) {
-         beta <- par[1:p]; mu <- D%*%beta
-         sigma2 <- exp(par[p+1])
-         phi <- exp(par[p+2])
-         if(length(fixed.rel.nugget) > 0) {
-            nu2 <- fixed.rel.nugget
-            if(sst) psi <- exp(par[p+3])
-         } else {
-            nu2 <- exp(par[p+3])
-            if(sst) psi <- exp(par[p+4])
-         }
-
-         if(sst) {
-            R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                            cov.pars=c(1,phi),
-	                            nugget=0,kappa=kappa)$varcov
-            suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
-	                            cov.pars=c(1,psi),
-	                            nugget=0,kappa=kappa.t)$varcov)
-            R <- R.s*R.t
-            diag(R) <- diag(R)+nu2
-         } else {
-            R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                          cov.pars=c(1,phi),
-	                          nugget=nu2,kappa=kappa)$varcov
-         }
-         R.inv <- solve(R)
-         ldetR <- determinant(R)$modulus
-
-         exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
-         L.m <- sum(exp.fact)
-         exp.fact <- exp.fact/L.m
-
-         if(sst) {
-            R1.star.phi <- matern.grad.phi(U,phi,kappa)
-            R1.star.psi <- matern.grad.phi(U.t,psi,kappa.t)
-
-            R1.phi <- R1.star.phi*R.t
-
-            R1.psi <- R1.star.psi*R.s
-            m1.psi <- R.inv%*%R1.psi
-            t1.psi <- -0.5*sum(diag(m1.psi))
-            m2.psi <- m1.psi%*%R.inv
-         } else  {
-            R1.phi <- matern.grad.phi(U,phi,kappa)
-         }
-
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv
-
-         if(length(fixed.rel.nugget)==0) {
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-            t2.nu2 <- 0.5*sum(diag(m2.nu2))
-            n2.nu2 <- 2*R.inv%*%m2.nu2
-            t2.nu2.phi <- 0.5*sum(R.inv*m1.phi)
-            n2.nu2.phi <- R.inv%*%(m1.phi+
-                               t(m1.phi))%*%R.inv
-         }
-
-
-         if(sst) {
-            R2.phi <- matern.hessian.phi(U,phi,kappa)*R.t
-
-            R2.psi <- matern.hessian.phi(U.t,psi,kappa.t)*R.s
-            t2.psi <- -0.5*sum(diag(R.inv%*%R2.psi-m1.psi%*%m1.psi))
-            n2.psi <- R.inv%*%(2*R1.psi%*%m1.psi-R2.psi)%*%R.inv
-
-            R2.psi.phi <- R1.star.phi*R1.star.psi
-            t2.psi.phi <- -0.5*(sum(R.inv*R2.psi.phi)-
-                                sum(m1.phi*t(m1.psi)))
-            n2.psi.phi <- R.inv%*%(R1.phi%*%m1.psi+
-                                   R1.psi%*%m1.phi-
-                                   R2.psi.phi)%*%R.inv
-
-            if(length(fixed.rel.nugget)==0) {
-               t2.nu2.psi <- 0.5*sum(m1.psi*R.inv)
-               n2.nu2.psi <- R.inv%*%(m1.psi+
-                               t(m1.psi))%*%R.inv
-            }
-         } else {
-            R2.phi <- matern.hessian.phi(U,phi,kappa)
-         }
-
-         t2.phi <- -0.5*(sum(R.inv*R2.phi)-sum(m1.phi*t(m1.phi)))
-         n2.phi <- R.inv%*%(2*R1.phi%*%m1.phi-R2.phi)%*%R.inv
-
-         ind.beta <- 1:p
-         ind.sigma2 <- p+1
-         ind.phi <- p+2
-         if(length(fixed.rel.nugget)==0) {
-            ind.nu2 <- p+3
-            if(sst) ind.psi <- p+4
-         } else {
-            if(sst) ind.psi <- p+3
-         }
-         H <- matrix(0,nrow=length(par),ncol=length(par))
-         H[ind.beta,ind.beta] <- -t(D)%*%R.inv%*%D/sigma2
-
-         hessian.S <- function(S,ef) {
-
-            diff.S <- S-mu
-            q.f <- t(diff.S)%*%R.inv%*%diff.S
-            grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
-
-            grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
-
-            grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-
-            grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.S)%*%m2.phi%*%(diff.S))/sigma2)*phi
-
-            if(sst) grad.log.psi <- (t1.psi+0.5*as.numeric(t(diff.S)%*%m2.psi%*%(diff.S))/sigma2)*psi
-
-            if(length(fixed.rel.nugget)==0){
-           	   grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.S)%*%m2.nu2%*%(diff.S))/sigma2)*nu2
-               if(sst) {
-                  g <- c(grad.beta,grad.log.sigma2,
-                           grad.log.phi,grad.log.nu2,
-                           grad.log.psi)
-               } else {
-                  g <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
-               }
-            } else {
-               if(sst) {
-                  g <- c(grad.beta,grad.log.sigma2,
-                           grad.log.phi,grad.log.psi)
-               } else {
-                  g <- c(grad.beta,grad.log.sigma2,grad.log.phi)
-               }
-            }
-
-            H[ind.beta,ind.sigma2] <-
-            H[ind.sigma2,ind.beta] <- -t(D)%*%R.inv%*%(diff.S)/sigma2
-
-            H[ind.beta,ind.phi] <-
-            H[ind.phi,ind.beta] <- -phi*as.numeric(t(D)%*%m2.phi%*%(diff.S))/sigma2
-
-            H[ind.sigma2,ind.sigma2] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
-                                         grad.log.sigma2
-
-            H[ind.sigma2,ind.phi] <-
-            H[ind.phi,ind.sigma2] <- (grad.log.phi/phi-t1.phi)*(-phi)
-
-            H[ind.phi,ind.phi] <- (t2.phi-0.5*t(diff.S)%*%n2.phi%*%(diff.S)/sigma2)*phi^2+
-                                   grad.log.phi
-
-            if(sst) {
-               H[ind.psi,ind.psi] <- (t2.phi-0.5*t(diff.S)%*%n2.phi%*%(diff.S)/sigma2)*phi^2+
-                                     grad.log.psi
-               H[ind.beta,ind.psi] <-
-               H[ind.psi,ind.beta] <- -psi*as.numeric(t(D)%*%m2.psi%*%(diff.S))/sigma2
-               H[ind.psi,ind.sigma2] <-
-               H[ind.sigma2,ind.psi] <- (grad.log.psi/psi-t1.psi)*(-psi)
-               H[ind.psi,ind.psi] <- (t2.psi-0.5*t(diff.S)%*%n2.psi%*%(diff.S)/sigma2)*psi^2+
-                                      grad.log.psi
-               H[ind.phi,ind.psi] <-
-               H[ind.psi,ind.phi] <- (t2.psi.phi-0.5*t(diff.S)%*%n2.psi.phi%*%(diff.S)/sigma2)*phi*psi
-
-               if(length(fixed.rel.nugget)==0) {
-                  H[ind.psi,ind.nu2] <-
-                  H[ind.nu2,ind.psi] <- (t2.nu2.psi-0.5*t(diff.S)%*%n2.nu2.psi%*%(diff.S)/sigma2)*psi*nu2
-               }
-            }
-
-            if(length(fixed.rel.nugget)==0) {
-               H[ind.beta,ind.nu2] <-
-               H[ind.nu2,ind.beta] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.S))/sigma2
-               H[ind.nu2,ind.sigma2] <-
-               H[ind.sigma2,ind.nu2] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
-
-               H[ind.nu2,ind.nu2] <- (t2.nu2-0.5*t(diff.S)%*%n2.nu2%*%(diff.S)/sigma2)*nu2^2+
-                                         grad.log.nu2
-               H[ind.phi,ind.nu2] <-
-               H[ind.nu2,ind.phi] <- (t2.nu2.phi-0.5*t(diff.S)%*%n2.nu2.phi%*%(diff.S)/sigma2)*phi*nu2
-            }
-   	      out <- list()
-   	      out$mat1<- ef*(g%*%t(g)+H)
-   	      out$g <- g*ef
-   	      out
-         }
-
-         a <- rep(0,length(par))
-         A <- matrix(0,length(par),length(par))
-         for(i in 1:(dim(S.sim)[1])) {
-   	      out.i <- hessian.S(S.sim[i,],exp.fact[i])
-   	      a <- a+out.i$g
-            A <- A+out.i$mat1
-         }
-         (A-a%*%t(a))
-      }
-
-      if(messages) cat("Estimation: \n")
-      start.par <- c(par0[1:(p+1)],start.cov.pars)
-      start.par[-(1:p)] <- log(start.par[-(1:p)])
-
-      estim <- list()
-      if(method=="BFGS") {
-         estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
-                           start.par,print.level=1*messages)
-         estim$estimate <- estimBFGS$estimate
-         estim$covariance <- solve(-estimBFGS$hessian)
-         estim$log.lik <- estimBFGS$maximum
-      }
-
-      if(method=="nlminb") {
-      	estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
-      	            function(x) -grad.MC.log.lik(x),
-      	            function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
-      	estim$estimate <- estimNLMINB$par
-      	estim$covariance <- solve(-hess.MC.log.lik(estimNLMINB$par))
-      	estim$log.lik <- -estimNLMINB$objective
-      }
-
-   } else {
-     coords <- unique(as.matrix(model.frame(coords,data)))
-	   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
-
-     mf <- model.frame(formula,data=data)
-     y <- as.numeric(model.response(mf))
-	   n <- length(y)
-     units.m <-  as.numeric(model.frame(units.m,data)[,1])
-	   n.x <- nrow(coords)
-	   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-	   p <- ncol(D)
-	   beta0 <- par0[1:p]
-	   mu0 <- as.numeric(D%*%beta0)
-
-	   sigma2.0 <- par0[p+1]
-	   phi0 <- par0[p+2]
-     if(length(fixed.rel.nugget)>0){
-	   if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length")
-	   if(length(par0)!=(p+2)) stop("wrong length of par0")
-	      tau2.0 <- fixed.rel.nugget
-	      cat("Fixed relative variance of the nugget effect:",tau2.0,"\n")
-	   } else {
-	      if(length(par0)!=(p+3)) stop("wrong length of par0")
-	      tau2.0 <- par0[p+3]
-	   }
-	   U <- dist(coords)
-	   Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                         cov.pars=c(sigma2.0,phi0),
-	                         nugget=tau2.0,kappa=kappa)$varcov
-
-     n.sim <- control.mcmc$n.sim
-	   S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,ID.coords,
-	                plot.correlogram=plot.correlogram,messages=messages,
-                  poisson.llik=poisson.llik)
-     S.sim <- S.sim.res$samples
-
-     log.integrand <- function(S,val) {
-        n <- length(y)
-        n.x <- length(S)
-        eta <- S[ID.coords]+val$mu
-        if(poisson.llik) {
-          llik <-  sum(y*eta-units.m*exp(eta))
-        } else {
-          llik <- sum(y*eta-units.m*log(1+exp(eta)))
-        }
-        q.f_S <- t(S)%*%val$R.inv%*%S/val$sigma2
-        -0.5*(n.x*log(val$sigma2)+val$ldetR+q.f_S)+
+      diff.S <- S-val$mu
+      q.f_S <-    t(diff.S)%*%val$R.inv%*%(diff.S)
+      -0.5*(n*log(val$sigma2)+
+              val$ldetR+
+              q.f_S/val$sigma2)+
         llik
-     }
+    }
 
-      compute.log.f <- function(par,ldetR=NA,R.inv=NA) {
-         beta <- par[1:p]
-         sigma2 <- exp(par[p+1])
-         if(length(fixed.rel.nugget)>0) {
-            nu2 <- fixed.rel.nugget
-         } else {
-            nu2 <- exp(par[p+3])
-         }
-         phi <- exp(par[p+2])
-         val <- list()
-         val$sigma2 <- sigma2
-         val$mu <- as.numeric(D%*%beta)
-         if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
-   	      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                       cov.pars=c(1,phi),
-	                       nugget=nu2,kappa=kappa)$varcov
-            val$ldetR <- determinant(R)$modulus
-            val$R.inv <- solve(R)
-         } else {
-   	      val$ldetR <- ldetR
-            val$R.inv <- R.inv
-         }
-         sapply(1:(dim(S.sim)[1]),function(i) log.integrand(S.sim[i,],val))
+    compute.log.f <- function(par,ldetR=NA,R.inv=NA) {
+      beta <- par[1:p]
+      phi <- exp(par[p+2])
+      if(length(fixed.rel.nugget)>0) {
+        nu2 <- fixed.rel.nugget
+        if(sst) psi <- exp(par[p+3])
+      } else {
+        nu2 <- exp(par[p+3])
+        if(sst) psi <- exp(par[p+4])
+      }
+      val <- list()
+      val$mu <- as.numeric(D%*%beta)
+      val$sigma2 <- exp(par[p+1])
+      if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
+        if(sst) {
+          R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                                cov.pars=c(1,phi),
+                                nugget=0,kappa=kappa)$varcov
+          if(sst.model=="DM") {
+            suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+                                                   cov.pars=c(1,psi),
+                                                   nugget=0,kappa=kappa.t)$varcov)
+          } else if(sst.model=="GN1") {
+            R.t <- gn1.t(U.t,psi)
+          }
+
+          R <- R.s*R.t
+          diag(R) <- diag(R)+nu2
+        } else {
+          R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                              cov.pars=c(1,phi),
+                              nugget=nu2,kappa=kappa)$varcov
+        }
+        val$ldetR <- determinant(R)$modulus
+        val$R.inv <- solve(R)
+      } else {
+        val$ldetR <- ldetR
+        val$R.inv <- R.inv
+      }
+      sapply(1:(dim(S.sim)[1]),function(i) log.integrand(S.sim[i,],val))
+    }
+
+    if(!sst) {
+      if(length(fixed.rel.nugget)==0) {
+        log.f.tilde <- compute.log.f(c(beta0,
+                                       log(c(sigma2.0,phi0,tau2.0/sigma2.0))))
+      } else {
+        log.f.tilde <- compute.log.f(c(beta0,
+                                       log(c(sigma2.0,phi0))))
+      }
+    } else {
+      if(length(fixed.rel.nugget)==0) {
+        log.f.tilde <- compute.log.f(c(beta0,
+                                       log(c(sigma2.0,phi0,tau2.0/sigma2.0,psi0))))
+      } else {
+        log.f.tilde <- compute.log.f(c(beta0,
+                                       log(c(sigma2.0,phi0,psi0))))
+      }
+    }
+
+    MC.log.lik <- function(par) {
+      log(mean(exp(compute.log.f(par)-log.f.tilde)))
+    }
+
+    grad.MC.log.lik <- function(par) {
+      beta <- par[1:p]; mu <- D%*%beta
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+      if(length(fixed.rel.nugget) > 0) {
+        nu2 <- fixed.rel.nugget
+        if(sst) psi <- exp(par[p+3])
+      } else {
+        nu2 <- exp(par[p+3])
+        if(sst) psi <- exp(par[p+4])
       }
 
-      log.f.tilde <- compute.log.f(c(beta0,log(c(sigma2.0,phi0,tau2.0/sigma2.0))))
+      if(sst) {
+        R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                              cov.pars=c(1,phi),
+                              nugget=0,kappa=kappa)$varcov
+        if(sst.model=="DM") {
+          suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+                                                 cov.pars=c(1,psi),
+                                                 nugget=0,kappa=kappa.t)$varcov)
+        } else if(sst.model=="GN1") {
+          R.t <- gn1.t(U.t,psi)
+        }
+        R <- R.s*R.t
+        diag(R) <- diag(R)+nu2
+      } else {
+        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(1,phi),
+                            nugget=nu2,kappa=kappa)$varcov
+      }
+      R.inv <- solve(R)
+      ldetR <- determinant(R)$modulus
 
-      MC.log.lik <- function(par) {
-         log(mean(exp(compute.log.f(par)-log.f.tilde)))
+      exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
+      L.m <- sum(exp.fact)
+      exp.fact <- exp.fact/L.m
+
+      if(sst) {
+        R1.phi <- matern.grad.phi(U,phi,kappa)*R.t
+
+        if(sst.model=="DM") {
+          R1.psi <- matern.grad.phi(U.t,psi,kappa.t)*R.s
+        } else if(sst.model=="GN1") {
+          R1.psi <- gn1.grad.psi(U.t,psi)*R.s
+        }
+
+        m1.psi <- R.inv%*%R1.psi
+        t1.psi <- -0.5*sum(diag(m1.psi))
+        m2.psi <- m1.psi%*%R.inv
+      } else  {
+        R1.phi <- matern.grad.phi(U,phi,kappa)
+      }
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+
+      if(length(fixed.rel.nugget)==0) {
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
       }
 
-      grad.MC.log.lik <- function(par) {
-         beta <- par[1:p]; mu <- D%*%beta
-         sigma2 <- exp(par[p+1])
-         phi <- exp(par[p+2])
+      gradient.S <- function(S) {
 
-         if(length(fixed.rel.nugget)==0) {
-            nu2 <- exp(par[p+3])
-         } else {
-            nu2 <- fixed.rel.nugget
-         }
+        diff.S <- S-mu
+        q.f <- t(diff.S)%*%R.inv%*%diff.S
+        grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
 
-         R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                     cov.pars=c(1,phi),
-	                                     nugget=nu2,kappa=kappa)$varcov
-         R.inv <- solve(R)
-         ldetR <- determinant(R)$modulus
+        grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
 
-         exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
-         L.m <- sum(exp.fact)
-         exp.fact <- exp.fact/L.m
+        grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.S)%*%m2.phi%*%(diff.S))/sigma2)*phi
 
-         R1.phi <- matern.grad.phi(U,phi,kappa)
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+        if(sst) grad.log.psi <- (t1.psi+0.5*as.numeric(t(diff.S)%*%m2.psi%*%(diff.S))/sigma2)*psi
 
-         if(length(fixed.rel.nugget)==0){
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-         }
+        if(length(fixed.rel.nugget)==0){
+          grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.S)%*%m2.nu2%*%(diff.S))/sigma2)*nu2
+          if(sst) {
+            out <- c(grad.beta,grad.log.sigma2,
+                     grad.log.phi,grad.log.nu2,
+                     grad.log.psi)
+          } else {
+            out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
+          }
+        } else {
+          if(sst) {
+            out <- c(grad.beta,grad.log.sigma2,
+                     grad.log.phi,grad.log.psi)
+          } else {
+            out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
+          }
+        }
+        return(out)
+      }
+      out <- rep(0,length(par))
+      for(i in 1:(dim(S.sim)[1])) {
+        out <- out + exp.fact[i]*gradient.S(S.sim[i,])
+      }
+      out
+    }
 
-         gradient.S <- function(S) {
-            eta <- mu+S[ID.coords]
-            if(poisson.llik) {
-              h <- units.m*exp(eta)
-            } else {
-              h <- units.m*exp(eta)/(1+exp(eta))
-            }
-
-            q.f <- t(S)%*%R.inv%*%S
-
-            grad.beta <-  t(D)%*%(y-h)
-
-            grad.log.sigma2 <- (-n.x/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-
-            grad.log.phi <- (t1.phi+0.5*as.numeric(t(S)%*%m2.phi%*%(S))/sigma2)*phi
-
-            if(length(fixed.rel.nugget)==0) {
-               grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(S)%*%m2.nu2%*%(S))/sigma2)*nu2
-          	   out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
-            } else {
-          	   out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
-            }
-            out
-         }
-         out <- rep(0,length(par))
-         for(i in 1:(dim(S.sim)[1])) {
-   	      out <- out + exp.fact[i]*gradient.S(S.sim[i,])
-         }
-         out
+    hess.MC.log.lik <- function(par) {
+      beta <- par[1:p]; mu <- D%*%beta
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+      if(length(fixed.rel.nugget) > 0) {
+        nu2 <- fixed.rel.nugget
+        if(sst) psi <- exp(par[p+3])
+      } else {
+        nu2 <- exp(par[p+3])
+        if(sst) psi <- exp(par[p+4])
       }
 
-      hess.MC.log.lik <- function(par) {
-         beta <- par[1:p]; mu <- D%*%beta
-         sigma2 <- exp(par[p+1])
-         if(length(fixed.rel.nugget)==0) {
-            nu2 <- exp(par[p+3])
-         } else {
-            nu2 <- fixed.rel.nugget
-         }
-         phi <- exp(par[p+2])
-
-         R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                    cov.pars=c(1,phi),
-	                    nugget=nu2,kappa=kappa)$varcov
-         R.inv <- solve(R)
-         ldetR <- determinant(R)$modulus
-
-         exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
-         L.m <- sum(exp.fact)
-         exp.fact <- exp.fact/L.m
-
-         R1.phi <- matern.grad.phi(U,phi,kappa)
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
-
-         if(length(fixed.rel.nugget)==0){
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-            t2.nu2 <- 0.5*sum(diag(m2.nu2))
-            n2.nu2 <- 2*R.inv%*%m2.nu2
-            t2.nu2.phi <- 0.5*sum(diag(R.inv%*%R1.phi%*%R.inv))
-            n2.nu2.phi <- R.inv%*%(R.inv%*%R1.phi+
-                            R1.phi%*%R.inv)%*%R.inv
-         }
-
-         R2.phi <- matern.hessian.phi(U,phi,kappa)
-         t2.phi <- -0.5*sum(diag(R.inv%*%R2.phi-R.inv%*%R1.phi%*%R.inv%*%R1.phi))
-         n2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
-
-         H <- matrix(0,nrow=length(par),ncol=length(par))
-
-         hessian.S <- function(S,ef) {
-            eta <- as.numeric(mu+S[ID.coords])
-            if(poisson.llik) {
-              h <- units.m*exp(eta)
-              h1 <- h
-            } else {
-              h <- units.m*exp(eta)/(1+exp(eta))
-              h1 <- h/(1+exp(eta))
-            }
-
-            q.f <- t(S)%*%R.inv%*%S
-
-            grad.beta <-  t(D)%*%(y-h)
-
-            grad.log.sigma2 <- (-n.x/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-
-            grad.log.phi <- (t1.phi+0.5*as.numeric(t(S)%*%m2.phi%*%(S))/sigma2)*phi
-
-            if(length(fixed.rel.nugget)==0) {
-               grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(S)%*%m2.nu2%*%(S))/sigma2)*nu2
-               g <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
-            } else {
-               g <- c(grad.beta,grad.log.sigma2,grad.log.phi)
-            }
-
-            grad2.log.lsigma2.lsigma2 <- (n.x/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
-                                                    grad.log.sigma2
-
-            grad2.log.lphi.lphi <-(t2.phi-0.5*t(S)%*%n2.phi%*%(S)/sigma2)*phi^2+
-                                   grad.log.phi
-
-            if(length(fixed.rel.nugget)==0) {
-               grad2.log.lnu2.lnu2 <- (t2.nu2-0.5*t(S)%*%n2.nu2%*%(S)/sigma2)*nu2^2+
-                                         grad.log.nu2
-               grad2.log.lnu2.lphi <- (t2.nu2.phi-0.5*t(S)%*%n2.nu2.phi%*%(S)/sigma2)*phi*nu2
-
-               H[1:p,1:p] <- -t(D)%*%(D*h1)
-   	         H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
-   	         H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
-   	         H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
-   	         H[p+3,p+3] <- grad2.log.lnu2.lnu2
-   	         H[p+2,p+3] <- H[p+3,p+2] <- grad2.log.lnu2.lphi
-   	         H[p+2,p+2] <- grad2.log.lphi.lphi
-   	         out <- list()
-   	         out$mat1<- ef*(g%*%t(g)+H)
-   	         out$g <- g*ef
-            } else {
-   	         H[1:p,1:p] <- -t(D)%*%(D*h1)
-   	         H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
-   	         H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
-   	         H[p+2,p+2] <- grad2.log.lphi.lphi
-   	         out <- list()
-   	         out$mat1<- ef*(g%*%t(g)+H)
-   	         out$g <- g*ef
-   	      }
-   	      out
-         }
-
-         a <- rep(0,length(par))
-         A <- matrix(0,length(par),length(par))
-         for(i in 1:(dim(S.sim)[1])) {
-   	      out.i <- hessian.S(S.sim[i,],exp.fact[i])
-   	      a <- a+out.i$g
-            A <- A+out.i$mat1
-         }
-         (A-a%*%t(a))
-
+      if(sst) {
+        R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                              cov.pars=c(1,phi),
+                              nugget=0,kappa=kappa)$varcov
+        if(sst.model=="DM") {
+          suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+                                                 cov.pars=c(1,psi),
+                                                 nugget=0,kappa=kappa.t)$varcov)
+        } else if(sst.model=="GN1") {
+          R.t <- gn1.t(U.t,psi)
+        }
+        R <- R.s*R.t
+        diag(R) <- diag(R)+nu2
+      } else {
+        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(1,phi),
+                            nugget=nu2,kappa=kappa)$varcov
       }
-      if(messages) cat("Estimation: \n")
-      start.par <- c(par0[1:(p+1)],start.cov.pars)
-      start.par[-(1:p)] <- log(start.par[-(1:p)])
-      estim <- list()
-      if(method=="BFGS") {
-            estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
+      R.inv <- solve(R)
+      ldetR <- determinant(R)$modulus
+
+      exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
+      L.m <- sum(exp.fact)
+      exp.fact <- exp.fact/L.m
+
+      if(sst) {
+        R1.star.phi <- matern.grad.phi(U,phi,kappa)
+        if(sst.model=="DM") {
+          R1.star.psi <- matern.grad.phi(U.t,psi,kappa.t)
+        } else if(sst.model=="GN1") {
+          R1.star.psi <- gn1.grad.psi(U.t,psi)
+        }
+
+        R1.phi <- R1.star.phi*R.t
+
+        R1.psi <- R1.star.psi*R.s
+        m1.psi <- R.inv%*%R1.psi
+        t1.psi <- -0.5*sum(diag(m1.psi))
+        m2.psi <- m1.psi%*%R.inv
+      } else  {
+        R1.phi <- matern.grad.phi(U,phi,kappa)
+      }
+
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv
+
+      if(length(fixed.rel.nugget)==0) {
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
+        t2.nu2 <- 0.5*sum(diag(m2.nu2))
+        n2.nu2 <- 2*R.inv%*%m2.nu2
+        t2.nu2.phi <- 0.5*sum(R.inv*m1.phi)
+        n2.nu2.phi <- R.inv%*%(m1.phi+
+                                 t(m1.phi))%*%R.inv
+      }
+
+
+      if(sst) {
+        R2.phi <- matern.hessian.phi(U,phi,kappa)*R.t
+
+        if(sst.model=="DM") {
+          R2.psi <- matern.hessian.phi(U.t,psi,kappa.t)*R.s
+        } else if(sst.model=="GN1") {
+          R2.psi <- gn1.hessian.psi(U.t,psi)*R.s
+        }
+
+        t2.psi <- -0.5*sum(diag(R.inv%*%R2.psi-m1.psi%*%m1.psi))
+        n2.psi <- R.inv%*%(2*R1.psi%*%m1.psi-R2.psi)%*%R.inv
+
+        R2.psi.phi <- R1.star.phi*R1.star.psi
+        t2.psi.phi <- -0.5*(sum(R.inv*R2.psi.phi)-
+                              sum(m1.phi*t(m1.psi)))
+        n2.psi.phi <- R.inv%*%(R1.phi%*%m1.psi+
+                                 R1.psi%*%m1.phi-
+                                 R2.psi.phi)%*%R.inv
+
+        if(length(fixed.rel.nugget)==0) {
+          t2.nu2.psi <- 0.5*sum(m1.psi*R.inv)
+          n2.nu2.psi <- R.inv%*%(m1.psi+
+                                   t(m1.psi))%*%R.inv
+        }
+      } else {
+        R2.phi <- matern.hessian.phi(U,phi,kappa)
+      }
+
+      t2.phi <- -0.5*(sum(R.inv*R2.phi)-sum(m1.phi*t(m1.phi)))
+      n2.phi <- R.inv%*%(2*R1.phi%*%m1.phi-R2.phi)%*%R.inv
+
+      ind.beta <- 1:p
+      ind.sigma2 <- p+1
+      ind.phi <- p+2
+      if(length(fixed.rel.nugget)==0) {
+        ind.nu2 <- p+3
+        if(sst) ind.psi <- p+4
+      } else {
+        if(sst) ind.psi <- p+3
+      }
+      H <- matrix(0,nrow=length(par),ncol=length(par))
+      H[ind.beta,ind.beta] <- -t(D)%*%R.inv%*%D/sigma2
+
+      hessian.S <- function(S,ef) {
+
+        diff.S <- S-mu
+        q.f <- t(diff.S)%*%R.inv%*%diff.S
+        grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
+
+        grad.beta <-  t(D)%*%R.inv%*%(diff.S)/sigma2
+
+        grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+
+        grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.S)%*%m2.phi%*%(diff.S))/sigma2)*phi
+
+        if(sst) grad.log.psi <- (t1.psi+0.5*as.numeric(t(diff.S)%*%m2.psi%*%(diff.S))/sigma2)*psi
+
+        if(length(fixed.rel.nugget)==0){
+          grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.S)%*%m2.nu2%*%(diff.S))/sigma2)*nu2
+          if(sst) {
+            g <- c(grad.beta,grad.log.sigma2,
+                   grad.log.phi,grad.log.nu2,
+                   grad.log.psi)
+          } else {
+            g <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
+          }
+        } else {
+          if(sst) {
+            g <- c(grad.beta,grad.log.sigma2,
+                   grad.log.phi,grad.log.psi)
+          } else {
+            g <- c(grad.beta,grad.log.sigma2,grad.log.phi)
+          }
+        }
+
+        H[ind.beta,ind.sigma2] <-
+          H[ind.sigma2,ind.beta] <- -t(D)%*%R.inv%*%(diff.S)/sigma2
+
+        H[ind.beta,ind.phi] <-
+          H[ind.phi,ind.beta] <- -phi*as.numeric(t(D)%*%m2.phi%*%(diff.S))/sigma2
+
+        H[ind.sigma2,ind.sigma2] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
+          grad.log.sigma2
+
+        H[ind.sigma2,ind.phi] <-
+          H[ind.phi,ind.sigma2] <- (grad.log.phi/phi-t1.phi)*(-phi)
+
+        H[ind.phi,ind.phi] <- (t2.phi-0.5*t(diff.S)%*%n2.phi%*%(diff.S)/sigma2)*phi^2+
+          grad.log.phi
+
+        if(sst) {
+          H[ind.psi,ind.psi] <- (t2.psi-0.5*t(diff.S)%*%n2.psi%*%(diff.S)/sigma2)*psi^2+
+            grad.log.psi
+          H[ind.beta,ind.psi] <-
+            H[ind.psi,ind.beta] <- -psi*as.numeric(t(D)%*%m2.psi%*%(diff.S))/sigma2
+          H[ind.psi,ind.sigma2] <-
+            H[ind.sigma2,ind.psi] <- (grad.log.psi/psi-t1.psi)*(-psi)
+          H[ind.psi,ind.psi] <- (t2.psi-0.5*t(diff.S)%*%n2.psi%*%(diff.S)/sigma2)*psi^2+
+            grad.log.psi
+          H[ind.phi,ind.psi] <-
+            H[ind.psi,ind.phi] <- (t2.psi.phi-0.5*t(diff.S)%*%n2.psi.phi%*%(diff.S)/sigma2)*phi*psi
+
+          if(length(fixed.rel.nugget)==0) {
+            H[ind.psi,ind.nu2] <-
+              H[ind.nu2,ind.psi] <- (t2.nu2.psi-0.5*t(diff.S)%*%n2.nu2.psi%*%(diff.S)/sigma2)*psi*nu2
+          }
+        }
+
+        if(length(fixed.rel.nugget)==0) {
+          H[ind.beta,ind.nu2] <-
+            H[ind.nu2,ind.beta] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.S))/sigma2
+          H[ind.nu2,ind.sigma2] <-
+            H[ind.sigma2,ind.nu2] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
+
+          H[ind.nu2,ind.nu2] <- (t2.nu2-0.5*t(diff.S)%*%n2.nu2%*%(diff.S)/sigma2)*nu2^2+
+            grad.log.nu2
+          H[ind.phi,ind.nu2] <-
+            H[ind.nu2,ind.phi] <- (t2.nu2.phi-0.5*t(diff.S)%*%n2.nu2.phi%*%(diff.S)/sigma2)*phi*nu2
+        }
+        out <- list()
+        out$mat1<- ef*(g%*%t(g)+H)
+        out$g <- g*ef
+        out
+      }
+
+      a <- rep(0,length(par))
+      A <- matrix(0,length(par),length(par))
+      for(i in 1:(dim(S.sim)[1])) {
+        out.i <- hessian.S(S.sim[i,],exp.fact[i])
+        a <- a+out.i$g
+        A <- A+out.i$mat1
+      }
+      (A-a%*%t(a))
+    }
+
+    if(messages) cat("Estimation: \n")
+    start.par <- c(par0[1:(p+1)],start.cov.pars)
+    start.par[-(1:p)] <- log(start.par[-(1:p)])
+
+    estim <- list()
+    if(method=="BFGS") {
+      estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
                            start.par,print.level=1*messages)
-            estim$estimate <- estimBFGS$estimate
-            estim$covariance <- solve(-estimBFGS$hessian)
-            estim$log.lik <- estimBFGS$maximum
+      estim$estimate <- estimBFGS$estimate
+      estim$covariance <- solve(-estimBFGS$hessian)
+      estim$log.lik <- estimBFGS$maximum
+    }
+
+    if(method=="nlminb") {
+      estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
+                            function(x) -grad.MC.log.lik(x),
+                            function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
+      estim$estimate <- estimNLMINB$par
+      estim$covariance <- solve(-hess.MC.log.lik(estimNLMINB$par))
+      estim$log.lik <- -estimNLMINB$objective
+    }
+
+  } else {
+    coords <- unique(as.matrix(model.frame(coords,data)))
+    if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
+
+    mf <- model.frame(formula,data=data)
+    y <- as.numeric(model.response(mf))
+    n <- length(y)
+    units.m <-  as.numeric(model.frame(units.m,data)[,1])
+    n.x <- nrow(coords)
+    D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+    p <- ncol(D)
+    beta0 <- par0[1:p]
+    mu0 <- as.numeric(D%*%beta0)
+
+    sigma2.0 <- par0[p+1]
+    phi0 <- par0[p+2]
+    if(length(fixed.rel.nugget)>0){
+      if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length")
+      if(length(par0)!=(p+2)) stop("wrong length of par0")
+      tau2.0 <- fixed.rel.nugget
+      cat("Fixed relative variance of the nugget effect:",tau2.0,"\n")
+    } else {
+      if(length(par0)!=(p+3)) stop("wrong length of par0")
+      tau2.0 <- par0[p+3]
+    }
+    U <- dist(coords)
+    Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(sigma2.0,phi0),
+                             nugget=tau2.0,kappa=kappa)$varcov
+
+    n.sim <- control.mcmc$n.sim
+    S.sim.res <- Laplace.sampling(mu0,Sigma0,y,units.m,control.mcmc,ID.coords,
+                                  plot.correlogram=plot.correlogram,messages=messages,
+                                  poisson.llik=poisson.llik)
+    S.sim <- S.sim.res$samples
+
+    log.integrand <- function(S,val) {
+      n <- length(y)
+      n.x <- length(S)
+      eta <- S[ID.coords]+val$mu
+      if(poisson.llik) {
+        llik <-  sum(y*eta-units.m*exp(eta))
+      } else {
+        llik <- sum(y*eta-units.m*log(1+exp(eta)))
+      }
+      q.f_S <- t(S)%*%val$R.inv%*%S/val$sigma2
+      -0.5*(n.x*log(val$sigma2)+val$ldetR+q.f_S)+
+        llik
+    }
+
+    compute.log.f <- function(par,ldetR=NA,R.inv=NA) {
+      beta <- par[1:p]
+      sigma2 <- exp(par[p+1])
+      if(length(fixed.rel.nugget)>0) {
+        nu2 <- fixed.rel.nugget
+      } else {
+        nu2 <- exp(par[p+3])
+      }
+      phi <- exp(par[p+2])
+      val <- list()
+      val$sigma2 <- sigma2
+      val$mu <- as.numeric(D%*%beta)
+      if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
+        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(1,phi),
+                            nugget=nu2,kappa=kappa)$varcov
+        val$ldetR <- determinant(R)$modulus
+        val$R.inv <- solve(R)
+      } else {
+        val$ldetR <- ldetR
+        val$R.inv <- R.inv
+      }
+      sapply(1:(dim(S.sim)[1]),function(i) log.integrand(S.sim[i,],val))
+    }
+
+    log.f.tilde <- compute.log.f(c(beta0,log(c(sigma2.0,phi0,tau2.0/sigma2.0))))
+
+    MC.log.lik <- function(par) {
+      log(mean(exp(compute.log.f(par)-log.f.tilde)))
+    }
+
+    grad.MC.log.lik <- function(par) {
+      beta <- par[1:p]; mu <- D%*%beta
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+
+      if(length(fixed.rel.nugget)==0) {
+        nu2 <- exp(par[p+3])
+      } else {
+        nu2 <- fixed.rel.nugget
       }
 
-      if(method=="nlminb") {
-      	estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
-      	            function(x) -grad.MC.log.lik(x),
-      	            function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
-      	estim$estimate <- estimNLMINB$par
-      	estim$covariance <- solve(-hess.MC.log.lik(estimNLMINB$par))
-      	estim$log.lik <- -estimNLMINB$objective
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                          cov.pars=c(1,phi),
+                          nugget=nu2,kappa=kappa)$varcov
+      R.inv <- solve(R)
+      ldetR <- determinant(R)$modulus
+
+      exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
+      L.m <- sum(exp.fact)
+      exp.fact <- exp.fact/L.m
+
+      R1.phi <- matern.grad.phi(U,phi,kappa)
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+
+      if(length(fixed.rel.nugget)==0){
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
       }
-   }
-   names(estim$estimate)[1:p] <- colnames(D)
-   names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
-   if(length(fixed.rel.nugget)==0) {
-      names(estim$estimate)[p+3] <- "log(nu^2)"
-      if(sst) names(estim$estimate)[p+4] <- "log(psi)"
-   } else {
-      if(sst) names(estim$estimate)[p+3] <- "log(psi)"
-   }
-   rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
-   estim$y <- y
-   estim$units.m <- units.m
-   estim$D <- D
-   estim$coords <- coords
-   if(sst) estim$times <- times
-   estim$method <- method
-   estim$ID.coords <- ID.coords
-   estim$kappa <- kappa
-   if(sst) estim$kappa.t <- kappa.t
-   estim$h <- S.sim.res$h
-   estim$samples <- S.sim
-   if(length(fixed.rel.nugget)>0) estim$fixed.rel.nugget <- fixed.rel.nugget
-   class(estim) <- "PrevMap"
-   return(estim)
+
+      gradient.S <- function(S) {
+        eta <- mu+S[ID.coords]
+        if(poisson.llik) {
+          h <- units.m*exp(eta)
+        } else {
+          h <- units.m*exp(eta)/(1+exp(eta))
+        }
+
+        q.f <- t(S)%*%R.inv%*%S
+
+        grad.beta <-  t(D)%*%(y-h)
+
+        grad.log.sigma2 <- (-n.x/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+
+        grad.log.phi <- (t1.phi+0.5*as.numeric(t(S)%*%m2.phi%*%(S))/sigma2)*phi
+
+        if(length(fixed.rel.nugget)==0) {
+          grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(S)%*%m2.nu2%*%(S))/sigma2)*nu2
+          out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
+        } else {
+          out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
+        }
+        out
+      }
+      out <- rep(0,length(par))
+      for(i in 1:(dim(S.sim)[1])) {
+        out <- out + exp.fact[i]*gradient.S(S.sim[i,])
+      }
+      out
+    }
+
+    hess.MC.log.lik <- function(par) {
+      beta <- par[1:p]; mu <- D%*%beta
+      sigma2 <- exp(par[p+1])
+      if(length(fixed.rel.nugget)==0) {
+        nu2 <- exp(par[p+3])
+      } else {
+        nu2 <- fixed.rel.nugget
+      }
+      phi <- exp(par[p+2])
+
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                          cov.pars=c(1,phi),
+                          nugget=nu2,kappa=kappa)$varcov
+      R.inv <- solve(R)
+      ldetR <- determinant(R)$modulus
+
+      exp.fact <- exp(compute.log.f(par,ldetR,R.inv)-log.f.tilde)
+      L.m <- sum(exp.fact)
+      exp.fact <- exp.fact/L.m
+
+      R1.phi <- matern.grad.phi(U,phi,kappa)
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+
+      if(length(fixed.rel.nugget)==0){
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
+        t2.nu2 <- 0.5*sum(diag(m2.nu2))
+        n2.nu2 <- 2*R.inv%*%m2.nu2
+        t2.nu2.phi <- 0.5*sum(diag(R.inv%*%R1.phi%*%R.inv))
+        n2.nu2.phi <- R.inv%*%(R.inv%*%R1.phi+
+                                 R1.phi%*%R.inv)%*%R.inv
+      }
+
+      R2.phi <- matern.hessian.phi(U,phi,kappa)
+      t2.phi <- -0.5*sum(diag(R.inv%*%R2.phi-R.inv%*%R1.phi%*%R.inv%*%R1.phi))
+      n2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
+
+      H <- matrix(0,nrow=length(par),ncol=length(par))
+
+      hessian.S <- function(S,ef) {
+        eta <- as.numeric(mu+S[ID.coords])
+        if(poisson.llik) {
+          h <- units.m*exp(eta)
+          h1 <- h
+        } else {
+          h <- units.m*exp(eta)/(1+exp(eta))
+          h1 <- h/(1+exp(eta))
+        }
+
+        q.f <- t(S)%*%R.inv%*%S
+
+        grad.beta <-  t(D)%*%(y-h)
+
+        grad.log.sigma2 <- (-n.x/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+
+        grad.log.phi <- (t1.phi+0.5*as.numeric(t(S)%*%m2.phi%*%(S))/sigma2)*phi
+
+        if(length(fixed.rel.nugget)==0) {
+          grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(S)%*%m2.nu2%*%(S))/sigma2)*nu2
+          g <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
+        } else {
+          g <- c(grad.beta,grad.log.sigma2,grad.log.phi)
+        }
+
+        grad2.log.lsigma2.lsigma2 <- (n.x/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
+          grad.log.sigma2
+
+        grad2.log.lphi.lphi <-(t2.phi-0.5*t(S)%*%n2.phi%*%(S)/sigma2)*phi^2+
+          grad.log.phi
+
+        if(length(fixed.rel.nugget)==0) {
+          grad2.log.lnu2.lnu2 <- (t2.nu2-0.5*t(S)%*%n2.nu2%*%(S)/sigma2)*nu2^2+
+            grad.log.nu2
+          grad2.log.lnu2.lphi <- (t2.nu2.phi-0.5*t(S)%*%n2.nu2.phi%*%(S)/sigma2)*phi*nu2
+
+          H[1:p,1:p] <- -t(D)%*%(D*h1)
+          H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
+          H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
+          H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
+          H[p+3,p+3] <- grad2.log.lnu2.lnu2
+          H[p+2,p+3] <- H[p+3,p+2] <- grad2.log.lnu2.lphi
+          H[p+2,p+2] <- grad2.log.lphi.lphi
+          out <- list()
+          out$mat1<- ef*(g%*%t(g)+H)
+          out$g <- g*ef
+        } else {
+          H[1:p,1:p] <- -t(D)%*%(D*h1)
+          H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
+          H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
+          H[p+2,p+2] <- grad2.log.lphi.lphi
+          out <- list()
+          out$mat1<- ef*(g%*%t(g)+H)
+          out$g <- g*ef
+        }
+        out
+      }
+
+      a <- rep(0,length(par))
+      A <- matrix(0,length(par),length(par))
+      for(i in 1:(dim(S.sim)[1])) {
+        out.i <- hessian.S(S.sim[i,],exp.fact[i])
+        a <- a+out.i$g
+        A <- A+out.i$mat1
+      }
+      (A-a%*%t(a))
+
+    }
+    if(messages) cat("Estimation: \n")
+    start.par <- c(par0[1:(p+1)],start.cov.pars)
+    start.par[-(1:p)] <- log(start.par[-(1:p)])
+    estim <- list()
+    if(method=="BFGS") {
+      estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
+                           start.par,print.level=1*messages)
+      estim$estimate <- estimBFGS$estimate
+      estim$covariance <- solve(-estimBFGS$hessian)
+      estim$log.lik <- estimBFGS$maximum
+    }
+
+    if(method=="nlminb") {
+      estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
+                            function(x) -grad.MC.log.lik(x),
+                            function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
+      estim$estimate <- estimNLMINB$par
+      estim$covariance <- solve(-hess.MC.log.lik(estimNLMINB$par))
+      estim$log.lik <- -estimNLMINB$objective
+    }
+  }
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
+  if(length(fixed.rel.nugget)==0) {
+    names(estim$estimate)[p+3] <- "log(nu^2)"
+    if(sst) names(estim$estimate)[p+4] <- "log(psi)"
+  } else {
+    if(sst) names(estim$estimate)[p+3] <- "log(psi)"
+  }
+  rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
+  estim$y <- y
+  estim$units.m <- units.m
+  estim$D <- D
+  estim$coords <- coords
+  if(sst) estim$times <- times
+  estim$method <- method
+  estim$ID.coords <- ID.coords
+  estim$kappa <- kappa
+  if(sst) {
+    if(sst.model=="DM") {
+      estim$kappa.t <- kappa.t
+    }
+  }
+  estim$h <- S.sim.res$h
+  estim$samples <- S.sim
+  if(length(fixed.rel.nugget)>0) estim$fixed.rel.nugget <- fixed.rel.nugget
+  class(estim) <- "PrevMap"
+  return(estim)
 }
 
 ##' @title Monte Carlo Maximum Likelihood estimation for the binomial logistic model
@@ -1597,6 +1651,12 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param kappa fixed value for the shape parameter of the Matern covariance function.
 ##' @param kappa.t fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
+##' @param sst.model a character value that specifies the spatio-temporal correlation function.
+##' \itemize{
+##' \item \code{sst.model="DM"} separable double-Matern.
+##' \item \code{sst.model="GN1"} separable correlation functions. Temporal correlation: \eqn{f(x) = 1/(1+x/\psi)}; Spatial correaltion: Matern function.
+##' }
+##' Deafault is \code{sst.model=NULL}, which is used when a purely spatial model is fitted.
 ##' @param fixed.rel.nugget fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.
 ##' @param start.cov.pars a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then \code{start.cov.pars} represents the starting value for \code{phi} only.
 ##' @param method method of optimization. If \code{method="BFGS"} then the \code{\link{maxBFGS}} function is used; otherwise \code{method="nlminb"} to use the \code{\link{nlminb}} function. Default is \code{method="BFGS"}.
@@ -1642,6 +1702,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -1650,50 +1711,53 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 binomial.logistic.MCML <- function(formula,units.m,coords,times=NULL,
                                    data,ID.coords=NULL,
                                    par0,control.mcmc,kappa,kappa.t=NULL,
+                                   sst.model=NULL,
                                    fixed.rel.nugget=NULL,
                                    start.cov.pars,
                                    method="BFGS",low.rank=FALSE,SPDE=FALSE,
                                    knots=NULL,mesh=NULL,
                                    messages=TRUE,
                                    plot.correlogram=TRUE) {
-   if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-   if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
-   if(length(times) > 0 & length(ID.coords) > 0) stop("two-level spatio-temporal models are not currently available.")
-   if(SPDE & length(mesh) == 0) stop("if 'SPDE=TRUE', 'mesh' must be provided")
-   if((length(times) >0 & length(kappa.t) ==0) |
-      (length(times) == 0 & length(kappa.t)==1)) stop("to fit a spatio-temporal model both 'times' and 'kappa.t' must be provided.")
-   if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("'control.mcmc' must be of class 'mcmc.MCML.PrevMap'")
-   if(class(formula)!="formula") stop("'formula' must be a 'formula' object indicating the variables of the model to be fitted.")
-   if(class(coords)!="formula") stop("'coords' must be a 'formula' object indicating the spatial coordinates.")
-   if(length(times) > 0 & class(times)!="formula") stop("'times' must be a 'formula' object indicating the times of observation.")
-   if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
-   if(kappa < 0) stop("kappa must be positive.")
-   if(SPDE & kappa != 1) stop("the SPDE approximation is currently implemented only for kappa=1")
-   if(length(times)>0 && kappa.t < 0) stop("kappa must be positive.")
-   if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
-   if(SPDE & (length(fixed.rel.nugget)==0 || fixed.rel.nugget!=0)) warning("the SPDE approximation is currently implemented without nugget effect.")
-   if(SPDE & length(ID.coords)!=0) stop("two-levels models are not currently implemented with SPDE.")
-   if(!low.rank & !SPDE) {
-      res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
-                      times=times,data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
-		          kappa=kappa,kappa.t=kappa.t,fixed.rel.nugget=fixed.rel.nugget,
-		          start.cov.pars=start.cov.pars,method=method,messages=messages,
-		          plot.correlogram=plot.correlogram,poisson.llik=FALSE)
-   } else if(SPDE) {
-      res <- geo.MCML.SPDE(formula=formula,units.m=units.m,coords=coords,
-             data=data,mesh=mesh,par0=par0,
-             control.mcmc=control.mcmc,
-		 kappa=kappa,start.cov.pars=start.cov.pars,
-             method=method,messages=messages,
-		         plot.correlogram=plot.correlogram)
-   } else if(low.rank) {
-      res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
-		           data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
-		           kappa=kappa,start.cov.pars=start.cov.pars,method=method,
-		           messages=messages,plot.correlogram=plot.correlogram,poisson.llik=FALSE)
-   }
-   res$call <- match.call()
-   return(res)
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
+  if(length(times) > 0 & length(ID.coords) > 0) stop("two-level spatio-temporal models are not currently available.")
+  if(SPDE & length(mesh) == 0) stop("if 'SPDE=TRUE', 'mesh' must be provided")
+  if((length(times) >0 && sst.model=="DM" && length(kappa.t) ==0) |
+     (length(times) == 0 && sst.model=="DM" && length(kappa.t)==1)) stop("to fit a spatio-temporal 'DM' model both 'times' and 'kappa.t' must be provided.")
+  if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("'control.mcmc' must be of class 'mcmc.MCML.PrevMap'")
+  if(class(formula)!="formula") stop("'formula' must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("'coords' must be a 'formula' object indicating the spatial coordinates.")
+  if(length(times) > 0 & class(times)!="formula") stop("'times' must be a 'formula' object indicating the times of observation.")
+  if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(SPDE & kappa != 1) stop("the SPDE approximation is currently implemented only for kappa=1")
+  if(length(times) > 0 & length(sst.model)==0) stop("'sst.model' must be specified.")
+  if(length(times) > 0 & !any(sst.model==c("DM","GN1"))) stop("'sst.model' must be 'DM' or 'GN1'; see the help page for more information.")
+  if(length(times)>0 && sst.model=="DM" && kappa.t < 0) stop("kappa must be positive.")
+  if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
+  if(SPDE & (length(fixed.rel.nugget)==0 || fixed.rel.nugget!=0)) warning("the SPDE approximation is currently implemented without nugget effect.")
+  if(SPDE & length(ID.coords)!=0) stop("two-levels models are not currently implemented with SPDE.")
+  if(!low.rank & !SPDE) {
+    res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
+                    times=times,data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
+                    kappa=kappa,kappa.t=kappa.t,fixed.rel.nugget=fixed.rel.nugget,
+                    start.cov.pars=start.cov.pars,method=method,messages=messages,
+                    plot.correlogram=plot.correlogram,poisson.llik=FALSE,sst.model=sst.model)
+  } else if(SPDE) {
+    res <- geo.MCML.SPDE(formula=formula,units.m=units.m,coords=coords,
+                         data=data,mesh=mesh,par0=par0,
+                         control.mcmc=control.mcmc,
+                         kappa=kappa,start.cov.pars=start.cov.pars,
+                         method=method,messages=messages,
+                         plot.correlogram=plot.correlogram)
+  } else if(low.rank) {
+    res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
+                       data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
+                       kappa=kappa,start.cov.pars=start.cov.pars,method=method,
+                       messages=messages,plot.correlogram=plot.correlogram,poisson.llik=FALSE)
+  }
+  res$call <- match.call()
+  return(res)
 }
 
 ##' @title Maximum Likelihood estimation for the geostatistical linear Gaussian model
@@ -1723,6 +1787,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,times=NULL,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} can be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process, the parameter \code{sigma2} is adjusted by a factor\code{constant.sigma2}. See \code{\link{adjust.sigma2}} for more details on the the computation of the adjustment factor \code{constant.sigma2} in the low-rank approximation.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "PrevMap".
 ##' The function \code{\link{summary.PrevMap}} is used to print a summary of the fitted model.
@@ -1776,44 +1841,44 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
                              knots=NULL,messages=TRUE,profile.llik=FALSE,
                              SPDE=FALSE,mesh=NULL, SPDE.analytic.hessian=FALSE) {
 
-   if(low.rank & SPDE) stop("'low.rank' and 'SPDE' can not be both 'TRUE'.")
-   if(SPDE) {
-      if(class(mesh)!="inla.mesh") stop("'mesh' should be obtained as a result of a call
-      to the function 'inla.mesh.2d'.")
-      if(kappa!=1) stop("The SPDE approximation is currently implemented only for
-      kappa=1.")
-      if(length(fixed.rel.nugget)>0) stop("In the current implementation of the SPDE
-      approximation the nugget effect can not be fixed.")
-   }
+  if(low.rank & SPDE) stop("'low.rank' and 'SPDE' can not be both 'TRUE'.")
+  if(SPDE) {
+    if(class(mesh)!="inla.mesh") stop("'mesh' should be obtained as a result of a call
+                                      to the function 'inla.mesh.2d'.")
+    if(kappa!=1) stop("The SPDE approximation is currently implemented only for
+                      kappa=1.")
+    if(length(fixed.rel.nugget)>0) stop("In the current implementation of the SPDE
+                                        approximation the nugget effect can not be fixed.")
+  }
 
-   if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-   if(low.rank & length(fixed.rel.nugget)>0) stop("the relative variance of the nugget effect cannot be fixed in the low-rank approximation.")
-   if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model.")
-   if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
-   if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
-   if(kappa < 0) stop("kappa must be positive.")
-   if(length(ID.coords)==0 & profile.llik) warning("maximization of the profile likelihood is
-   currently implemented only for the model with multiple observations;
-   the full-likelihood will then be used.")
-   if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
-   if(!low.rank & !SPDE) {
-      res <-  geo.linear.MLE(formula=formula,coords=coords,ID.coords=ID.coords,
-		  data=data,kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
-		  start.cov.pars=start.cov.pars,method=method,messages=messages,
-              profile.llik)
-   } else if (SPDE) {
-      res <- geo.linear.MLE.SPDE(formula=formula,coords=coords,mesh=mesh,
-             data=data,kappa=kappa,start.cov.pars=start.cov.pars,
-             method=method,messages=messages,
-             SPDE.analytic.hessian=SPDE.analytic.hessian)
-   } else if(low.rank) {
-	res <-  geo.linear.MLE.lr(formula=formula,coords=coords,
-		  knots=knots,data=data,kappa=kappa,
-		  start.cov.pars=start.cov.pars,method=method,messages=messages)
-   }
-   res$call <- match.call()
-   return(res)
-}
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(low.rank & length(fixed.rel.nugget)>0) stop("the relative variance of the nugget effect cannot be fixed in the low-rank approximation.")
+  if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model.")
+  if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(length(ID.coords)==0 & profile.llik) warning("maximization of the profile likelihood is
+                                                  currently implemented only for the model with multiple observations;
+                                                  the full-likelihood will then be used.")
+  if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
+  if(!low.rank & !SPDE) {
+    res <-  geo.linear.MLE(formula=formula,coords=coords,ID.coords=ID.coords,
+                           data=data,kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
+                           start.cov.pars=start.cov.pars,method=method,messages=messages,
+                           profile.llik)
+  } else if (SPDE) {
+    res <- geo.linear.MLE.SPDE(formula=formula,coords=coords,mesh=mesh,
+                               data=data,kappa=kappa,start.cov.pars=start.cov.pars,
+                               method=method,messages=messages,
+                               SPDE.analytic.hessian=SPDE.analytic.hessian)
+  } else if(low.rank) {
+    res <-  geo.linear.MLE.lr(formula=formula,coords=coords,
+                              knots=knots,data=data,kappa=kappa,
+                              start.cov.pars=start.cov.pars,method=method,messages=messages)
+  }
+  res$call <- match.call()
+  return(res)
+  }
 
 ##' @title Bayesian estimation for the geostatistical linear Gaussian model
 ##' @description This function performs Bayesian estimation for the geostatistical linear Gaussian model.
@@ -1837,6 +1902,7 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "Bayes.PrevMap".
 ##' The function \code{\link{summary.Bayes.PrevMap}} is used to print a summary of the fitted model.
@@ -1877,29 +1943,29 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
 ##'                 control.prior = cp)
 ##' summary(fit.Bayes)
 linear.model.Bayes <- function(formula,coords,data,
-                                                 kappa,
-                                                 control.mcmc,
-                                                 control.prior,
-                                                 low.rank=FALSE,
-                                                 knots=NULL,messages=TRUE) {
-    if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-    if(low.rank & length(control.mcmc$start.nugget)==0) stop("the nugget effect must be included in the low-rank approximation.")
-    if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
-    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
-    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
-    if(kappa < 0) stop("kappa must be positive.")
-	if(!low.rank) {
-		res <-  geo.linear.Bayes(formula=formula,coords=coords,
-		           data=data,kappa=kappa,control.prior=control.prior,
-		           control.mcmc=control.mcmc,messages=messages)
-	} else {
-		res <-  geo.linear.Bayes.lr(formula=formula,coords=coords,
-		           data=data,knots=knots,kappa=kappa,
-		           control.prior=control.prior,
-		           control.mcmc=control.mcmc,messages=messages)
-	}
-	res$call <- match.call()
-	return(res)
+                               kappa,
+                               control.mcmc,
+                               control.prior,
+                               low.rank=FALSE,
+                               knots=NULL,messages=TRUE) {
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(low.rank & length(control.mcmc$start.nugget)==0) stop("the nugget effect must be included in the low-rank approximation.")
+  if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
+  if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(!low.rank) {
+    res <-  geo.linear.Bayes(formula=formula,coords=coords,
+                             data=data,kappa=kappa,control.prior=control.prior,
+                             control.mcmc=control.mcmc,messages=messages)
+  } else {
+    res <-  geo.linear.Bayes.lr(formula=formula,coords=coords,
+                                data=data,knots=knots,kappa=kappa,
+                                control.prior=control.prior,
+                                control.mcmc=control.mcmc,messages=messages)
+  }
+  res$call <- match.call()
+  return(res)
 }
 
 ##' @title Summarizing likelihood-based model fits
@@ -1924,221 +1990,221 @@ linear.model.Bayes <- function(formula,coords,data,
 ##' @method summary PrevMap
 ##' @export
 summary.PrevMap <- function(object, log.cov.pars = TRUE,...) {
-   res <- list()
-   if(length(object$units.m)==0) {
-      res$linear<-TRUE
-   } else {
-    	res$linear<-FALSE
-   }
+  res <- list()
+  if(length(object$units.m)==0) {
+    res$linear<-TRUE
+  } else {
+    res$linear<-FALSE
+  }
 
 
-   sst <- length(object$times)>0
+  sst <- length(object$times)>0
 
-   if(substr(object$call[1],1,7)=="poisson") {
-      res$poisson <- TRUE
-   } else {
-      res$poisson <- FALSE
-   }
+  if(substr(object$call[1],1,7)=="poisson") {
+    res$poisson <- TRUE
+  } else {
+    res$poisson <- FALSE
+  }
 
-   if(length(dim(object$knots))==0) {
-      res$ck<-FALSE
-   } else {
-	res$ck<-TRUE
-   }
+  if(length(dim(object$knots))==0) {
+    res$ck<-FALSE
+  } else {
+    res$ck<-TRUE
+  }
 
-   if(length(object$mesh)>0) {
-      res$spde <- TRUE
-   } else {
-      res$spde <- FALSE
-   }
+  if(length(object$mesh)>0) {
+    res$spde <- TRUE
+  } else {
+    res$spde <- FALSE
+  }
 
-   if(length(object$units.m)>0 & res$ck) {
-	object$fixed.rel.nugget<-0
-   }
-   p <- ncol(object$D)
-   object$hessian <- solve(-object$covariance)
+  if(length(object$units.m)>0 & res$ck) {
+    object$fixed.rel.nugget<-0
+  }
+  p <- ncol(object$D)
+  object$hessian <- solve(-object$covariance)
 
-   if(res$linear & length(object$ID.coords)>0) {
-      if(length(object$fixed.rel.nugget)==0) {
-         J <- diag(1,p+4)
-         if(!log.cov.pars) {
-            J[p+1,p+1] <- exp(object$estimate[p+1])
-            J[p+2,p+2] <- exp(object$estimate[p+2])
-            J[p+3,p+3] <- exp(object$estimate[p+3]+object$estimate[p+1])
-            J[p+3,p+1] <- J[p+3,p+3]
-            J[p+4,p+1] <- exp(object$estimate[p+4]+object$estimate[p+1])
-            J[p+4,p+4] <- J[p+4,p+1]
-            object$estimate[(p+1):(p+2)] <- exp(object$estimate[(p+1):(p+2)])
-            object$estimate[(p+3):(p+4)] <- exp(object$estimate[(p+3):(p+4)])*
-                                            object$estimate[p+1]
-            names(object$estimate)[-(1:p)] <- c("sigma^2","phi","tau^2","omega^2")
-            object$hessian <- t(J)%*%object$hessian%*%J
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <-
-                                    names(object$estimate)
+  if(res$linear & length(object$ID.coords)>0) {
+    if(length(object$fixed.rel.nugget)==0) {
+      J <- diag(1,p+4)
+      if(!log.cov.pars) {
+        J[p+1,p+1] <- exp(object$estimate[p+1])
+        J[p+2,p+2] <- exp(object$estimate[p+2])
+        J[p+3,p+3] <- exp(object$estimate[p+3]+object$estimate[p+1])
+        J[p+3,p+1] <- J[p+3,p+3]
+        J[p+4,p+1] <- exp(object$estimate[p+4]+object$estimate[p+1])
+        J[p+4,p+4] <- J[p+4,p+1]
+        object$estimate[(p+1):(p+2)] <- exp(object$estimate[(p+1):(p+2)])
+        object$estimate[(p+3):(p+4)] <- exp(object$estimate[(p+3):(p+4)])*
+          object$estimate[p+1]
+        names(object$estimate)[-(1:p)] <- c("sigma^2","phi","tau^2","omega^2")
+        object$hessian <- t(J)%*%object$hessian%*%J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <-
+          names(object$estimate)
 
-         } else {
-            J[p+3,p+1] <- 1
-            J[p+4,p+1] <- 1
-            object$estimate[(p+3):(p+4)] <- object$estimate[(p+3):(p+4)]+
-                                            object$estimate[p+1]
-            names(object$estimate)[-(1:p)] <- c("log(sigma^2)",
-                                                "log(phi)","log(tau^2)",
-                                                "log(omega^2)")
-            object$hessian <- t(J)%*%object$hessian%*%J
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <-
-                                    names(object$estimate)
-
-         }
       } else {
-         J <- diag(1,p+3)
-         if(!log.cov.pars) {
-           J[p+1,p+1] <- exp(object$estimate[p+1])
-           J[p+2,p+2] <- exp(object$estimate[p+2])
-           J[p+3,p+3] <- exp(object$estimate[p+3]+object$estimate[p+1])
-           J[p+3,p+1] <- J[p+3,p+3]
-           object$estimate[(p+1):(p+2)] <- exp(object$estimate[(p+1):(p+2)])
-           object$estimate[p+3] <- exp(object$estimate[p+3])*
-                                     object$estimate[p+1]
-           names(object$estimate)[-(1:p)] <- c("sigma^2","phi","omega^2")
-           object$hessian <- t(J)%*%object$hessian%*%J
-           object$covar <- solve(-object$hessian)
-           rownames(object$covar) <- colnames(object$covar) <-
-                                    names(object$estimate)
+        J[p+3,p+1] <- 1
+        J[p+4,p+1] <- 1
+        object$estimate[(p+3):(p+4)] <- object$estimate[(p+3):(p+4)]+
+          object$estimate[p+1]
+        names(object$estimate)[-(1:p)] <- c("log(sigma^2)",
+                                            "log(phi)","log(tau^2)",
+                                            "log(omega^2)")
+        object$hessian <- t(J)%*%object$hessian%*%J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <-
+          names(object$estimate)
 
-         } else {
-           J[p+3,p+1] <- 1
-           object$estimate[p+3] <- object$estimate[p+3]+
-                                   object$estimate[p+1]
-           names(object$estimate)[-(1:p)] <- c("log(sigma^2)",
-                                               "log(phi)",
-                                               "log(omega^2)")
-           object$hessian <- t(J)%*%object$hessian%*%J
-           object$covar <- solve(-object$hessian)
-           rownames(object$covar) <- colnames(object$covar) <-
-                                    names(object$estimate)
-
-         }
       }
-   } else {
-      if(sst) {
-         if(length(object$fixed.rel.nugget)==0) {
-            J <- diag(1,p+4)
-            if(!log.cov.pars) {
-               object$estimate[-(1:p)] <- exp(object$estimate[-(1:p)])
-               object$estimate[p+3] <- object$estimate[p+3]*object$estimate[p+1]
-               diag(J)[-(1:p)] <- object$estimate[-(1:p)]
-               J[p+3,p+1] <- diag(J)[p+3]
-               names(object$estimate) <- c(names(object$estimate[1:p]),
-                "sigma^2", "phi", "tau^2","psi")
-            } else {
-               object$estimate[p+3] <- object$estimate[p+3]+object$estimate[p+1]
-               J[p+3,p+1] <- 1
-               names(object$estimate) <- c(names(object$estimate[1:p]),
-                "log(sigma^2)", "log(phi)", "log(tau^2)","log(psi)")
-            }
-         } else {
-            J <- diag(1,p+3)
-            if(!log.cov.pars) {
-               object$estimate[-(1:p)] <- exp(object$estimate[-(1:p)])
-               diag(J)[-(1:p)] <- object$estimate[-(1:p)]
-               names(object$estimate) <- c(names(object$estimate[1:p]),
-                "sigma^2", "phi","psi")
-            }
-         }
-         object$hessian <- t(J) %*% object$hessian %*% J
-         object$covar <- solve(-object$hessian)
-         rownames(object$covar) <- colnames(object$covar) <-
-                                   names(object$estimate)
+    } else {
+      J <- diag(1,p+3)
+      if(!log.cov.pars) {
+        J[p+1,p+1] <- exp(object$estimate[p+1])
+        J[p+2,p+2] <- exp(object$estimate[p+2])
+        J[p+3,p+3] <- exp(object$estimate[p+3]+object$estimate[p+1])
+        J[p+3,p+1] <- J[p+3,p+3]
+        object$estimate[(p+1):(p+2)] <- exp(object$estimate[(p+1):(p+2)])
+        object$estimate[p+3] <- exp(object$estimate[p+3])*
+          object$estimate[p+1]
+        names(object$estimate)[-(1:p)] <- c("sigma^2","phi","omega^2")
+        object$hessian <- t(J)%*%object$hessian%*%J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <-
+          names(object$estimate)
 
-      } else if(!sst & length(object$fixed.rel.nugget)==0) {
-         if (!log.cov.pars) {
-            if(res$ck){
-               res$const.sigma2 <- object$const.sigma2
-        	   J <- diag(c(exp(object$estimate[p+1]),exp(object$estimate[p+2]),
-                        exp(object$estimate[p + 1] + object$estimate[p+3])))
-               J[3, 1] <- exp(object$estimate[p + 1] + object$estimate[p+3])
-               object$estimate[p + 1] <- exp(object$estimate[p+1])
-               object$estimate[p + 2] <- exp(object$estimate[p+2])
-               object$estimate[p + 3] <- object$estimate[p + 1]*exp(object$estimate[p + 3])
-            } else {
-        	   J <- diag(c(exp(object$estimate[(p + 1):(p + 2)]),
-                    exp(object$estimate[p + 1] + object$estimate[p+3])))
-               J[3, 1] <- exp(object$estimate[p + 1] + object$estimate[p+3])
-               object$estimate[p + 1] <- exp(object$estimate[p+1])
-               object$estimate[p + 2] <- exp(object$estimate[p+2])
-               object$estimate[p + 3] <- object$estimate[p + 1]*exp(object$estimate[p + 3])
-            }
+      } else {
+        J[p+3,p+1] <- 1
+        object$estimate[p+3] <- object$estimate[p+3]+
+          object$estimate[p+1]
+        names(object$estimate)[-(1:p)] <- c("log(sigma^2)",
+                                            "log(phi)",
+                                            "log(omega^2)")
+        object$hessian <- t(J)%*%object$hessian%*%J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <-
+          names(object$estimate)
 
-            names(object$estimate) <- c(names(object$estimate[1:p]),
-                "sigma^2", "phi", "tau^2")
-            J <- rbind(cbind(diag(1, p), matrix(0, nrow = p,
-                ncol = 3)), cbind(matrix(0, nrow = 3, ncol = p),
-                J))
-            object$hessian <- t(J) %*% object$hessian %*% J
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <-
-                                    names(object$estimate)
-         } else {
-            if(res$ck) {
-               res$const.sigma2 <- object$const.sigma2
-            }
-            object$estimate[p + 3] <- object$estimate[p + 1]+object$estimate[p + 3]
-            names(object$estimate) <- c(names(object$estimate[1:p]),
-                                      "log(sigma^2)", "log(phi)", "log(tau^2)")
-            J <- diag(1, p + 3)
-            J[p + 3, p + 1] <- 1
-            object$hessian <- t(J) %*% object$hessian %*% J
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
-         }
-      } else if(!sst & length(object$fixed.rel.nugget)>0) {
-         if (!log.cov.pars) {
-            if(res$ck) {
-               res$const.sigma2 <- object$const.sigma2
-               J <- diag(c(exp(object$estimate[p+1]),
-                              exp(object$estimate[p + 2])))
-               object$estimate[p + 1] <- exp(object$estimate[p +1])
-               object$estimate[p + 2] <- exp(object$estimate[p + 2])
-            } else {
-               J <- diag(c(exp(object$estimate[p+1]),exp(object$estimate[p + 2])))
-               object$estimate[p + 1] <- exp(object$estimate[p +1])
-               object$estimate[p + 2] <- exp(object$estimate[p + 2])
-            }
-            names(object$estimate) <- c(names(object$estimate[1:p]),
-                                      "sigma^2", "phi")
-            J <- rbind(cbind(diag(1, p), matrix(0, nrow = p,
-                ncol = 2)), cbind(matrix(0, nrow = 2, ncol = p),
-                J))
-            object$hessian <- t(J) %*% object$hessian %*% J
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
-         } else {
-            if(res$ck) {
-               res$const.sigma2 <- object$const.sigma2
-            }
-            names(object$estimate) <- c(names(object$estimate[1:p]),
-                                     "log(sigma^2)", "log(phi)")
-            object$covar <- solve(-object$hessian)
-            rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
-         }
       }
-   }
-   se <- sqrt(diag(object$covar))
-   zval <- object$estimate[1:p]/se[1:p]
-   TAB <- cbind(Estimate = object$estimate[1:p], StdErr = se[1:p],
-   z.value = zval, p.value = 2 * pnorm(-abs(zval)))
-   cov.pars <- cbind(Estimate = object$estimate[-(1:p)],StdErr = se[-(1:p)])
-   res$coefficients <- TAB
-   res$cov.pars <- cov.pars
-   res$log.lik <- object$log.lik
-   res$kappa <- object$kappa
-   if(sst) res$kappa.t <- object$kappa.t
-   res$fixed.rel.nugget <- object$fixed.rel.nugget
-   res$call <- object$call
-   class(res) <- "summary.PrevMap"
-   return(res)
+    }
+  } else {
+    if(sst) {
+      if(length(object$fixed.rel.nugget)==0) {
+        J <- diag(1,p+4)
+        if(!log.cov.pars) {
+          object$estimate[-(1:p)] <- exp(object$estimate[-(1:p)])
+          object$estimate[p+3] <- object$estimate[p+3]*object$estimate[p+1]
+          diag(J)[-(1:p)] <- object$estimate[-(1:p)]
+          J[p+3,p+1] <- diag(J)[p+3]
+          names(object$estimate) <- c(names(object$estimate[1:p]),
+                                      "sigma^2", "phi", "tau^2","psi")
+        } else {
+          object$estimate[p+3] <- object$estimate[p+3]+object$estimate[p+1]
+          J[p+3,p+1] <- 1
+          names(object$estimate) <- c(names(object$estimate[1:p]),
+                                      "log(sigma^2)", "log(phi)", "log(tau^2)","log(psi)")
+        }
+      } else {
+        J <- diag(1,p+3)
+        if(!log.cov.pars) {
+          object$estimate[-(1:p)] <- exp(object$estimate[-(1:p)])
+          diag(J)[-(1:p)] <- object$estimate[-(1:p)]
+          names(object$estimate) <- c(names(object$estimate[1:p]),
+                                      "sigma^2", "phi","psi")
+        }
+      }
+      object$hessian <- t(J) %*% object$hessian %*% J
+      object$covar <- solve(-object$hessian)
+      rownames(object$covar) <- colnames(object$covar) <-
+        names(object$estimate)
+
+    } else if(!sst & length(object$fixed.rel.nugget)==0) {
+      if (!log.cov.pars) {
+        if(res$ck){
+          res$const.sigma2 <- object$const.sigma2
+          J <- diag(c(exp(object$estimate[p+1]),exp(object$estimate[p+2]),
+                      exp(object$estimate[p + 1] + object$estimate[p+3])))
+          J[3, 1] <- exp(object$estimate[p + 1] + object$estimate[p+3])
+          object$estimate[p + 1] <- exp(object$estimate[p+1])
+          object$estimate[p + 2] <- exp(object$estimate[p+2])
+          object$estimate[p + 3] <- object$estimate[p + 1]*exp(object$estimate[p + 3])
+        } else {
+          J <- diag(c(exp(object$estimate[(p + 1):(p + 2)]),
+                      exp(object$estimate[p + 1] + object$estimate[p+3])))
+          J[3, 1] <- exp(object$estimate[p + 1] + object$estimate[p+3])
+          object$estimate[p + 1] <- exp(object$estimate[p+1])
+          object$estimate[p + 2] <- exp(object$estimate[p+2])
+          object$estimate[p + 3] <- object$estimate[p + 1]*exp(object$estimate[p + 3])
+        }
+
+        names(object$estimate) <- c(names(object$estimate[1:p]),
+                                    "sigma^2", "phi", "tau^2")
+        J <- rbind(cbind(diag(1, p), matrix(0, nrow = p,
+                                            ncol = 3)), cbind(matrix(0, nrow = 3, ncol = p),
+                                                              J))
+        object$hessian <- t(J) %*% object$hessian %*% J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <-
+          names(object$estimate)
+      } else {
+        if(res$ck) {
+          res$const.sigma2 <- object$const.sigma2
+        }
+        object$estimate[p + 3] <- object$estimate[p + 1]+object$estimate[p + 3]
+        names(object$estimate) <- c(names(object$estimate[1:p]),
+                                    "log(sigma^2)", "log(phi)", "log(tau^2)")
+        J <- diag(1, p + 3)
+        J[p + 3, p + 1] <- 1
+        object$hessian <- t(J) %*% object$hessian %*% J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
+      }
+    } else if(!sst & length(object$fixed.rel.nugget)>0) {
+      if (!log.cov.pars) {
+        if(res$ck) {
+          res$const.sigma2 <- object$const.sigma2
+          J <- diag(c(exp(object$estimate[p+1]),
+                      exp(object$estimate[p + 2])))
+          object$estimate[p + 1] <- exp(object$estimate[p +1])
+          object$estimate[p + 2] <- exp(object$estimate[p + 2])
+        } else {
+          J <- diag(c(exp(object$estimate[p+1]),exp(object$estimate[p + 2])))
+          object$estimate[p + 1] <- exp(object$estimate[p +1])
+          object$estimate[p + 2] <- exp(object$estimate[p + 2])
+        }
+        names(object$estimate) <- c(names(object$estimate[1:p]),
+                                    "sigma^2", "phi")
+        J <- rbind(cbind(diag(1, p), matrix(0, nrow = p,
+                                            ncol = 2)), cbind(matrix(0, nrow = 2, ncol = p),
+                                                              J))
+        object$hessian <- t(J) %*% object$hessian %*% J
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
+      } else {
+        if(res$ck) {
+          res$const.sigma2 <- object$const.sigma2
+        }
+        names(object$estimate) <- c(names(object$estimate[1:p]),
+                                    "log(sigma^2)", "log(phi)")
+        object$covar <- solve(-object$hessian)
+        rownames(object$covar) <- colnames(object$covar) <- names(object$estimate)
+      }
+    }
+  }
+  se <- sqrt(diag(object$covar))
+  zval <- object$estimate[1:p]/se[1:p]
+  TAB <- cbind(Estimate = object$estimate[1:p], StdErr = se[1:p],
+               z.value = zval, p.value = 2 * pnorm(-abs(zval)))
+  cov.pars <- cbind(Estimate = object$estimate[-(1:p)],StdErr = se[-(1:p)])
+  res$coefficients <- TAB
+  res$cov.pars <- cov.pars
+  res$log.lik <- object$log.lik
+  res$kappa <- object$kappa
+  if(sst) res$kappa.t <- object$kappa.t
+  res$fixed.rel.nugget <- object$fixed.rel.nugget
+  res$call <- object$call
+  class(res) <- "summary.PrevMap"
+  return(res)
 }
 
 ##' @title Trace-plots of the importance sampling distribution samples from the MCML method
@@ -2150,21 +2216,21 @@ summary.PrevMap <- function(object, log.cov.pars = TRUE,...) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 trace.plot.MCML <- function(object,component=NULL,...) {
-	if(class(object)!="PrevMap" & class(object)!="PrevMap.ps") {
-	   stop("'object' must be of class 'PrevMap' or 'PrevMap.ps'")
-	}
+  if(class(object)!="PrevMap" & class(object)!="PrevMap.ps") {
+    stop("'object' must be of class 'PrevMap' or 'PrevMap.ps'")
+  }
 
-	n.samples <- ncol(object$samples)
-	if(length(component)==0) {
-		component <- sample(1:n.samples,1)
-	}
+  n.samples <- ncol(object$samples)
+  if(length(component)==0) {
+    component <- sample(1:n.samples,1)
+  }
 
-	if(component > n.samples) stop("'components' must not be greater than the number of random effects in the model")
+  if(component > n.samples) stop("'components' must not be greater than the number of random effects in the model")
 
-	re <- object$samples[,component]
-	cat("Plotted component number",component,"\n")
-	plot(re,type="l",ylab="",xlab="Iteration",
-	     main=paste("Component number",component))
+  re <- object$samples[,component]
+  cat("Plotted component number",component,"\n")
+  plot(re,type="l",ylab="",xlab="Iteration",
+       main=paste("Component number",component))
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -2172,90 +2238,90 @@ trace.plot.MCML <- function(object,component=NULL,...) {
 ##' @method print summary.PrevMap
 ##' @export
 print.summary.PrevMap <- function(x,...) {
-   sst <- length(x$kappa.t) > 0
-   if(x$ck==FALSE) {
-      if(x$linear) {
-   	   cat("Geostatistical linear model \n")
-      } else if(x$poisson) {
-         cat("Geostatistical Poisson model \n")
-      } else {
-         if(sst) {
-            cat("Separable spatio-temporal binomial model \n")
-         } else {
-            cat("Geostatistical binomial model \n")
-         }
-      }
-      if(x$spde) cat("(SPDE approximation) \n")
-      cat("Call: \n")
-      print(x$call)
-      cat("\n")
-      printCoefmat(x$coefficients,P.values=TRUE,has.Pvalue=TRUE)
-      cat("\n")
-      if(x$linear) {
-   	   cat("Log-likelihood: ",x$log.lik,"\n \n",sep="")
-      } else {
-   	   cat("Objective function: ",x$log.lik,"\n \n",sep="")
-      }
+  sst <- length(x$kappa.t) > 0
+  if(x$ck==FALSE) {
+    if(x$linear) {
+      cat("Geostatistical linear model \n")
+    } else if(x$poisson) {
+      cat("Geostatistical Poisson model \n")
+    } else {
       if(sst) {
-         if(length(x$fixed.rel.nugget)==0) {
-            cat("Double Matern covariance function (kappa=",x$kappa,
-                ", kappa.t=",x$kappa.t,") \n",sep="")
-            printCoefmat(x$cov.pars,P.values=FALSE)
-         } else {
-            cat("Double Matern covariance function (kappa=",x$kappa,
-                ", kappa.t=",x$kappa.t,") \n",sep="")
-            cat("(fixed relative variance tau^2/sigma^2= ",x$fixed.rel.nugget,") \n",sep="")
-            printCoefmat(x$cov.pars,P.values=FALSE)
-         }
+        cat("Separable spatio-temporal binomial model \n")
       } else {
-         if(length(x$fixed.rel.nugget)==0) {
-            cat("Covariance parameters Matern function (kappa=",x$kappa,") \n",sep="")
-            printCoefmat(x$cov.pars,P.values=FALSE)
-         } else {
-            cat("Covariance parameters Matern function \n")
-            cat("(fixed relative variance tau^2/sigma^2= ",x$fixed.rel.nugget,") \n",sep="")
-            printCoefmat(x$cov.pars,P.values=FALSE)
-         }
+        cat("Geostatistical binomial model \n")
       }
-   } else {
-      if(x$linear) {
-         cat("Geostatistical linear model \n")
-      } else if(x$poisson) {
-         cat("Geostatistical Poisson model \n")
+    }
+    if(x$spde) cat("(SPDE approximation) \n")
+    cat("Call: \n")
+    print(x$call)
+    cat("\n")
+    printCoefmat(x$coefficients,P.values=TRUE,has.Pvalue=TRUE)
+    cat("\n")
+    if(x$linear) {
+      cat("Log-likelihood: ",x$log.lik,"\n \n",sep="")
+    } else {
+      cat("Objective function: ",x$log.lik,"\n \n",sep="")
+    }
+    if(sst) {
+      if(length(x$fixed.rel.nugget)==0) {
+        cat("Double Matern covariance function (kappa=",x$kappa,
+            ", kappa.t=",x$kappa.t,") \n",sep="")
+        printCoefmat(x$cov.pars,P.values=FALSE)
       } else {
-         cat("Geostatistical binomial model \n")
+        cat("Double Matern covariance function (kappa=",x$kappa,
+            ", kappa.t=",x$kappa.t,") \n",sep="")
+        cat("(fixed relative variance tau^2/sigma^2= ",x$fixed.rel.nugget,") \n",sep="")
+        printCoefmat(x$cov.pars,P.values=FALSE)
       }
-      cat("(low-rank approximation) \n")
-      cat("Call: \n")
-      print(x$call)
-      cat("\n")
-      printCoefmat(x$coefficients,P.values=TRUE,has.Pvalue=TRUE)
-      cat("\n")
-      if(x$linear) {
-   	   cat("Log-likelihood: ",x$log.lik,"\n \n",sep="")
+    } else {
+      if(length(x$fixed.rel.nugget)==0) {
+        cat("Covariance parameters Matern function (kappa=",x$kappa,") \n",sep="")
+        printCoefmat(x$cov.pars,P.values=FALSE)
       } else {
-   	   cat("Objective function: ",x$log.lik,"\n \n",sep="")
+        cat("Covariance parameters Matern function \n")
+        cat("(fixed relative variance tau^2/sigma^2= ",x$fixed.rel.nugget,") \n",sep="")
+        printCoefmat(x$cov.pars,P.values=FALSE)
       }
-      cat("Matern kernel parameters (kappa=",x$kappa,") \n",sep="")
-      cat("Adjustment factorfor sigma^2: ",x$const.sigma2 ,"\n",sep="")
-      printCoefmat(x$cov.pars,P.values=FALSE)
-   }
-   cat("\n")
-   cat("Legend: \n")
-   cat("sigma^2 = variance of the Gaussian process \n")
-   cat("phi = scale of the spatial correlation \n")
-   if(length(x$fixed.rel.nugget)==0) {
-      if(sst) {
-         cat("tau^2 = variance of the spatio-temporal nugget effect \n")
-      } else {
-         cat("tau^2 = variance of the nugget effect \n")
-      }
-   }
-   if(sst) cat("psi = scale of the temporal correlation \n")
-   if(any(names(x$cov.pars[,1])=="omega^2") |
-      any(names(x$cov.pars[,1])=="log(omega^2)")) {
-      cat("omega^2 = variance of the individual unexplained variation \n")
-   }
+    }
+  } else {
+    if(x$linear) {
+      cat("Geostatistical linear model \n")
+    } else if(x$poisson) {
+      cat("Geostatistical Poisson model \n")
+    } else {
+      cat("Geostatistical binomial model \n")
+    }
+    cat("(low-rank approximation) \n")
+    cat("Call: \n")
+    print(x$call)
+    cat("\n")
+    printCoefmat(x$coefficients,P.values=TRUE,has.Pvalue=TRUE)
+    cat("\n")
+    if(x$linear) {
+      cat("Log-likelihood: ",x$log.lik,"\n \n",sep="")
+    } else {
+      cat("Objective function: ",x$log.lik,"\n \n",sep="")
+    }
+    cat("Matern kernel parameters (kappa=",x$kappa,") \n",sep="")
+    cat("Adjustment factorfor sigma^2: ",x$const.sigma2 ,"\n",sep="")
+    printCoefmat(x$cov.pars,P.values=FALSE)
+  }
+  cat("\n")
+  cat("Legend: \n")
+  cat("sigma^2 = variance of the Gaussian process \n")
+  cat("phi = scale of the spatial correlation \n")
+  if(length(x$fixed.rel.nugget)==0) {
+    if(sst) {
+      cat("tau^2 = variance of the spatio-temporal nugget effect \n")
+    } else {
+      cat("tau^2 = variance of the nugget effect \n")
+    }
+  }
+  if(sst) cat("psi = scale of the temporal correlation \n")
+  if(any(names(x$cov.pars[,1])=="omega^2") |
+     any(names(x$cov.pars[,1])=="log(omega^2)")) {
+    cat("omega^2 = variance of the individual unexplained variation \n")
+  }
 
 }
 
@@ -2285,262 +2351,262 @@ print.summary.PrevMap <- function(x,...) {
 ##' @importFrom geoR matern
 ##' @export
 spatial.pred.binomial.MCML <- function(object,grid.pred,
-                              predictors=NULL,control.mcmc,
-                              type="marginal",
-                              scale.predictions=c("logit","prevalence","odds"),
-                              quantiles=c(0.025,0.975),
-                              standard.errors=FALSE,
-                              thresholds=NULL,
-                              scale.thresholds=NULL,
-                              plot.correlogram=FALSE,
-                              messages=TRUE) {
-   if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-   if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-   if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
-   p <- object$p <- ncol(object$D)
-   kappa <- object$kappa
-   n.pred <- nrow(grid.pred)
-   coords <- object$coords
-   if(type=="marginal" & length(object$knots) > 0) warning("only joint predictions are avilable for the low-rank approximation.")
-   if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
-	for(i in 1:length(scale.predictions)) {
-	 if(any(c("logit","prevalence","odds")==scale.predictions[i])==
-		          FALSE) stop("invalid scale.predictions.")
-   }
+                                       predictors=NULL,control.mcmc,
+                                       type="marginal",
+                                       scale.predictions=c("logit","prevalence","odds"),
+                                       quantiles=c(0.025,0.975),
+                                       standard.errors=FALSE,
+                                       thresholds=NULL,
+                                       scale.thresholds=NULL,
+                                       plot.correlogram=FALSE,
+                                       messages=TRUE) {
+  if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  p <- object$p <- ncol(object$D)
+  kappa <- object$kappa
+  n.pred <- nrow(grid.pred)
+  coords <- object$coords
+  if(type=="marginal" & length(object$knots) > 0) warning("only joint predictions are avilable for the low-rank approximation.")
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
+  for(i in 1:length(scale.predictions)) {
+    if(any(c("logit","prevalence","odds")==scale.predictions[i])==
+       FALSE) stop("invalid scale.predictions.")
+  }
 
-	 if(length(thresholds)>0) {
-	    if(any(scale.predictions==scale.thresholds)==FALSE) {
-			   stop("scale thresholds must be equal to a scale prediction")
-		  }
-   }
+  if(length(thresholds)>0) {
+    if(any(scale.predictions==scale.thresholds)==FALSE) {
+      stop("scale thresholds must be equal to a scale prediction")
+    }
+  }
 
-	 if(length(thresholds)==0 & length(scale.thresholds)>0 |
-      length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
+  if(length(thresholds)==0 & length(scale.thresholds)>0 |
+     length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
 
-   if(object$p==1) {
-      predictors <- matrix(1,nrow=n.pred)
-	 } else {
-	    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-	    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
-	    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-	    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
-   }
+  if(object$p==1) {
+    predictors <- matrix(1,nrow=n.pred)
+  } else {
+    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+  }
 
-   out <- list()
+  out <- list()
 
-   if(length(object$mesh)>0) {
-      if(type=="marginal") warning("only joint predictions are available when using the SPDE approximation.")
-      beta <- object$estimate[1:p]
-      sigma2 <- exp(object$estimate[p+1])
-      phi <- exp(object$estimate[p+2])
-      sigma2.t <- 4*pi*sigma2/(phi^2)
-      mu <- as.numeric(object$D%*%beta)
-      mu.pred <- as.numeric(predictors%*%beta)
-      S.samples <- Laplace.sampling.SPDE(mu,sigma2,phi,kappa=object$kappa,
-                 y=object$y,units.m=object$units.m,coords=object$coords,
-                 mesh=object$mesh,control.mcmc=control.mcmc,messages=messages,
-                 plot.correlogram=plot.correlogram,poisson.llik=FALSE)
-      A.pred <- INLA::inla.spde.make.A(object$mesh,loc=as.matrix(grid.pred))
-      n.samples <- nrow(S.samples$samples)
-      eta.sim <- sapply(1:n.samples,function(i)
-                 as.numeric(mu.pred+A.pred%*%S.samples$samples[i,]))
-
-
-   } else if(length(dim(object$knots)) > 0) {
-      beta <- object$estimate[1:p]
-	sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
-      rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
-      knots <- object$knots
-      U.k <- as.matrix(pdist(coords,knots))
-      K <- matern.kernel(U.k,rho,kappa)
-      mu.pred <- as.numeric(predictors%*%beta)
-      object$mu <- object$D%*%beta
-      Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
-                   object$y,object$units.m,control.mcmc,
-                   plot.correlogram=plot.correlogram,
-                   messages=messages,poisson.llik=FALSE)
-      Z.sim <- Z.sim.res$samples
-      U.k.pred <- as.matrix(pdist(grid.pred,knots))
-      K.pred <- matern.kernel(U.k.pred,rho,kappa)
-
-      eta.sim <- sapply(1:(dim(Z.sim)[1]),
-                 function(i) mu.pred+K.pred%*%Z.sim[i,])
-   } else {
-      beta <- object$estimate[1:p]
-	sigma2 <- exp(object$estimate[p+1])
-      phi <- exp(object$estimate[p+2])
-
-	if(length(object$fixed.rel.nugget)==0){
-	   tau2 <- sigma2*exp(object$estimate[p+3])
-	} else {
-	   tau2 <- object$fixed.rel.nugget*sigma2
-	}
+  if(length(object$mesh)>0) {
+    if(type=="marginal") warning("only joint predictions are available when using the SPDE approximation.")
+    beta <- object$estimate[1:p]
+    sigma2 <- exp(object$estimate[p+1])
+    phi <- exp(object$estimate[p+2])
+    sigma2.t <- 4*pi*sigma2/(phi^2)
+    mu <- as.numeric(object$D%*%beta)
+    mu.pred <- as.numeric(predictors%*%beta)
+    S.samples <- Laplace.sampling.SPDE(mu,sigma2,phi,kappa=object$kappa,
+                                       y=object$y,units.m=object$units.m,coords=object$coords,
+                                       mesh=object$mesh,control.mcmc=control.mcmc,messages=messages,
+                                       plot.correlogram=plot.correlogram,poisson.llik=FALSE)
+    A.pred <- INLA::inla.spde.make.A(object$mesh,loc=as.matrix(grid.pred))
+    n.samples <- nrow(S.samples$samples)
+    eta.sim <- sapply(1:n.samples,function(i)
+      as.numeric(mu.pred+A.pred%*%S.samples$samples[i,]))
 
 
-	U <- dist(coords)
-	U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-	Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	         cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
-	Sigma.inv <- solve(Sigma)
-      C <- sigma2*matern(U.pred.coords,phi,kappa)
-      A <- C%*%Sigma.inv
+  } else if(length(dim(object$knots)) > 0) {
+    beta <- object$estimate[1:p]
+    sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
+    rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
+    knots <- object$knots
+    U.k <- as.matrix(pdist(coords,knots))
+    K <- matern.kernel(U.k,rho,kappa)
+    mu.pred <- as.numeric(predictors%*%beta)
+    object$mu <- object$D%*%beta
+    Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
+                                     object$y,object$units.m,control.mcmc,
+                                     plot.correlogram=plot.correlogram,
+                                     messages=messages,poisson.llik=FALSE)
+    Z.sim <- Z.sim.res$samples
+    U.k.pred <- as.matrix(pdist(grid.pred,knots))
+    K.pred <- matern.kernel(U.k.pred,rho,kappa)
 
-	mu.pred <- as.numeric(predictors%*%beta)
-	object$mu <- object$D%*%beta
-      if(length(object$ID.coords)>0) {
-    	   S.sim.res <- Laplace.sampling(object$mu,Sigma,
-	                object$y,object$units.m,control.mcmc,
-	                object$ID.coords,
-	                plot.correlogram=plot.correlogram,messages=messages)
-	   S.sim <- S.sim.res$samples
-         mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%S.sim[i,])
-      } else {
-	   S.sim.res <- Laplace.sampling(object$mu,Sigma,
-	                object$y,object$units.m,control.mcmc,
-	                plot.correlogram=plot.correlogram,messages=messages)
-         S.sim <- S.sim.res$samples
-         mu.cond <- sapply(1:(dim(S.sim)[1]),
-                    function(i) mu.pred+A%*%(S.sim[i,]-object$mu))
-      }
+    eta.sim <- sapply(1:(dim(Z.sim)[1]),
+                      function(i) mu.pred+K.pred%*%Z.sim[i,])
+  } else {
+    beta <- object$estimate[1:p]
+    sigma2 <- exp(object$estimate[p+1])
+    phi <- exp(object$estimate[p+2])
 
+    if(length(object$fixed.rel.nugget)==0){
+      tau2 <- sigma2*exp(object$estimate[p+3])
+    } else {
+      tau2 <- object$fixed.rel.nugget*sigma2
+    }
+
+
+    U <- dist(coords)
+    U.pred.coords <- as.matrix(pdist(grid.pred,coords))
+    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
+    Sigma.inv <- solve(Sigma)
+    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    A <- C%*%Sigma.inv
+
+    mu.pred <- as.numeric(predictors%*%beta)
+    object$mu <- object$D%*%beta
+    if(length(object$ID.coords)>0) {
+      S.sim.res <- Laplace.sampling(object$mu,Sigma,
+                                    object$y,object$units.m,control.mcmc,
+                                    object$ID.coords,
+                                    plot.correlogram=plot.correlogram,messages=messages)
+      S.sim <- S.sim.res$samples
+      mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%S.sim[i,])
+    } else {
+      S.sim.res <- Laplace.sampling(object$mu,Sigma,
+                                    object$y,object$units.m,control.mcmc,
+                                    plot.correlogram=plot.correlogram,messages=messages)
+      S.sim <- S.sim.res$samples
+      mu.cond <- sapply(1:(dim(S.sim)[1]),
+                        function(i) mu.pred+A%*%(S.sim[i,]-object$mu))
+    }
+
+    if(type=="marginal") {
+      if(messages) cat("Type of predictions:",type,"\n")
+      sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
+    } else if (type=="joint") {
+      if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
+      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+                                    cov.pars=c(sigma2,phi),kappa=kappa)$varcov
+      Sigma.cond <- Sigma.pred - A%*%t(C)
+      sd.cond <- sqrt(diag(Sigma.cond))
+    }
+
+    if((length(quantiles) > 0) |
+       (any(scale.predictions=="prevalence")) |
+       (any(scale.predictions=="odds")) |
+       (length(scale.thresholds)>0)) {
       if(type=="marginal") {
-    	   if(messages) cat("Type of predictions:",type,"\n")
-    	   sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
-      } else if (type=="joint") {
-    	   if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
-    	   Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
-	                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-	   Sigma.cond <- Sigma.pred - A%*%t(C)
-	   sd.cond <- sqrt(diag(Sigma.cond))
+        eta.sim <- sapply(1:(dim(S.sim)[1]),
+                          function(i) rnorm(n.pred,mu.cond[,i],sd.cond))
+      } else if(type=="joint") {
+        Sigma.cond.sroot <- t(chol(Sigma.cond))
+        eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) mu.cond[,i]+
+                            Sigma.cond.sroot%*%rnorm(n.pred))
       }
+    }
 
-      if((length(quantiles) > 0) |
-         (any(scale.predictions=="prevalence")) |
-         (any(scale.predictions=="odds")) |
-         (length(scale.thresholds)>0)) {
-         if(type=="marginal") {
-            eta.sim <- sapply(1:(dim(S.sim)[1]),
-                       function(i) rnorm(n.pred,mu.cond[,i],sd.cond))
-         } else if(type=="joint") {
-            Sigma.cond.sroot <- t(chol(Sigma.cond))
-            eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) mu.cond[,i]+
-            Sigma.cond.sroot%*%rnorm(n.pred))
-         }
-      }
-
-      if(any(scale.predictions=="logit")) {
-    	   if(messages) cat("Spatial predictions: logit \n")
-         out$logit$predictions <- apply(mu.cond,1,mean)
-         if(standard.errors) {
-            out$logit$standard.errors <- sqrt(sd.cond^2+diag(A%*%cov(S.sim)%*%t(A)))
-         }
-         if(length(quantiles) > 0) {
-            out$logit$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
-         }
-
-         if(length(thresholds) > 0 && scale.thresholds=="logit") {
-       	    out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-       	    colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-            for(j in 1:length(thresholds)) {
-               out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
-            }
-         }
-      }
-
-      if(any(scale.predictions=="odds")) {
-         if(messages) cat("Spatial predictions: odds \n")
-         odds.sim <- exp(eta.sim)
-         out$odds$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
-         if(standard.errors) {
-            out$odds$standard.errors <- apply(odds.sim,1,sd)
-         }
-
-         if(length(quantiles) > 0) {
-            out$odds$quantiles <- t(apply(odds.sim,1,function(r) quantile(r,quantiles)))
-         }
-
-         if(length(thresholds) > 0 && scale.thresholds=="odds") {
-       	    out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-       	    colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-            for(j in 1:length(thresholds)) {
-               out$exceedance.prob[,j] <- apply(odds.sim,1,function(r) mean(r > thresholds[j]))
-            }
-         }
-      }
-   }
-
-   appr <- length(object$knots)>0 | length(object$mesh)>0
-
-   if(any(scale.predictions=="logit") & appr) {
+    if(any(scale.predictions=="logit")) {
       if(messages) cat("Spatial predictions: logit \n")
- 	out$logit$predictions <- apply(eta.sim,1,mean)
+      out$logit$predictions <- apply(mu.cond,1,mean)
       if(standard.errors) {
-         out$logit$standard.errors <- apply(eta.sim,1,sd)
+        out$logit$standard.errors <- sqrt(sd.cond^2+diag(A%*%cov(S.sim)%*%t(A)))
       }
       if(length(quantiles) > 0) {
-         out$logit$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
+        out$logit$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
       }
 
       if(length(thresholds) > 0 && scale.thresholds=="logit") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-         colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-         for(j in 1:length(thresholds)) {
-            out$exceedance.prob[,j] <- apply(eta.sim,1,
-                                       function(r) mean(r > thresholds[j]))
-         }
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
+        }
       }
-   }
+    }
 
-   if(any(scale.predictions=="odds") & appr) {
+    if(any(scale.predictions=="odds")) {
       if(messages) cat("Spatial predictions: odds \n")
       odds.sim <- exp(eta.sim)
-      out$odds$predictions <- apply(odds.sim,1,mean)
+      out$odds$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
       if(standard.errors) {
-         out$odds$standard.errors <- apply(odds.sim,1,sd)
+        out$odds$standard.errors <- apply(odds.sim,1,sd)
       }
 
       if(length(quantiles) > 0) {
-         out$odds$quantiles <- t(apply(odds.sim,1,function(r) quantile(r,quantiles)))
+        out$odds$quantiles <- t(apply(odds.sim,1,function(r) quantile(r,quantiles)))
       }
 
       if(length(thresholds) > 0 && scale.thresholds=="odds") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-         colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-         for(j in 1:length(thresholds)) {
-            out$exceedance.prob[,j] <- apply(odds.sim,1,
-                                       function(r) mean(r > thresholds[j]))
-         }
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(odds.sim,1,function(r) mean(r > thresholds[j]))
+        }
       }
-   }
+    }
+  }
 
-   if(any(scale.predictions=="prevalence")) {
-      if(messages) cat("Spatial predictions: prevalence \n")
-      prev.sim <- exp(eta.sim)/(1+exp(eta.sim))
-      out$prevalence$predictions <- apply(prev.sim,1,mean)
-      if(standard.errors) {
-          out$prevalence$standard.errors <- apply(prev.sim,1,sd)
+  appr <- length(object$knots)>0 | length(object$mesh)>0
+
+  if(any(scale.predictions=="logit") & appr) {
+    if(messages) cat("Spatial predictions: logit \n")
+    out$logit$predictions <- apply(eta.sim,1,mean)
+    if(standard.errors) {
+      out$logit$standard.errors <- apply(eta.sim,1,sd)
+    }
+    if(length(quantiles) > 0) {
+      out$logit$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
+    }
+
+    if(length(thresholds) > 0 && scale.thresholds=="logit") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+      for(j in 1:length(thresholds)) {
+        out$exceedance.prob[,j] <- apply(eta.sim,1,
+                                         function(r) mean(r > thresholds[j]))
       }
+    }
+  }
 
-      if(length(quantiles) > 0) {
-         out$prevalence$quantiles <- t(apply(prev.sim,1,function(r) quantile(r,quantiles)))
+  if(any(scale.predictions=="odds") & appr) {
+    if(messages) cat("Spatial predictions: odds \n")
+    odds.sim <- exp(eta.sim)
+    out$odds$predictions <- apply(odds.sim,1,mean)
+    if(standard.errors) {
+      out$odds$standard.errors <- apply(odds.sim,1,sd)
+    }
+
+    if(length(quantiles) > 0) {
+      out$odds$quantiles <- t(apply(odds.sim,1,function(r) quantile(r,quantiles)))
+    }
+
+    if(length(thresholds) > 0 && scale.thresholds=="odds") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+      for(j in 1:length(thresholds)) {
+        out$exceedance.prob[,j] <- apply(odds.sim,1,
+                                         function(r) mean(r > thresholds[j]))
       }
+    }
+  }
 
-      if(length(thresholds) > 0 && scale.thresholds=="prevalence") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-      	 colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-         for(j in 1:length(thresholds)) {
-            out$exceedance.prob[,j] <- apply(prev.sim,1,function(r) mean(r > thresholds[j]))
-         }
+  if(any(scale.predictions=="prevalence")) {
+    if(messages) cat("Spatial predictions: prevalence \n")
+    prev.sim <- exp(eta.sim)/(1+exp(eta.sim))
+    out$prevalence$predictions <- apply(prev.sim,1,mean)
+    if(standard.errors) {
+      out$prevalence$standard.errors <- apply(prev.sim,1,sd)
+    }
+
+    if(length(quantiles) > 0) {
+      out$prevalence$quantiles <- t(apply(prev.sim,1,function(r) quantile(r,quantiles)))
+    }
+
+    if(length(thresholds) > 0 && scale.thresholds=="prevalence") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+      for(j in 1:length(thresholds)) {
+        out$exceedance.prob[,j] <- apply(prev.sim,1,function(r) mean(r > thresholds[j]))
       }
-   }
+    }
+  }
 
-   if(any(scale.predictions=="odds") |
-      any(scale.predictions=="prevalence") | appr) {
-      out$samples <- eta.sim
-   }
-   out$grid <- grid.pred
-   class(out) <- "pred.PrevMap"
-   out
+  if(any(scale.predictions=="odds") |
+     any(scale.predictions=="prevalence") | appr) {
+    out$samples <- eta.sim
+  }
+  out$grid <- grid.pred
+  class(out) <- "pred.PrevMap"
+  out
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -2548,1248 +2614,1276 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,
 ##' @importFrom maxLik maxBFGS
 ##' @importFrom pdist pdist
 geo.MCML.lr <- function(formula,units.m,coords,data,knots,
-                                                   par0,control.mcmc,kappa,
-                                                   start.cov.pars,
-                                                   method,plot.correlogram,messages,
-                                                   poisson.llik) {
+                        par0,control.mcmc,kappa,
+                        start.cov.pars,
+                        method,plot.correlogram,messages,
+                        poisson.llik) {
 
-    knots <- as.matrix(knots)
-    start.cov.pars <- as.numeric(start.cov.pars)
-    if(length(start.cov.pars)!=1) stop("wrong values for start.cov.pars")
-    kappa <- as.numeric(kappa)
-    coords <- as.matrix(model.frame(coords,data))
+  knots <- as.matrix(knots)
+  start.cov.pars <- as.numeric(start.cov.pars)
+  if(length(start.cov.pars)!=1) stop("wrong values for start.cov.pars")
+  kappa <- as.numeric(kappa)
+  coords <- as.matrix(model.frame(coords,data))
 
-    if(any(is.na(data))) stop("missing values are not accepted")
-    if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-    if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
+  if(any(is.na(data))) stop("missing values are not accepted")
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
 
-    der.rho <- function(u,rho,kappa) {
-        u <- u+10e-16
-        if(kappa==2) {
-           out <- ((2^(7/2)*u-4*rho)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^3)
-        } else {
-           out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-5/2)*u^(kappa/2-1/2)*
-                     (2*sqrt(kappa)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*
-                     u+2*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*
-                     u-besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho-
-                     besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho))/
-                     (sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
-        }
-        out
-     }
-
-    der2.rho <- function(u,rho,kappa) {
-        u <- u+10e-16
-        if(kappa==2) {
-          	out <- (8*(4*u^2-2^(5/2)*rho*u+rho^2)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^5)
-        } else {
-            out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-9/2)*u^(kappa/2-1/2)*
-                      (4*kappa*besselK((2*sqrt(kappa)*u)/rho,(kappa+3)/2)*u^2+
-                      8*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*u^2+
-                      4*besselK((2*sqrt(kappa)*u)/rho,(kappa-5)/2)*kappa*u^2-
-                      4*kappa^(3/2)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-12*sqrt(kappa)*
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-4*
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*kappa^(3/2)*rho*u-
-                      12*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*rho*u+
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa^2*rho^2+
-                      4*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho^2+
-                      3*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho^2))/
-                     (2*sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
-        }
-        out
-    }
-    mf <- model.frame(formula,data=data)
-	y <- as.numeric(model.response(mf))
-	n <- length(y)
-    if(poisson.llik && length(units.m)==0) {
-      units.m <- rep(1,n)
+  der.rho <- function(u,rho,kappa) {
+    u <- u+10e-16
+    if(kappa==2) {
+      out <- ((2^(7/2)*u-4*rho)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^3)
     } else {
-      units.m <-  as.numeric(model.frame(units.m,data)[,1])
+      out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-5/2)*u^(kappa/2-1/2)*
+                (2*sqrt(kappa)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*
+                   u+2*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*
+                   u-besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho-
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho))/
+        (sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
     }
-    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+    out
+  }
 
-	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-	p <- ncol(D)
-	if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
-	beta0 <- par0[1:p]
-	mu0 <- as.numeric(D%*%beta0)
+  der2.rho <- function(u,rho,kappa) {
+    u <- u+10e-16
+    if(kappa==2) {
+      out <- (8*(4*u^2-2^(5/2)*rho*u+rho^2)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^5)
+    } else {
+      out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-9/2)*u^(kappa/2-1/2)*
+                (4*kappa*besselK((2*sqrt(kappa)*u)/rho,(kappa+3)/2)*u^2+
+                   8*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*u^2+
+                   4*besselK((2*sqrt(kappa)*u)/rho,(kappa-5)/2)*kappa*u^2-
+                   4*kappa^(3/2)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-12*sqrt(kappa)*
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-4*
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*kappa^(3/2)*rho*u-
+                   12*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*rho*u+
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa^2*rho^2+
+                   4*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho^2+
+                   3*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho^2))/
+        (2*sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
+    }
+    out
+  }
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  if(poisson.llik && length(units.m)==0) {
+    units.m <- rep(1,n)
+  } else {
+    units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  }
+  if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
 
-	sigma2.0 <- par0[p+1]
-	rho0 <- par0[p+2]*2*sqrt(kappa)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
+  beta0 <- par0[1:p]
+  mu0 <- as.numeric(D%*%beta0)
 
-	U <- as.matrix(pdist(coords,knots))
-	N <- nrow(knots)
-	K0 <- matern.kernel(U,rho0,kappa)
-      const.sigma2.0 <- mean(apply(K0,1,function(r) sqrt(sum(r^2))))
-      sigma2.0 <- sigma2.0/const.sigma2.0
+  sigma2.0 <- par0[p+1]
+  rho0 <- par0[p+2]*2*sqrt(kappa)
 
-      n.sim <- control.mcmc$n.sim
-	Z.sim.res <- Laplace.sampling.lr(mu0,sigma2.0,K0,y,units.m,control.mcmc,
-	              plot.correlogram=plot.correlogram,
-                  messages=messages,poisson.llik=poisson.llik)
-      Z.sim <- Z.sim.res$samples
-	log.integrand <- function(Z,val,K) {
-         S <- as.numeric(K%*%Z)
-         eta <- as.numeric(val$mu+S)
+  U <- as.matrix(pdist(coords,knots))
+  N <- nrow(knots)
+  K0 <- matern.kernel(U,rho0,kappa)
+  const.sigma2.0 <- mean(apply(K0,1,function(r) sqrt(sum(r^2))))
+  sigma2.0 <- sigma2.0/const.sigma2.0
 
-         if(poisson.llik) {
-            llik <- sum(y*eta-units.m*exp(eta))
-         } else {
-            llik <- sum(y*eta-units.m*log(1+exp(eta)))
-         }
+  n.sim <- control.mcmc$n.sim
+  Z.sim.res <- Laplace.sampling.lr(mu0,sigma2.0,K0,y,units.m,control.mcmc,
+                                   plot.correlogram=plot.correlogram,
+                                   messages=messages,poisson.llik=poisson.llik)
+  Z.sim <- Z.sim.res$samples
+  log.integrand <- function(Z,val,K) {
+    S <- as.numeric(K%*%Z)
+    eta <- as.numeric(val$mu+S)
 
-         -0.5*(N*log(val$sigma2)+sum(Z^2)/val$sigma2)+
-         llik
+    if(poisson.llik) {
+      llik <- sum(y*eta-units.m*exp(eta))
+    } else {
+      llik <- sum(y*eta-units.m*log(1+exp(eta)))
+    }
+
+    -0.5*(N*log(val$sigma2)+sum(Z^2)/val$sigma2)+
+      llik
+  }
+
+  compute.log.f <- function(sub.par,K) {
+    beta <- sub.par[1:p];
+    val <- list()
+    val$sigma2 <- exp(sub.par[p+1])
+    val$mu <- as.numeric(D%*%beta)
+    sapply(1:(dim(Z.sim)[1]),function(i) log.integrand(Z.sim[i,],val,K))
+  }
+
+  log.f.tilde <- compute.log.f(c(beta0,log(sigma2.0)),K0)
+
+  MC.log.lik <- function(par) {
+    rho <- exp(par[p+2])
+    sub.par <- par[-(p+2)]
+    K <- matern.kernel(U,rho,kappa)
+    log(mean(exp(compute.log.f(sub.par,K)-log.f.tilde)))
+  }
+
+  grad.MC.log.lik <- function(par) {
+    beta <- par[1:p]; mu <- D%*%beta
+    sigma2 <- exp(par[p+1])
+    rho <- exp(par[p+2])
+
+    K <- matern.kernel(U,rho,kappa)
+
+    exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
+    L.m <- sum(exp.fact)
+    exp.fact <- exp.fact/L.m
+
+    D.rho <- der.rho(U,rho,kappa)
+
+    gradient.Z <- function(Z) {
+      S <- as.numeric(K%*%Z)
+      eta <- as.numeric(mu+S)
+      if(poisson.llik) {
+        h <- units.m*exp(eta)
+      } else {
+        h <- units.m*exp(eta)/(1+exp(eta))
+      }
+      grad.beta <- as.numeric(t(D)%*%(y-h))
+      S.rho <- as.numeric(D.rho%*%Z)
+
+      grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2
+
+      grad.log.rho <- (t(S.rho)%*%(y-h))*rho
+
+      c(grad.beta,grad.log.sigma2,grad.log.rho)
+    }
+    out <- rep(0,length(par))
+    for(i in 1:(dim(Z.sim)[1])) {
+      out <- out + exp.fact[i]*gradient.Z(Z.sim[i,])
+    }
+    out
+  }
+
+  hess.MC.log.lik <- function(par) {
+    beta <- par[1:p]; mu <- D%*%beta
+    sigma2 <- exp(par[p+1])
+    rho <- exp(par[p+2])
+
+    K <- matern.kernel(U,rho,kappa)
+
+    exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
+    L.m <- sum(exp.fact)
+    exp.fact <- exp.fact/L.m
+
+    D1.rho <- der.rho(U,rho,kappa)
+    D2.rho <- der2.rho(U,rho,kappa)
+    H <- matrix(0,nrow=length(par),ncol=length(par))
+
+    hessian.Z <- function(Z,ef) {
+      S <- as.numeric(K%*%Z)
+      eta <- as.numeric(mu+S)
+
+      if(poisson.llik) {
+        h <- units.m*exp(eta)
+      } else {
+        h <- units.m*exp(eta)/(1+exp(eta))
       }
 
-      compute.log.f <- function(sub.par,K) {
-         beta <- sub.par[1:p];
-         val <- list()
-         val$sigma2 <- exp(sub.par[p+1])
-         val$mu <- as.numeric(D%*%beta)
-         sapply(1:(dim(Z.sim)[1]),function(i) log.integrand(Z.sim[i,],val,K))
+      grad.beta <- as.numeric(t(D)%*%(y-h))
+      S1.rho <- as.numeric(D1.rho%*%Z)
+      S2.rho <- as.numeric(D2.rho%*%Z)
+
+      grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2
+
+      grad.log.rho <- (t(S1.rho)%*%(y-h))*rho
+
+      g <- c(grad.beta,grad.log.sigma2,grad.log.rho)
+
+      if(poisson.llik) {
+        h1 <- units.m*exp(eta)
+      } else {
+        h1 <- units.m*exp(eta)/((1+exp(eta))^2)
       }
 
-      log.f.tilde <- compute.log.f(c(beta0,log(sigma2.0)),K0)
-
-      MC.log.lik <- function(par) {
-         rho <- exp(par[p+2])
-         sub.par <- par[-(p+2)]
-         K <- matern.kernel(U,rho,kappa)
-         log(mean(exp(compute.log.f(sub.par,K)-log.f.tilde)))
-      }
-
-      grad.MC.log.lik <- function(par) {
-         beta <- par[1:p]; mu <- D%*%beta
-         sigma2 <- exp(par[p+1])
-         rho <- exp(par[p+2])
-
-         K <- matern.kernel(U,rho,kappa)
-
-         exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
-         L.m <- sum(exp.fact)
-         exp.fact <- exp.fact/L.m
-
-         D.rho <- der.rho(U,rho,kappa)
-
-         gradient.Z <- function(Z) {
-            S <- as.numeric(K%*%Z)
-            eta <- as.numeric(mu+S)
-            if(poisson.llik) {
-               h <- units.m*exp(eta)
-            } else {
-               h <- units.m*exp(eta)/(1+exp(eta))
-            }
-            grad.beta <- as.numeric(t(D)%*%(y-h))
-            S.rho <- as.numeric(D.rho%*%Z)
-
-            grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2
-
-            grad.log.rho <- (t(S.rho)%*%(y-h))*rho
-
-            c(grad.beta,grad.log.sigma2,grad.log.rho)
-         }
-         out <- rep(0,length(par))
-         for(i in 1:(dim(Z.sim)[1])) {
-   	        out <- out + exp.fact[i]*gradient.Z(Z.sim[i,])
-         }
-         out
-      }
-
-      hess.MC.log.lik <- function(par) {
-        beta <- par[1:p]; mu <- D%*%beta
-        sigma2 <- exp(par[p+1])
-        rho <- exp(par[p+2])
-
-        K <- matern.kernel(U,rho,kappa)
-
-        exp.fact <- exp(compute.log.f(par[-(p+2)],K)-log.f.tilde)
-        L.m <- sum(exp.fact)
-        exp.fact <- exp.fact/L.m
-
-        D1.rho <- der.rho(U,rho,kappa)
-        D2.rho <- der2.rho(U,rho,kappa)
-        H <- matrix(0,nrow=length(par),ncol=length(par))
-
-        hessian.Z <- function(Z,ef) {
-           S <- as.numeric(K%*%Z)
-           eta <- as.numeric(mu+S)
-
-           if(poisson.llik) {
-              h <- units.m*exp(eta)
-           } else {
-              h <- units.m*exp(eta)/(1+exp(eta))
-           }
-
-           grad.beta <- as.numeric(t(D)%*%(y-h))
-           S1.rho <- as.numeric(D1.rho%*%Z)
-           S2.rho <- as.numeric(D2.rho%*%Z)
-
-           grad.log.sigma2 <- -0.5*(N/sigma2-sum(Z^2)/(sigma2^2))*sigma2
-
-           grad.log.rho <- (t(S1.rho)%*%(y-h))*rho
-
-           g <- c(grad.beta,grad.log.sigma2,grad.log.rho)
-
-           if(poisson.llik) {
-              h1 <- units.m*exp(eta)
-           } else {
-              h1 <- units.m*exp(eta)/((1+exp(eta))^2)
-           }
-
-           grad2.log.beta.beta <- -t(D)%*%(D*h1)
-           grad2.log.beta.lrho <- -t(D)%*%(as.vector(D1.rho%*%Z)*h1)*rho
+      grad2.log.beta.beta <- -t(D)%*%(D*h1)
+      grad2.log.beta.lrho <- -t(D)%*%(as.vector(D1.rho%*%Z)*h1)*rho
 
 
-           grad2.log.lsigma2.lsigma2 <- -0.5*(-N/(sigma2^2)+2*sum(Z^2)/(sigma2^3))*sigma2^2+
-                                                          grad.log.sigma2
+      grad2.log.lsigma2.lsigma2 <- -0.5*(-N/(sigma2^2)+2*sum(Z^2)/(sigma2^3))*sigma2^2+
+        grad.log.sigma2
 
-           grad2.log.lrho.lrho <- (t(S2.rho)%*%(y-h)-t((S1.rho)^2)%*%h1)*rho^2+
-                                             grad.log.rho
+      grad2.log.lrho.lrho <- (t(S2.rho)%*%(y-h)-t((S1.rho)^2)%*%h1)*rho^2+
+        grad.log.rho
 
-           H[1:p,1:p] <-  grad2.log.beta.beta
-           H[1:p,p+2] <- H[p+2,1:p]<- grad2.log.beta.lrho
-   	     H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
-   	     H[p+2,p+2] <- grad2.log.lrho.lrho
+      H[1:p,1:p] <-  grad2.log.beta.beta
+      H[1:p,p+2] <- H[p+2,1:p]<- grad2.log.beta.lrho
+      H[p+1,p+1] <-  grad2.log.lsigma2.lsigma2
+      H[p+2,p+2] <- grad2.log.lrho.lrho
 
 
-   	     out <- list()
-   	     out$mat1<- ef*(g%*%t(g)+H)
-   	     out$g <- g*ef
-   	     out
-        }
+      out <- list()
+      out$mat1<- ef*(g%*%t(g)+H)
+      out$g <- g*ef
+      out
+    }
 
-        a <- rep(0,length(par))
-        A <- matrix(0,length(par),length(par))
-        for(i in 1:(dim(Z.sim)[1])) {
-   	       out.i <- hessian.Z(Z.sim[i,],exp.fact[i])
-   	       a <- a+out.i$g
-           A <- A+out.i$mat1
-        }
-        (A-a%*%t(a))
-      }
+    a <- rep(0,length(par))
+    A <- matrix(0,length(par),length(par))
+    for(i in 1:(dim(Z.sim)[1])) {
+      out.i <- hessian.Z(Z.sim[i,],exp.fact[i])
+      a <- a+out.i$g
+      A <- A+out.i$mat1
+    }
+    (A-a%*%t(a))
+  }
 
-      if(messages) cat("Estimation: \n")
-      start.par <- rep(NA,p+2)
-      start.par[1:p] <- par0[1:p]
-      start.par[p+1] <- log(sigma2.0)
-      start.par[p+2] <- log(2*sqrt(kappa)*start.cov.pars)
+  if(messages) cat("Estimation: \n")
+  start.par <- rep(NA,p+2)
+  start.par[1:p] <- par0[1:p]
+  start.par[p+1] <- log(sigma2.0)
+  start.par[p+2] <- log(2*sqrt(kappa)*start.cov.pars)
 
-      estim <- list()
-      if(method=="BFGS") {
-         estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
-                           start.par,print.level=1*messages)
-         estim$estimate <- estimBFGS$estimate
-         estim$covariance <- matrix(NA,nrow=p+2,ncol=p+2)
-         hessian <- estimBFGS$hessian
-         estim$log.lik <- estimBFGS$maximum
-      }
+  estim <- list()
+  if(method=="BFGS") {
+    estimBFGS <- maxBFGS(MC.log.lik,grad.MC.log.lik,hess.MC.log.lik,
+                         start.par,print.level=1*messages)
+    estim$estimate <- estimBFGS$estimate
+    estim$covariance <- matrix(NA,nrow=p+2,ncol=p+2)
+    hessian <- estimBFGS$hessian
+    estim$log.lik <- estimBFGS$maximum
+  }
 
-      if(method=="nlminb") {
-      	estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
-      	            function(x) -grad.MC.log.lik(x),
-      	            function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
-      	estim$estimate <- estimNLMINB$par
-      	estim$covariance <- matrix(NA,nrow=p+2,ncol=p+2)
-      	hessian <- hess.MC.log.lik(estimNLMINB$par)
-      	estim$log.lik <- -estimNLMINB$objective
-      }
-      K.hat <- matern.kernel(U,exp(estim$estimate[p+2]),kappa)
-      const.sigma2 <- mean(apply(K.hat,1,function(r) sqrt(sum(r^2))))
-      const.sigma2.grad <- mean(apply(U,1,function(r) {
-      	                          rho <- exp(estim$estimate[p+2])
-		                          k <- matern.kernel(r,rho,kappa)
-		                          k.grad <- der.rho(r,rho,kappa)
-		                          den <- sqrt(sum(k^2))
-		                          num <- sum(k*k.grad)
-	                              num/den
-	                              }))
-      estim$estimate[p+1] <- estim$estimate[p+1]+log(const.sigma2)
-      estim$estimate[p+2] <- estim$estimate[p+2]-log(2*sqrt(kappa))
-      J <- diag(1,p+2)
-      J[p+1,p+2] <- exp(estim$estimate[p+2])*const.sigma2.grad/const.sigma2
-      hessian <- J%*%hessian%*%t(J)
-      names(estim$estimate)[1:p] <- colnames(D)
-      names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
-      estim$covariance <- solve(-J%*%hessian%*%t(J))
-      colnames(estim$covariance) <- rownames(estim$covariance) <-
-      names(estim$estimate)
-      estim$y <- y
-      estim$units.m <- units.m
-      estim$D <- D
-      estim$coords <- coords
-      estim$method <- method
-      estim$kappa <- kappa
-      estim$knots <- knots
-      estim$const.sigma2 <- const.sigma2
-      estim$h <- Z.sim.res$h
-      estim$samples <- Z.sim
-      class(estim) <- "PrevMap"
-      return(estim)
+  if(method=="nlminb") {
+    estimNLMINB <- nlminb(start.par,function(x) -MC.log.lik(x),
+                          function(x) -grad.MC.log.lik(x),
+                          function(x) -hess.MC.log.lik(x),control=list(trace=1*messages))
+    estim$estimate <- estimNLMINB$par
+    estim$covariance <- matrix(NA,nrow=p+2,ncol=p+2)
+    hessian <- hess.MC.log.lik(estimNLMINB$par)
+    estim$log.lik <- -estimNLMINB$objective
+  }
+  K.hat <- matern.kernel(U,exp(estim$estimate[p+2]),kappa)
+  const.sigma2 <- mean(apply(K.hat,1,function(r) sqrt(sum(r^2))))
+  const.sigma2.grad <- mean(apply(U,1,function(r) {
+    rho <- exp(estim$estimate[p+2])
+    k <- matern.kernel(r,rho,kappa)
+    k.grad <- der.rho(r,rho,kappa)
+    den <- sqrt(sum(k^2))
+    num <- sum(k*k.grad)
+    num/den
+  }))
+  estim$estimate[p+1] <- estim$estimate[p+1]+log(const.sigma2)
+  estim$estimate[p+2] <- estim$estimate[p+2]-log(2*sqrt(kappa))
+  J <- diag(1,p+2)
+  J[p+1,p+2] <- exp(estim$estimate[p+2])*const.sigma2.grad/const.sigma2
+  hessian <- J%*%hessian%*%t(J)
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
+  estim$covariance <- solve(-J%*%hessian%*%t(J))
+  colnames(estim$covariance) <- rownames(estim$covariance) <-
+    names(estim$estimate)
+  estim$y <- y
+  estim$units.m <- units.m
+  estim$D <- D
+  estim$coords <- coords
+  estim$method <- method
+  estim$kappa <- kappa
+  estim$knots <- knots
+  estim$const.sigma2 <- const.sigma2
+  estim$h <- Z.sim.res$h
+  estim$samples <- Z.sim
+  class(estim) <- "PrevMap"
+  return(estim)
 }
 
+der.phi <- function(u,phi,kappa) {
+  u <- u+10e-16
+  if(kappa==0.5) {
+    out <- (u*exp(-u/phi))/phi^2
+  } else {
+    out <- ((besselK(u/phi,kappa+1)+besselK(u/phi,kappa-1))*
+              phi^(-kappa-2)*u^(kappa+1))/(2^kappa*gamma(kappa))-
+      (kappa*2^(1-kappa)*besselK(u/phi,kappa)*phi^(-kappa-1)*
+         u^kappa)/gamma(kappa)
+  }
+  out
+}
+
+der2.phi <- function(u,phi,kappa) {
+  u <- u+10e-16
+  if(kappa==0.5) {
+    out <- (u*(u-2*phi)*exp(-u/phi))/phi^4
+  } else {
+    bk <- besselK(u/phi,kappa)
+    bk.p1 <- besselK(u/phi,kappa+1)
+    bk.p2 <- besselK(u/phi,kappa+2)
+    bk.m1 <- besselK(u/phi,kappa-1)
+    bk.m2 <- besselK(u/phi,kappa-2)
+    out <- (2^(-kappa-1)*phi^(-kappa-4)*u^kappa*(bk.p2*u^2+2*bk*u^2+
+                                                   bk.m2*u^2-4*kappa*bk.p1*phi*u-4*
+                                                   bk.p1*phi*u-4*kappa*bk.m1*phi*u-4*bk.m1*phi*u+
+                                                   4*kappa^2*bk*phi^2+4*kappa*bk*phi^2))/(gamma(kappa))
+  }
+  out
+}
+
+matern.grad.phi <- function(U,phi,kappa) {
+  n <- attr(U,"Size")
+  grad.phi.mat <- matrix(NA,nrow=n,ncol=n)
+  ind <- lower.tri(grad.phi.mat)
+  grad.phi <- der.phi(as.numeric(U),phi,kappa)
+  grad.phi.mat[ind] <-  grad.phi
+  grad.phi.mat <- t(grad.phi.mat)
+  grad.phi.mat[ind] <-  grad.phi
+  diag(grad.phi.mat) <- rep(der.phi(0,phi,kappa),n)
+  grad.phi.mat
+}
+
+gn1.grad.psi <- function(U.t,psi) {
+  n <- attr(U.t,"Size")
+  grad.psi.mat <- matrix(NA,nrow=n,ncol=n)
+  ind <- lower.tri(grad.psi.mat)
+  u <- as.numeric(U.t)
+  grad.psi <- u/((psi^2)*(u/psi+1)^2)
+  grad.psi.mat[ind] <-  grad.psi
+  grad.psi.mat <- t(grad.psi.mat)
+  grad.psi.mat[ind] <-  grad.psi
+  diag(grad.psi.mat) <- 0
+  grad.psi.mat
+}
+
+matern.hessian.phi <- function(U,phi,kappa) {
+  n <- attr(U,"Size")
+  hess.phi.mat <- matrix(NA,nrow=n,ncol=n)
+  ind <- lower.tri(hess.phi.mat)
+  hess.phi <- der2.phi(as.numeric(U),phi,kappa)
+  hess.phi.mat[ind] <-  hess.phi
+  hess.phi.mat <- t(hess.phi.mat)
+  hess.phi.mat[ind] <-  hess.phi
+  diag(hess.phi.mat) <- rep(der2.phi(0,phi,kappa),n)
+  hess.phi.mat
+}
+
+gn1.hessian.psi <- function(U.t,psi) {
+  n <- attr(U.t,"Size")
+  hess.psi.mat <- matrix(NA,nrow=n,ncol=n)
+  ind <- lower.tri(hess.psi.mat)
+  u <- as.numeric(U.t)
+  hess.psi <- -(2*u)/(u+psi)^3
+  hess.psi.mat[ind] <-  hess.psi
+  hess.psi.mat <- t(hess.psi.mat)
+  hess.psi.mat[ind] <-  hess.psi
+  diag(hess.psi.mat) <- 0
+  hess.psi.mat
+}
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom geoR varcov.spatial
 ##' @importFrom maxLik maxBFGS
 geo.linear.MLE <- function(formula,coords,data,ID.coords,
-                  kappa,fixed.rel.nugget=NULL,start.cov.pars,
-                  method="BFGS",messages=TRUE,profile.llik) {
-   start.cov.pars <- as.numeric(start.cov.pars)
-   if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
-   kappa <- as.numeric(kappa)
-   if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   if(length(ID.coords)>0) {
-      m <- length(y)
-   } else {
-      n <- length(y)
-   }
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   coords <- as.matrix(model.frame(coords,data))
-   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
-   p <- ncol(D)
-   if(length(fixed.rel.nugget)>0){
-      if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length of fixed.rel.nugget")
-      if(length(ID.coords)>0) {
-         if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
-      } else {
-         if(length(start.cov.pars)!=1) stop("wrong length of start.cov.pars")
-      }
-      if(messages) cat("Fixed relative variance of the nugget effect:",fixed.rel.nugget,"\n")
-   } else {
-	if(length(ID.coords)>0) {
-         if(length(start.cov.pars)!=3) stop("wrong length of start.cov.pars")
-      } else {
-         if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
-      }
-   }
+                           kappa,fixed.rel.nugget=NULL,start.cov.pars,
+                           method="BFGS",messages=TRUE,profile.llik) {
 
-   if(length(ID.coords)>0) coords <- unique(coords)
-   U <- dist(coords)
+  start.cov.pars <- as.numeric(start.cov.pars)
+  if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
+  kappa <- as.numeric(kappa)
+  if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  if(length(ID.coords)>0) {
+    m <- length(y)
+  } else {
+    n <- length(y)
+  }
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
+  p <- ncol(D)
+  if(length(fixed.rel.nugget)>0){
+    if(length(fixed.rel.nugget) != 1 | fixed.rel.nugget < 0) stop("negative fixed nugget value or wrong length of fixed.rel.nugget")
+    if(length(ID.coords)>0) {
+      if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
+    } else {
+      if(length(start.cov.pars)!=1) stop("wrong length of start.cov.pars")
+    }
+    if(messages) cat("Fixed relative variance of the nugget effect:",fixed.rel.nugget,"\n")
+  } else {
+    if(length(ID.coords)>0) {
+      if(length(start.cov.pars)!=3) stop("wrong length of start.cov.pars")
+    } else {
+      if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
+    }
+  }
 
-   if(length(ID.coords)==0) {
+  if(length(ID.coords)>0) coords <- unique(coords)
+  U <- dist(coords)
+
+  if(length(ID.coords)==0) {
+    if(length(fixed.rel.nugget)==0) {
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
+                          cov.pars=c(1,start.cov.pars[1]),nugget=start.cov.pars[2])$varcov
+    } else {
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
+                          cov.pars=c(1,start.cov.pars[1]),nugget=fixed.rel.nugget)$varcov
+    }
+
+    R.inv <- solve(R)
+
+    beta.start <- as.numeric(solve(t(D)%*%R.inv%*%D)%*%t(D)%*%R.inv%*%y)
+    diff.b <- y-D%*%beta.start
+    sigma2.start <- as.numeric(t(diff.b)%*%R.inv%*%diff.b/length(y))
+    start.par <- c(beta.start,sigma2.start,start.cov.pars)
+
+    start.par[-(1:p)] <- log(start.par[-(1:p)])
+  } else {
+
+    n.coords <- as.numeric(tapply(ID.coords,ID.coords,length))
+    DtD <- t(D)%*%D
+    Dty <- as.numeric(t(D)%*%y)
+    D.tilde <- sapply(1:p,function(i) as.numeric(tapply(D[,i],ID.coords,sum)))
+    y.tilde <- tapply(y,ID.coords,sum)
+
+    if(profile.llik) {
+      start.par <- log(start.cov.pars)
+    } else {
+
+      phi.start <- start.cov.pars[1]
+      if(length(fixed.rel.nugget)==1) {
+        nu2.1.start <- fixed.rel.nugget
+        nu2.2.start <- start.cov.pars[2]
+      } else {
+        nu2.1.start <- start.cov.pars[2]
+        nu2.2.start <- start.cov.pars[3]
+      }
+      R.start <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi.start),
+                                kappa=kappa)$varcov
+      diag(R.start) <- diag(R.start)+nu2.1.start
+      R.start.inv <- solve(R.start)
+      Omega <- R.start.inv
+      diag(Omega) <- (diag(Omega)+n.coords/nu2.2.start)
+
+      Omega.inv <- solve(Omega)
+      M.beta <- DtD/nu2.2.start+
+        -t(D.tilde)%*%Omega.inv%*%D.tilde/(nu2.2.start^2)
+      v.beta <- Dty/nu2.2.start-t(D.tilde)%*%Omega.inv%*%y.tilde/
+        (nu2.2.start^2)
+      beta.start <- as.numeric(solve(M.beta)%*%v.beta)
+
+      M.det <- t(R.start*n.coords/nu2.2.start)
+      diag(M.det) <- diag(M.det)+1
+
+      mu.start <- as.numeric(D%*%beta.start)
+      diff.y <- y-mu.start
+      diff.y.tilde <- tapply(diff.y,ID.coords,sum)
+      sigma2.start <- as.numeric((sum(diff.y^2)/nu2.2.start-
+                                    t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde/
+                                    (nu2.2.start^2))/m)
+
       if(length(fixed.rel.nugget)==0) {
-         R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
-    	                               cov.pars=c(1,start.cov.pars[1]),nugget=start.cov.pars[2])$varcov
+        start.par <- c(beta.start,log(c(sigma2.start,phi.start,
+                                        nu2.1.start,nu2.2.start)))
       } else {
-         R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
-    	                               cov.pars=c(1,start.cov.pars[1]),nugget=fixed.rel.nugget)$varcov
+        start.par <- c(beta.start,log(c(sigma2.start,phi.start,
+                                        nu2.2.start)))
+      }
+    }
+  }
+
+
+
+  if(length(ID.coords) > 0) {
+
+    if(profile.llik) {
+      profile.log.lik <- function(par) {
+        phi <- par[1]
+
+        if(length(fixed.rel.nugget)==1) {
+          nu2.1 <- fixed.rel.nugget
+          nu2.2 <- par[2]
+        } else {
+          nu2.1 <- par[2]
+          nu2.2 <- par[3]
+        }
+        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+                            kappa=kappa)$varcov
+        diag(R) <- diag(R)+nu2.1
+        R.inv <- solve(R)
+        Omega <- R.inv
+        diag(Omega) <- (diag(Omega)+n.coords/nu2.2)
+
+        Omega.inv <- solve(Omega)
+        M.beta <- DtD/nu2.2+
+          -t(D.tilde)%*%Omega.inv%*%D.tilde/(nu2.2^2)
+        v.beta <- Dty/nu2.2-t(D.tilde)%*%Omega.inv%*%y.tilde/(nu2.2^2)
+        beta.hat <- as.numeric(solve(M.beta)%*%v.beta)
+
+        M.det <- t(R*n.coords/nu2.2)
+        diag(M.det) <- diag(M.det)+1
+
+        mu.hat <- as.numeric(D%*%beta.hat)
+        diff.y <- y-mu.hat
+        diff.y.tilde <- tapply(diff.y,ID.coords,sum)
+        sigma2.hat <- as.numeric((sum(diff.y^2)/nu2.2-
+                                    t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde/(nu2.2^2))/
+                                   m)
+
+        out <- -0.5*(m*log(sigma2.hat)+m*log(nu2.2)+
+                       as.numeric(determinant(M.det)$modulus))
+        return(out)
       }
 
-      R.inv <- solve(R)
+      compute.mle.std <- function(est.profile) {
+        phi <- exp(est.profile$par[1])
+        if(length(fixed.rel.nugget)==1) {
+          nu2.1 <- fixed.rel.nugget
+          nu2.2 <- exp(est.profile$par[2])
+        } else {
+          nu2.1 <- exp(est.profile$par[2])
+          nu2.2 <- exp(est.profile$par[3])
+        }
+        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+                            kappa=kappa)$varcov
+        diag(R) <- diag(R)+nu2.1
+        R.inv <- solve(R)
+        Omega.star <- R.inv
+        diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
+        Omega.star.inv <- solve(Omega.star)
 
-      beta.start <- as.numeric(solve(t(D)%*%R.inv%*%D)%*%t(D)%*%R.inv%*%y)
-      diff.b <- y-D%*%beta.start
-      sigma2.start <- as.numeric(t(diff.b)%*%R.inv%*%diff.b/length(y))
-      start.par <- c(beta.start,sigma2.start,start.cov.pars)
+        M.beta <- DtD/nu2.2+
+          -t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2)
+        v.beta <- Dty/nu2.2-t(D.tilde)%*%Omega.star.inv%*%y.tilde/(nu2.2^2)
+        beta <- as.numeric(solve(M.beta)%*%v.beta)
 
-      start.par[-(1:p)] <- log(start.par[-(1:p)])
-   } else {
+        mu <- as.numeric(D%*%beta)
+        diff.y <- y-mu
+        diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
 
-      n.coords <- as.numeric(tapply(ID.coords,ID.coords,length))
-      DtD <- t(D)%*%D
-      Dty <- as.numeric(t(D)%*%y)
-      D.tilde <- sapply(1:p,function(i) as.numeric(tapply(D[,i],ID.coords,sum)))
-      y.tilde <- tapply(y,ID.coords,sum)
+        v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
+        q.f1 <- sum(diff.y^2)
+        q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
+        q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
 
-      if(profile.llik) {
-         start.par <- log(start.cov.pars)
-      } else {
+        sigma2 <- as.numeric(q.f/m)
 
-         phi.start <- start.cov.pars[1]
-         if(length(fixed.rel.nugget)==1) {
-            nu2.1.start <- fixed.rel.nugget
-            nu2.2.start <- start.cov.pars[2]
-         } else {
-            nu2.1.start <- start.cov.pars[2]
-            nu2.2.start <- start.cov.pars[3]
-         }
-         R.start <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi.start),
-                 kappa=kappa)$varcov
-         diag(R.start) <- diag(R.start)+nu2.1.start
-         R.start.inv <- solve(R.start)
-         Omega <- R.start.inv
-         diag(Omega) <- (diag(Omega)+n.coords/nu2.2.start)
+        grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
+                                          v[ID.coords]/(nu2.2^2)))/sigma2
+        grad.sigma2 <- -0.5*(m-q.f/sigma2)
 
-         Omega.inv <- solve(Omega)
-         M.beta <- DtD/nu2.2.start+
-                -t(D.tilde)%*%Omega.inv%*%D.tilde/(nu2.2.start^2)
-         v.beta <- Dty/nu2.2.start-t(D.tilde)%*%Omega.inv%*%y.tilde/
-                   (nu2.2.start^2)
-         beta.start <- as.numeric(solve(M.beta)%*%v.beta)
+        M.det <- t(R*n.coords/nu2.2)
+        diag(M.det) <- diag(M.det)+1
+        M.det.inv <- solve(M.det)
 
-         M.det <- t(R.start*n.coords/nu2.2.start)
-         diag(M.det) <- diag(M.det)+1
+        R1.phi <- matern.grad.phi(U,phi,kappa)*phi
+        Omega.star.R.inv <- Omega.star.inv%*%R.inv
+        der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
+        der.M.phi <- t(R1.phi*n.coords/nu2.2)
+        M1.trace.phi <- M.det.inv*t(der.M.phi)
+        trace1.phi <- sum(M1.trace.phi)
+        v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
+        q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
+        grad.phi <- -0.5*(trace1.phi-
+                            q.f.phi/((nu2.2^2)*sigma2))
 
-         mu.start <- as.numeric(D%*%beta.start)
-         diff.y <- y-mu.start
-         diff.y.tilde <- tapply(diff.y,ID.coords,sum)
-         sigma2.start <- as.numeric((sum(diff.y^2)/nu2.2.start-
-                       t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde/
-                       (nu2.2.start^2))/m)
+        if(length(fixed.rel.nugget)==0) {
+          der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
+          trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
+          v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
+                                       diff.y.tilde)
+          q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
+          grad.nu2.1 <- -0.5*(trace1.nu2.1+
+                                q.f.nu2.1/((nu2.2^2)*sigma2))
+        }
 
-         if(length(fixed.rel.nugget)==0) {
-            start.par <- c(beta.start,log(c(sigma2.start,phi.start,
-                                            nu2.1.start,nu2.2.start)))
-         } else {
-            start.par <- c(beta.start,log(c(sigma2.start,phi.start,
-                                            nu2.2.start)))
-         }
+        der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
+          Omega.star.inv
+        der.M.nu2.2 <- -t(R*n.coords/nu2.2)
+        M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
+        trace1.nu2.2 <- sum(M1.trace.nu2.2)
+        v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
+                                     diff.y.tilde)
+        q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
+        grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
+          -0.5*(m+trace1.nu2.2+
+                  q.f.nu2.2/((nu2.2^2)*sigma2))
+
+        ind.beta <- 1:p
+        ind.sigma2 <- p+1
+        ind.phi <- p+2
+        if(length(fixed.rel.nugget)==0) {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
+          H <- matrix(NA,p+4,p+4)
+          ind.nu2.1 <- p+3
+          ind.nu2.2 <- p+4
+        } else {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
+          H <- matrix(NA,p+3,p+3)
+          ind.nu2.2 <- p+3
+        }
+
+
+
+        H[ind.beta,ind.beta] <- (-DtD/nu2.2+
+                                   t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2))/sigma2
+
+        H[ind.beta,ind.sigma2] <- H[ind.sigma2,ind.beta] <- -grad.beta
+
+        H[ind.beta,ind.phi] <- H[ind.phi,ind.beta] <- -t(D)%*%v.beta.phi[ID.coords]/((nu2.2^2)*sigma2)
+
+        if(length(fixed.rel.nugget)==0) {
+
+          H[ind.beta,ind.nu2.1] <- H[ind.nu2.1,ind.beta] <- t(D)%*%v.beta.nu2.1[ID.coords]/((nu2.2^2)*sigma2)
+
+        }
+
+        H[ind.beta,ind.nu2.2] <-
+          H[ind.nu2.2,ind.beta] <- as.numeric(t(D)%*%(-diff.y/nu2.2+2*v[ID.coords]/(nu2.2^2))/sigma2)+
+          t(D)%*%v.beta.nu2.2[ID.coords]/((nu2.2^2)*sigma2)
+
+        H[ind.sigma2,ind.sigma2] <- -0.5*q.f/sigma2
+        H[ind.sigma2,ind.phi] <- H[ind.phi,ind.sigma2] <- -(grad.phi+0.5*(trace1.phi))
+        if(length(fixed.rel.nugget)==0) {
+          H[ind.sigma2,ind.nu2.1] <- H[ind.nu2.1,ind.sigma2] <- -(grad.nu2.1+0.5*(trace1.nu2.1))
+        }
+        H[ind.sigma2,ind.nu2.2] <- H[ind.nu2.2,ind.sigma2] <- -(grad.nu2.2+0.5*(trace1.nu2.2+m))
+
+        R2.phi <- matern.hessian.phi(U,phi,kappa)*(phi^2)+
+          R1.phi
+        V1.phi <- -R.inv%*%R1.phi%*%R.inv
+        V2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
+        der2.Omega.star.inv.phi <- Omega.star.inv%*%(2*V1.phi%*%
+                                                       Omega.star.inv%*%V1.phi-V2.phi)%*%
+          Omega.star.inv
+        M2.trace.phi <- M.det.inv*((R2.phi*n.coords/nu2.2))
+        B2.phi <- M.det.inv%*%der.M.phi
+
+        trace2.phi <- sum(M2.trace.phi)-
+          sum(B2.phi*t(B2.phi))
+        H[ind.phi,ind.phi] <- -0.5*(trace2.phi-
+                                      as.numeric(t(diff.y.tilde)%*%
+                                                   der2.Omega.star.inv.phi%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+        if(length(fixed.rel.nugget)==0) {
+
+          V1.nu2.1 <- -R.inv%*%R.inv*nu2.1
+          V2.phi.nu2.1 <- nu2.1*R.inv%*%(R1.phi%*%R.inv+R.inv%*%R1.phi)%*%R.inv
+          der2.Omega.star.inv.phi.nu2.1 <- Omega.star.inv%*%(
+            V1.phi%*%Omega.star.inv%*%V1.nu2.1+
+              V1.nu2.1%*%Omega.star.inv%*%V1.phi-
+              V2.phi.nu2.1)%*%
+            Omega.star.inv
+          B2.nu2.1 <- t(t(M.det.inv)*n.coords*nu2.1/nu2.2)
+          trace2.phi.nu2.1 <- -sum(B2.phi*t(B2.nu2.1))
+
+          H[ind.phi,ind.nu2.1] <- H[ind.nu2.1,ind.phi] <- -0.5*(trace2.phi.nu2.1-
+                                                                  as.numeric(t(diff.y.tilde)%*%
+                                                                               der2.Omega.star.inv.phi.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+        }
+
+        der2.Omega.star.inv.phi.nu2.2 <- Omega.star.inv%*%(
+          V1.phi%*%t(-Omega.star.inv*
+                       n.coords/nu2.2)+
+            (-Omega.star.inv*
+               n.coords/nu2.2)%*%V1.phi)%*%
+          Omega.star.inv
+        B2.nu2.2 <- M.det.inv%*%der.M.nu2.2
+        trace2.phi.nu2.2 <- -trace1.phi-sum(B2.phi*t(B2.nu2.2))
+        H[ind.phi,ind.nu2.2] <- H[ind.nu2.2,ind.phi] <- -0.5*(trace2.phi.nu2.2+
+                                                                -as.numeric(t(diff.y.tilde)%*%
+                                                                              der2.Omega.star.inv.phi.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
+                                                                +2*q.f.phi/((nu2.2^2)*sigma2))
+
+        if(length(fixed.rel.nugget)==0) {
+          aux.nu2.1 <- 2*R.inv*(nu2.1^2)
+          diag(aux.nu2.1) <- diag(aux.nu2.1)-nu2.1
+          V2.nu2.1 <- R.inv%*%aux.nu2.1%*%R.inv
+          der2.Omega.star.inv.nu2.1 <- Omega.star.inv%*%(2*V1.nu2.1%*%
+                                                           Omega.star.inv%*%V1.nu2.1-V2.nu2.1)%*%
+            Omega.star.inv
+
+          trace2.nu2.1 <- trace1.nu2.1-
+            sum(B2.nu2.1*t(B2.nu2.1))
+
+          H[ind.nu2.1,ind.nu2.1] <- -0.5*(trace2.nu2.1-
+                                            as.numeric(t(diff.y.tilde)%*%
+                                                         der2.Omega.star.inv.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+          der2.Omega.star.inv.nu2.1.nu2.2 <- Omega.star.inv%*%(
+            V1.nu2.1%*%t(-Omega.star.inv*
+                           n.coords/nu2.2)+
+              (-Omega.star.inv*
+                 n.coords/nu2.2)%*%V1.nu2.1)%*%
+            Omega.star.inv
+
+          trace2.nu2.1.nu2.2 <- -trace1.nu2.1-sum(B2.nu2.1*t(B2.nu2.2))
+          H[ind.nu2.1,ind.nu2.2] <- H[ind.nu2.2,ind.nu2.1] <- -0.5*(trace2.nu2.1.nu2.2+
+                                                                      -as.numeric(t(diff.y.tilde)%*%
+                                                                                    der2.Omega.star.inv.nu2.1.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
+                                                                      -2*q.f.nu2.1/((nu2.2^2)*sigma2))
+
+        }
+
+        aux.nu2.2 <- 2*t(Omega.star.inv*n.coords)*n.coords/
+          (nu2.2^2)
+        diag(aux.nu2.2) <- diag(aux.nu2.2)-n.coords/nu2.2
+        der2.Omega.star.inv.nu2.2 <- -Omega.star.inv%*%(
+          aux.nu2.2)%*%
+          Omega.star.inv
+
+        trace2.nu2.2 <- -trace1.nu2.2-
+          sum(B2.nu2.2*t(B2.nu2.2))
+        H[ind.nu2.2,ind.nu2.2] <- -0.5*(q.f1/nu2.2-4*q.f2/(nu2.2^2)-4*q.f.nu2.2/(nu2.2^2))/sigma2+
+          -0.5*(trace2.nu2.2+as.numeric(t(diff.y.tilde)%*%
+                                          der2.Omega.star.inv.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+
+        out <- list()
+        if(length(fixed.rel.nugget)==0) {
+          out$estimates <- c(beta,log(sigma2),log(phi),log(nu2.1),log(nu2.2))
+        } else {
+          out$estimates <- c(beta,log(sigma2),log(phi),log(nu2.2))
+        }
+        out$log.lik <- -est.profile$objective
+        out$gradient <- g
+        out$hessian <- H
+        return(out)
       }
-   }
 
-   der.phi <- function(u,phi,kappa) {
-      u <- u+10e-16
-      if(kappa==0.5) {
-         out <- (u*exp(-u/phi))/phi^2
-      } else {
-        out <- ((besselK(u/phi,kappa+1)+besselK(u/phi,kappa-1))*
-                  phi^(-kappa-2)*u^(kappa+1))/(2^kappa*gamma(kappa))-
-                  (kappa*2^(1-kappa)*besselK(u/phi,kappa)*phi^(-kappa-1)*
-                  u^kappa)/gamma(kappa)
+      estim <- list()
+      if(method=="nlminb") {
+        est.profile <- nlminb(start.par,
+                              function(x) -profile.log.lik(exp(x)),
+                              control=list(trace=1*messages))
+        est.summary <- compute.mle.std(est.profile)
+        estim$estimate <- est.summary$estimates
+        if(messages) cat("\n","Gradient at MLE:",paste(round(est.summary$gradient,10)),"\n")
+        estim$covariance <- solve(-est.summary$hessian)
+        estim$log.lik <- est.summary$log.lik
+      } else if(method=="BFGS") {
+        est.profile <- maxBFGS(function(x) profile.log.lik(exp(x)),
+                               start=start.par,print.level=1*messages)
+        est.profile$par <- est.profile$estimate
+        est.profile$objective <- -est.profile$maximum
+        est.summary <- compute.mle.std(est.profile)
+        estim$estimate <- est.summary$estimates
+        if(messages) cat("Gradient at MLE: ",round(est.summary$gradient,10),"\n",sep=" ")
+        estim$covariance <- solve(-est.summary$hessian)
+        estim$log.lik <- est.summary$log.lik
       }
-      out
-   }
-
-   der2.phi <- function(u,phi,kappa) {
-      u <- u+10e-16
-      if(kappa==0.5) {
-         out <- (u*(u-2*phi)*exp(-u/phi))/phi^4
-      } else {
-         bk <- besselK(u/phi,kappa)
-         bk.p1 <- besselK(u/phi,kappa+1)
-         bk.p2 <- besselK(u/phi,kappa+2)
-         bk.m1 <- besselK(u/phi,kappa-1)
-         bk.m2 <- besselK(u/phi,kappa-2)
-         out <- (2^(-kappa-1)*phi^(-kappa-4)*u^kappa*(bk.p2*u^2+2*bk*u^2+
-                bk.m2*u^2-4*kappa*bk.p1*phi*u-4*
-                bk.p1*phi*u-4*kappa*bk.m1*phi*u-4*bk.m1*phi*u+
-                4*kappa^2*bk*phi^2+4*kappa*bk*phi^2))/(gamma(kappa))
-      }
-      out
-   }
-
-   matern.grad.phi <- function(U,phi,kappa) {
-    	n <- attr(U,"Size")
-      grad.phi.mat <- matrix(NA,nrow=n,ncol=n)
-      ind <- lower.tri(grad.phi.mat)
-      grad.phi <- der.phi(as.numeric(U),phi,kappa)
-      grad.phi.mat[ind] <-  grad.phi
-      grad.phi.mat <- t(grad.phi.mat)
-      grad.phi.mat[ind] <-  grad.phi
-      diag(grad.phi.mat) <- rep(der.phi(0,phi,kappa),n)
-      grad.phi.mat
-   }
-
-   matern.hessian.phi <- function(U,phi,kappa) {
-     	n <- attr(U,"Size")
-	hess.phi.mat <- matrix(NA,nrow=n,ncol=n)
-      ind <- lower.tri(hess.phi.mat)
-      hess.phi <- der2.phi(as.numeric(U),phi,kappa)
-      hess.phi.mat[ind] <-  hess.phi
-      hess.phi.mat <- t(hess.phi.mat)
-      hess.phi.mat[ind] <-  hess.phi
-      diag(hess.phi.mat) <- rep(der2.phi(0,phi,kappa),n)
-      hess.phi.mat
-   }
-
-   if(length(ID.coords) > 0) {
-
-      if(profile.llik) {
-         profile.log.lik <- function(par) {
-            phi <- par[1]
-
-            if(length(fixed.rel.nugget)==1) {
-               nu2.1 <- fixed.rel.nugget
-               nu2.2 <- par[2]
-            } else {
-               nu2.1 <- par[2]
-               nu2.2 <- par[3]
-            }
-            R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
-                 kappa=kappa)$varcov
-            diag(R) <- diag(R)+nu2.1
-            R.inv <- solve(R)
-            Omega <- R.inv
-            diag(Omega) <- (diag(Omega)+n.coords/nu2.2)
-
-            Omega.inv <- solve(Omega)
-            M.beta <- DtD/nu2.2+
-                -t(D.tilde)%*%Omega.inv%*%D.tilde/(nu2.2^2)
-            v.beta <- Dty/nu2.2-t(D.tilde)%*%Omega.inv%*%y.tilde/(nu2.2^2)
-            beta.hat <- as.numeric(solve(M.beta)%*%v.beta)
-
-            M.det <- t(R*n.coords/nu2.2)
-            diag(M.det) <- diag(M.det)+1
-
-            mu.hat <- as.numeric(D%*%beta.hat)
-            diff.y <- y-mu.hat
-            diff.y.tilde <- tapply(diff.y,ID.coords,sum)
-            sigma2.hat <- as.numeric((sum(diff.y^2)/nu2.2-
-                    t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde/(nu2.2^2))/
-                    m)
-
-            out <- -0.5*(m*log(sigma2.hat)+m*log(nu2.2)+
-            as.numeric(determinant(M.det)$modulus))
-            return(out)
-         }
-
-         compute.mle.std <- function(est.profile) {
-            phi <- exp(est.profile$par[1])
-            if(length(fixed.rel.nugget)==1) {
-               nu2.1 <- fixed.rel.nugget
-               nu2.2 <- exp(est.profile$par[2])
-            } else {
-               nu2.1 <- exp(est.profile$par[2])
-               nu2.2 <- exp(est.profile$par[3])
-            }
-            R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
-                 kappa=kappa)$varcov
-            diag(R) <- diag(R)+nu2.1
-            R.inv <- solve(R)
-            Omega.star <- R.inv
-            diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
-            Omega.star.inv <- solve(Omega.star)
-
-            M.beta <- DtD/nu2.2+
-                   -t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2)
-            v.beta <- Dty/nu2.2-t(D.tilde)%*%Omega.star.inv%*%y.tilde/(nu2.2^2)
-            beta <- as.numeric(solve(M.beta)%*%v.beta)
-
-            mu <- as.numeric(D%*%beta)
-            diff.y <- y-mu
-            diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
-
-            v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
-            q.f1 <- sum(diff.y^2)
-            q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
-            q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
-
-            sigma2 <- as.numeric(q.f/m)
-
-            grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
-                           v[ID.coords]/(nu2.2^2)))/sigma2
-            grad.sigma2 <- -0.5*(m-q.f/sigma2)
-
-            M.det <- t(R*n.coords/nu2.2)
-            diag(M.det) <- diag(M.det)+1
-            M.det.inv <- solve(M.det)
-
-            R1.phi <- matern.grad.phi(U,phi,kappa)*phi
-            Omega.star.R.inv <- Omega.star.inv%*%R.inv
-            der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
-            der.M.phi <- t(R1.phi*n.coords/nu2.2)
-            M1.trace.phi <- M.det.inv*t(der.M.phi)
-            trace1.phi <- sum(M1.trace.phi)
-            v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
-            q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
-            grad.phi <- -0.5*(trace1.phi-
-                  q.f.phi/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-               der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
-               trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
-               v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
-                                 diff.y.tilde)
-               q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
-               grad.nu2.1 <- -0.5*(trace1.nu2.1+
-                  q.f.nu2.1/((nu2.2^2)*sigma2))
-            }
-
-            der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
-                                       Omega.star.inv
-            der.M.nu2.2 <- -t(R*n.coords/nu2.2)
-            M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
-            trace1.nu2.2 <- sum(M1.trace.nu2.2)
-            v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
-                                 diff.y.tilde)
-            q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
-            grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
-                          -0.5*(m+trace1.nu2.2+
-                                q.f.nu2.2/((nu2.2^2)*sigma2))
-
-            ind.beta <- 1:p
-            ind.sigma2 <- p+1
-            ind.phi <- p+2
-            if(length(fixed.rel.nugget)==0) {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
-               H <- matrix(NA,p+4,p+4)
-               ind.nu2.1 <- p+3
-               ind.nu2.2 <- p+4
-            } else {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
-               H <- matrix(NA,p+3,p+3)
-               ind.nu2.2 <- p+3
-            }
-
-
-
-            H[ind.beta,ind.beta] <- (-DtD/nu2.2+
-                          t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2))/sigma2
-
-            H[ind.beta,ind.sigma2] <- H[ind.sigma2,ind.beta] <- -grad.beta
-
-            H[ind.beta,ind.phi] <- H[ind.phi,ind.beta] <- -t(D)%*%v.beta.phi[ID.coords]/((nu2.2^2)*sigma2)
-
-            if(length(fixed.rel.nugget)==0) {
-
-               H[ind.beta,ind.nu2.1] <- H[ind.nu2.1,ind.beta] <- t(D)%*%v.beta.nu2.1[ID.coords]/((nu2.2^2)*sigma2)
-
-            }
-
-            H[ind.beta,ind.nu2.2] <-
-            H[ind.nu2.2,ind.beta] <- as.numeric(t(D)%*%(-diff.y/nu2.2+2*v[ID.coords]/(nu2.2^2))/sigma2)+
-                                  t(D)%*%v.beta.nu2.2[ID.coords]/((nu2.2^2)*sigma2)
-
-            H[ind.sigma2,ind.sigma2] <- -0.5*q.f/sigma2
-            H[ind.sigma2,ind.phi] <- H[ind.phi,ind.sigma2] <- -(grad.phi+0.5*(trace1.phi))
-            if(length(fixed.rel.nugget)==0) {
-               H[ind.sigma2,ind.nu2.1] <- H[ind.nu2.1,ind.sigma2] <- -(grad.nu2.1+0.5*(trace1.nu2.1))
-            }
-            H[ind.sigma2,ind.nu2.2] <- H[ind.nu2.2,ind.sigma2] <- -(grad.nu2.2+0.5*(trace1.nu2.2+m))
-
-            R2.phi <- matern.hessian.phi(U,phi,kappa)*(phi^2)+
-                      R1.phi
-            V1.phi <- -R.inv%*%R1.phi%*%R.inv
-            V2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
-            der2.Omega.star.inv.phi <- Omega.star.inv%*%(2*V1.phi%*%
-                                 Omega.star.inv%*%V1.phi-V2.phi)%*%
-                                 Omega.star.inv
-            M2.trace.phi <- M.det.inv*((R2.phi*n.coords/nu2.2))
-            B2.phi <- M.det.inv%*%der.M.phi
-
-            trace2.phi <- sum(M2.trace.phi)-
-                    sum(B2.phi*t(B2.phi))
-            H[ind.phi,ind.phi] <- -0.5*(trace2.phi-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-
-               V1.nu2.1 <- -R.inv%*%R.inv*nu2.1
-               V2.phi.nu2.1 <- nu2.1*R.inv%*%(R1.phi%*%R.inv+R.inv%*%R1.phi)%*%R.inv
-               der2.Omega.star.inv.phi.nu2.1 <- Omega.star.inv%*%(
-                                       V1.phi%*%Omega.star.inv%*%V1.nu2.1+
-                                       V1.nu2.1%*%Omega.star.inv%*%V1.phi-
-                                       V2.phi.nu2.1)%*%
-                                       Omega.star.inv
-               B2.nu2.1 <- t(t(M.det.inv)*n.coords*nu2.1/nu2.2)
-               trace2.phi.nu2.1 <- -sum(B2.phi*t(B2.nu2.1))
-
-               H[ind.phi,ind.nu2.1] <- H[ind.nu2.1,ind.phi] <- -0.5*(trace2.phi.nu2.1-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-            }
-
-            der2.Omega.star.inv.phi.nu2.2 <- Omega.star.inv%*%(
-                                       V1.phi%*%t(-Omega.star.inv*
-                                       n.coords/nu2.2)+
-                                       (-Omega.star.inv*
-                                       n.coords/nu2.2)%*%V1.phi)%*%
-                                       Omega.star.inv
-            B2.nu2.2 <- M.det.inv%*%der.M.nu2.2
-            trace2.phi.nu2.2 <- -trace1.phi-sum(B2.phi*t(B2.nu2.2))
-            H[ind.phi,ind.nu2.2] <- H[ind.nu2.2,ind.phi] <- -0.5*(trace2.phi.nu2.2+
-                    -as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
-                    +2*q.f.phi/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-               aux.nu2.1 <- 2*R.inv*(nu2.1^2)
-               diag(aux.nu2.1) <- diag(aux.nu2.1)-nu2.1
-               V2.nu2.1 <- R.inv%*%aux.nu2.1%*%R.inv
-               der2.Omega.star.inv.nu2.1 <- Omega.star.inv%*%(2*V1.nu2.1%*%
-                                 Omega.star.inv%*%V1.nu2.1-V2.nu2.1)%*%
-                                 Omega.star.inv
-
-               trace2.nu2.1 <- trace1.nu2.1-
-                    sum(B2.nu2.1*t(B2.nu2.1))
-
-               H[ind.nu2.1,ind.nu2.1] <- -0.5*(trace2.nu2.1-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-               der2.Omega.star.inv.nu2.1.nu2.2 <- Omega.star.inv%*%(
-                                       V1.nu2.1%*%t(-Omega.star.inv*
-                                       n.coords/nu2.2)+
-                                       (-Omega.star.inv*
-                                       n.coords/nu2.2)%*%V1.nu2.1)%*%
-                                       Omega.star.inv
-
-               trace2.nu2.1.nu2.2 <- -trace1.nu2.1-sum(B2.nu2.1*t(B2.nu2.2))
-               H[ind.nu2.1,ind.nu2.2] <- H[ind.nu2.2,ind.nu2.1] <- -0.5*(trace2.nu2.1.nu2.2+
-                    -as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.1.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
-                    -2*q.f.nu2.1/((nu2.2^2)*sigma2))
-
-            }
-
-            aux.nu2.2 <- 2*t(Omega.star.inv*n.coords)*n.coords/
-                     (nu2.2^2)
-            diag(aux.nu2.2) <- diag(aux.nu2.2)-n.coords/nu2.2
-            der2.Omega.star.inv.nu2.2 <- -Omega.star.inv%*%(
-                                   aux.nu2.2)%*%
-                                   Omega.star.inv
-
-            trace2.nu2.2 <- -trace1.nu2.2-
-                    sum(B2.nu2.2*t(B2.nu2.2))
-            H[ind.nu2.2,ind.nu2.2] <- -0.5*(q.f1/nu2.2-4*q.f2/(nu2.2^2)-4*q.f.nu2.2/(nu2.2^2))/sigma2+
-                    -0.5*(trace2.nu2.2+as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-
-            out <- list()
-            if(length(fixed.rel.nugget)==0) {
-               out$estimates <- c(beta,log(sigma2),log(phi),log(nu2.1),log(nu2.2))
-            } else {
-               out$estimates <- c(beta,log(sigma2),log(phi),log(nu2.2))
-            }
-            out$log.lik <- -est.profile$objective
-            out$gradient <- g
-            out$hessian <- H
-            return(out)
-         }
-
-         estim <- list()
-         if(method=="nlminb") {
-            est.profile <- nlminb(start.par,
-               function(x) -profile.log.lik(exp(x)),
-               control=list(trace=1*messages))
-            est.summary <- compute.mle.std(est.profile)
-            estim$estimate <- est.summary$estimates
-            if(messages) cat("\n","Gradient at MLE:",paste(round(est.summary$gradient,10)),"\n")
-            estim$covariance <- solve(-est.summary$hessian)
-            estim$log.lik <- est.summary$log.lik
-         } else if(method=="BFGS") {
-            est.profile <- maxBFGS(function(x) profile.log.lik(exp(x)),
-            start=start.par,print.level=1*messages)
-            est.profile$par <- est.profile$estimate
-            est.profile$objective <- -est.profile$maximum
-            est.summary <- compute.mle.std(est.profile)
-            estim$estimate <- est.summary$estimates
-            if(messages) cat("Gradient at MLE: ",round(est.summary$gradient,10),"\n",sep=" ")
-            estim$covariance <- solve(-est.summary$hessian)
-            estim$log.lik <- est.summary$log.lik
-         }
-      } else {
-         log.lik <- function(par) {
-            beta <- par[1:p]
-            sigma2 <- exp(par[p+1])
-            phi <- exp(par[p+2])
-            if(length(fixed.rel.nugget)==1) {
-               nu2.1 <- fixed.rel.nugget
-               nu2.2 <- exp(par[p+3])
-            } else {
-               nu2.1 <- exp(par[p+3])
-               nu2.2 <- exp(par[p+4])
-            }
-
-            mu <- as.numeric(D%*%beta)
-            diff.y <- y-mu
-            diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
-
-            R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
-                 kappa=kappa)$varcov
-            diag(R) <- diag(R)+nu2.1
-            R.inv <- solve(R)
-            Omega <- R.inv
-            diag(Omega) <- (diag(Omega)+n.coords/nu2.2)
-            Omega <- Omega*(nu2.2^2)
-            Omega.inv <- solve(Omega)
-
-            q.f <- as.numeric(sum(diff.y^2)/nu2.2-
-                   t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde)
-            M.det <- t(R*n.coords/nu2.2)
-            diag(M.det) <- diag(M.det)+1
-            log.det.tot <- m*log(sigma2)+m*log(nu2.2)+
-                     as.numeric(determinant(M.det)$modulus)
-            out <- -0.5*(log.det.tot+q.f/sigma2)
-            return(out)
-         }
-
-         grad.log.lik <- function(par) {
-            beta <- par[1:p]
-            sigma2 <- exp(par[p+1])
-            phi <- exp(par[p+2])
-            if(length(fixed.rel.nugget)==1) {
-               nu2.1 <- fixed.rel.nugget
-               nu2.2 <- exp(par[p+3])
-            } else {
-               nu2.1 <- exp(par[p+3])
-               nu2.2 <- exp(par[p+4])
-            }
-            R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
-                 kappa=kappa)$varcov
-            diag(R) <- diag(R)+nu2.1
-            R.inv <- solve(R)
-            Omega.star <- R.inv
-            diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
-            Omega.star.inv <- solve(Omega.star)
-
-
-            mu <- as.numeric(D%*%beta)
-            diff.y <- y-mu
-            diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
-
-            v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
-            q.f1 <- sum(diff.y^2)
-            q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
-            q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
-
-            grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
-                           v[ID.coords]/(nu2.2^2)))/sigma2
-            grad.sigma2 <- -0.5*(m-q.f/sigma2)
-
-            M.det <- t(R*n.coords/nu2.2)
-            diag(M.det) <- diag(M.det)+1
-            M.det.inv <- solve(M.det)
-
-            R1.phi <- matern.grad.phi(U,phi,kappa)*phi
-            Omega.star.R.inv <- Omega.star.inv%*%R.inv
-            der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
-            der.M.phi <- t(R1.phi*n.coords/nu2.2)
-            M1.trace.phi <- M.det.inv*t(der.M.phi)
-            trace1.phi <- sum(M1.trace.phi)
-            v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
-            q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
-            grad.phi <- -0.5*(trace1.phi-
-                  q.f.phi/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-               der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
-               trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
-               v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
-                                 diff.y.tilde)
-               q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
-               grad.nu2.1 <- -0.5*(trace1.nu2.1+
-                  q.f.nu2.1/((nu2.2^2)*sigma2))
-            }
-
-            der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
-                                       Omega.star.inv
-            der.M.nu2.2 <- -t(R*n.coords/nu2.2)
-            M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
-            trace1.nu2.2 <- sum(M1.trace.nu2.2)
-            v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
-                                 diff.y.tilde)
-            q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
-            grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
-                          -0.5*(m+trace1.nu2.2+
-                                q.f.nu2.2/((nu2.2^2)*sigma2))
-
-            ind.beta <- 1:p
-            ind.sigma2 <- p+1
-            ind.phi <- p+2
-            if(length(fixed.rel.nugget)==0) {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
-            } else {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
-            }
-
-            return(g)
-         }
-
-         hessian.log.lik <- function(par) {
-            beta <- par[1:p]
-            sigma2 <- exp(par[p+1])
-            phi <- exp(par[p+2])
-            if(length(fixed.rel.nugget)==1) {
-               nu2.1 <- fixed.rel.nugget
-               nu2.2 <- exp(par[p+3])
-            } else {
-               nu2.1 <- exp(par[p+3])
-               nu2.2 <- exp(par[p+4])
-            }
-            R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
-                 kappa=kappa)$varcov
-            diag(R) <- diag(R)+nu2.1
-            R.inv <- solve(R)
-            Omega.star <- R.inv
-            diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
-            Omega.star.inv <- solve(Omega.star)
-
-            mu <- as.numeric(D%*%beta)
-            diff.y <- y-mu
-            diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
-
-            v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
-            q.f1 <- sum(diff.y^2)
-            q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
-            q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
-
-            grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
-                           v[ID.coords]/(nu2.2^2)))/sigma2
-            grad.sigma2 <- -0.5*(m-q.f/sigma2)
-
-            M.det <- t(R*n.coords/nu2.2)
-            diag(M.det) <- diag(M.det)+1
-            M.det.inv <- solve(M.det)
-
-            R1.phi <- matern.grad.phi(U,phi,kappa)*phi
-            Omega.star.R.inv <- Omega.star.inv%*%R.inv
-            der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
-            der.M.phi <- t(R1.phi*n.coords/nu2.2)
-            M1.trace.phi <- M.det.inv*t(der.M.phi)
-            trace1.phi <- sum(M1.trace.phi)
-            v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
-            q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
-            grad.phi <- -0.5*(trace1.phi-
-                  q.f.phi/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-               der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
-               trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
-               v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
-                                 diff.y.tilde)
-               q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
-               grad.nu2.1 <- -0.5*(trace1.nu2.1+
-                  q.f.nu2.1/((nu2.2^2)*sigma2))
-            }
-
-            der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
-                                       Omega.star.inv
-            der.M.nu2.2 <- -t(R*n.coords/nu2.2)
-            M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
-            trace1.nu2.2 <- sum(M1.trace.nu2.2)
-            v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
-                                 diff.y.tilde)
-            q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
-            grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
-                          -0.5*(m+trace1.nu2.2+
-                                q.f.nu2.2/((nu2.2^2)*sigma2))
-
-            ind.beta <- 1:p
-            ind.sigma2 <- p+1
-            ind.phi <- p+2
-            if(length(fixed.rel.nugget)==0) {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
-               H <- matrix(NA,p+4,p+4)
-               ind.nu2.1 <- p+3
-               ind.nu2.2 <- p+4
-            } else {
-               g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
-               H <- matrix(NA,p+3,p+3)
-               ind.nu2.2 <- p+3
-            }
-
-
-
-            H[ind.beta,ind.beta] <- (-DtD/nu2.2+
-                          t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2))/sigma2
-
-            H[ind.beta,ind.sigma2] <- H[ind.sigma2,ind.beta] <- -grad.beta
-
-            H[ind.beta,ind.phi] <- H[ind.phi,ind.beta] <- -t(D)%*%v.beta.phi[ID.coords]/((nu2.2^2)*sigma2)
-
-            if(length(fixed.rel.nugget)==0) {
-
-               H[ind.beta,ind.nu2.1] <- H[ind.nu2.1,ind.beta] <- t(D)%*%v.beta.nu2.1[ID.coords]/((nu2.2^2)*sigma2)
-
-            }
-
-            H[ind.beta,ind.nu2.2] <-
-            H[ind.nu2.2,ind.beta] <- as.numeric(t(D)%*%(-diff.y/nu2.2+2*v[ID.coords]/(nu2.2^2))/sigma2)+
-                                  t(D)%*%v.beta.nu2.2[ID.coords]/((nu2.2^2)*sigma2)
-
-            H[ind.sigma2,ind.sigma2] <- -0.5*q.f/sigma2
-            H[ind.sigma2,ind.phi] <- H[ind.phi,ind.sigma2] <- -(grad.phi+0.5*(trace1.phi))
-            if(length(fixed.rel.nugget)==0) {
-               H[ind.sigma2,ind.nu2.1] <- H[ind.nu2.1,ind.sigma2] <- -(grad.nu2.1+0.5*(trace1.nu2.1))
-            }
-            H[ind.sigma2,ind.nu2.2] <- H[ind.nu2.2,ind.sigma2] <- -(grad.nu2.2+0.5*(trace1.nu2.2+m))
-
-            R2.phi <- matern.hessian.phi(U,phi,kappa)*(phi^2)+
-                      R1.phi
-            V1.phi <- -R.inv%*%R1.phi%*%R.inv
-            V2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
-            der2.Omega.star.inv.phi <- Omega.star.inv%*%(2*V1.phi%*%
-                                 Omega.star.inv%*%V1.phi-V2.phi)%*%
-                                 Omega.star.inv
-            M2.trace.phi <- M.det.inv*((R2.phi*n.coords/nu2.2))
-            B2.phi <- M.det.inv%*%der.M.phi
-
-            trace2.phi <- sum(M2.trace.phi)-
-                    sum(B2.phi*t(B2.phi))
-            H[ind.phi,ind.phi] <- -0.5*(trace2.phi-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-
-               V1.nu2.1 <- -R.inv%*%R.inv*nu2.1
-               V2.phi.nu2.1 <- nu2.1*R.inv%*%(R1.phi%*%R.inv+R.inv%*%R1.phi)%*%R.inv
-               der2.Omega.star.inv.phi.nu2.1 <- Omega.star.inv%*%(
-                                       V1.phi%*%Omega.star.inv%*%V1.nu2.1+
-                                       V1.nu2.1%*%Omega.star.inv%*%V1.phi-
-                                       V2.phi.nu2.1)%*%
-                                       Omega.star.inv
-               B2.nu2.1 <- t(t(M.det.inv)*n.coords*nu2.1/nu2.2)
-               trace2.phi.nu2.1 <- -sum(B2.phi*t(B2.nu2.1))
-
-               H[ind.phi,ind.nu2.1] <- H[ind.nu2.1,ind.phi] <- -0.5*(trace2.phi.nu2.1-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-            }
-
-            der2.Omega.star.inv.phi.nu2.2 <- Omega.star.inv%*%(
-                                       V1.phi%*%t(-Omega.star.inv*
-                                       n.coords/nu2.2)+
-                                       (-Omega.star.inv*
-                                       n.coords/nu2.2)%*%V1.phi)%*%
-                                       Omega.star.inv
-            B2.nu2.2 <- M.det.inv%*%der.M.nu2.2
-            trace2.phi.nu2.2 <- -trace1.phi-sum(B2.phi*t(B2.nu2.2))
-            H[ind.phi,ind.nu2.2] <- H[ind.nu2.2,ind.phi] <- -0.5*(trace2.phi.nu2.2+
-                    -as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.phi.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
-                    +2*q.f.phi/((nu2.2^2)*sigma2))
-
-            if(length(fixed.rel.nugget)==0) {
-               aux.nu2.1 <- 2*R.inv*(nu2.1^2)
-               diag(aux.nu2.1) <- diag(aux.nu2.1)-nu2.1
-               V2.nu2.1 <- R.inv%*%aux.nu2.1%*%R.inv
-               der2.Omega.star.inv.nu2.1 <- Omega.star.inv%*%(2*V1.nu2.1%*%
-                                 Omega.star.inv%*%V1.nu2.1-V2.nu2.1)%*%
-                                 Omega.star.inv
-
-               trace2.nu2.1 <- trace1.nu2.1-
-                    sum(B2.nu2.1*t(B2.nu2.1))
-
-               H[ind.nu2.1,ind.nu2.1] <- -0.5*(trace2.nu2.1-
-                    as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-               der2.Omega.star.inv.nu2.1.nu2.2 <- Omega.star.inv%*%(
-                                       V1.nu2.1%*%t(-Omega.star.inv*
-                                       n.coords/nu2.2)+
-                                       (-Omega.star.inv*
-                                       n.coords/nu2.2)%*%V1.nu2.1)%*%
-                                       Omega.star.inv
-
-               trace2.nu2.1.nu2.2 <- -trace1.nu2.1-sum(B2.nu2.1*t(B2.nu2.2))
-               H[ind.nu2.1,ind.nu2.2] <- H[ind.nu2.2,ind.nu2.1] <- -0.5*(trace2.nu2.1.nu2.2+
-                    -as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.1.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
-                    -2*q.f.nu2.1/((nu2.2^2)*sigma2))
-
-            }
-
-            aux.nu2.2 <- 2*t(Omega.star.inv*n.coords)*n.coords/
-                     (nu2.2^2)
-            diag(aux.nu2.2) <- diag(aux.nu2.2)-n.coords/nu2.2
-            der2.Omega.star.inv.nu2.2 <- -Omega.star.inv%*%(
-                                   aux.nu2.2)%*%
-                                   Omega.star.inv
-
-            trace2.nu2.2 <- -trace1.nu2.2-
-                    sum(B2.nu2.2*t(B2.nu2.2))
-            H[ind.nu2.2,ind.nu2.2] <- -0.5*(q.f1/nu2.2-4*q.f2/(nu2.2^2)-4*q.f.nu2.2/(nu2.2^2))/sigma2+
-                    -0.5*(trace2.nu2.2+as.numeric(t(diff.y.tilde)%*%
-                    der2.Omega.star.inv.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2))
-
-
-            return(H)
-         }
-         estim <- list()
-         if(method=="nlminb") {
-            estNLMINB <- nlminb(start.par,
-                         function(x) -log.lik(x),
-                         function(x) -grad.log.lik(x),
-                         function(x) -hessian.log.lik(x),
-                         control=list(trace=1*messages))
-
-            estim$estimate <- estNLMINB$par
-            hess.MLE <- hessian.log.lik(estim$estimate)
-            if(messages) {
-               grad.MLE <- grad.log.lik(estim$estimate)
-               cat("\n","Gradient at MLE:",
-                         paste(round(grad.MLE,10)),"\n")
-            }
-            estim$covariance <- solve(-hess.MLE)
-            estim$log.lik <- -estNLMINB$objective
-
-         } else if(method=="BFGS") {
-            estimBFGS <- maxBFGS(log.lik,grad.log.lik,hessian.log.lik,
-                         start.par,print.level=1*messages)
-            estim$estimate <- estimBFGS$estimate
-            if(messages) {
-               cat("\n","Gradient at MLE:",
-                         paste(round(estimBFGS$gradient,10)),"\n")
-            }
-            estim$covariance <- solve(-estimBFGS$hessian)
-            estim$log.lik <- estimBFGS$maximum
-         }
-
-      }
-   } else {
+    } else {
       log.lik <- function(par) {
-	   beta <- par[1:p]
-	   sigma2 <- exp(par[p+1])
-	   phi <- exp(par[p+2])
-	   if(length(fixed.rel.nugget)==1) {
-            nu2 <- fixed.rel.nugget
-	   } else {
-            nu2 <- exp(par[p+3])
-         }
-	   R <- varcov.spatial(dists.lowertri=U,kappa=kappa,
-	                   cov.pars=c(1,phi),nugget=nu2)$varcov
-         R.inv <- solve(R)
-         ldet.R <- determinant(R)$modulus
-         mu <- as.numeric(D%*%beta)
-         diff.y <- y-mu
-	   out <- -0.5*(n*log(sigma2)+ldet.R+
-	       t(diff.y)%*%R.inv%*%(diff.y)/sigma2)
-	   as.numeric(out)
+        beta <- par[1:p]
+        sigma2 <- exp(par[p+1])
+        phi <- exp(par[p+2])
+        if(length(fixed.rel.nugget)==1) {
+          nu2.1 <- fixed.rel.nugget
+          nu2.2 <- exp(par[p+3])
+        } else {
+          nu2.1 <- exp(par[p+3])
+          nu2.2 <- exp(par[p+4])
+        }
+
+        mu <- as.numeric(D%*%beta)
+        diff.y <- y-mu
+        diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
+
+        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+                            kappa=kappa)$varcov
+        diag(R) <- diag(R)+nu2.1
+        R.inv <- solve(R)
+        Omega <- R.inv
+        diag(Omega) <- (diag(Omega)+n.coords/nu2.2)
+        Omega <- Omega*(nu2.2^2)
+        Omega.inv <- solve(Omega)
+
+        q.f <- as.numeric(sum(diff.y^2)/nu2.2-
+                            t(diff.y.tilde)%*%Omega.inv%*%diff.y.tilde)
+        M.det <- t(R*n.coords/nu2.2)
+        diag(M.det) <- diag(M.det)+1
+        log.det.tot <- m*log(sigma2)+m*log(nu2.2)+
+          as.numeric(determinant(M.det)$modulus)
+        out <- -0.5*(log.det.tot+q.f/sigma2)
+        return(out)
       }
 
       grad.log.lik <- function(par) {
-	   beta <- par[1:p]
-         sigma2 <- exp(par[p+1])
-         phi <- exp(par[p+2])
-         if(length(fixed.rel.nugget)==1) {
-            nu2 <- fixed.rel.nugget
-	   } else {
-            nu2 <- exp(par[p+3])
-         }
+        beta <- par[1:p]
+        sigma2 <- exp(par[p+1])
+        phi <- exp(par[p+2])
+        if(length(fixed.rel.nugget)==1) {
+          nu2.1 <- fixed.rel.nugget
+          nu2.2 <- exp(par[p+3])
+        } else {
+          nu2.1 <- exp(par[p+3])
+          nu2.2 <- exp(par[p+4])
+        }
+        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+                            kappa=kappa)$varcov
+        diag(R) <- diag(R)+nu2.1
+        R.inv <- solve(R)
+        Omega.star <- R.inv
+        diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
+        Omega.star.inv <- solve(Omega.star)
 
-	   R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                    cov.pars=c(1,phi),
-	                    nugget=nu2,kappa=kappa)$varcov
 
-	   R.inv <- solve(R)
-	   R1.phi <- matern.grad.phi(U,phi,kappa)
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+        mu <- as.numeric(D%*%beta)
+        diff.y <- y-mu
+        diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
 
-         if(length(fixed.rel.nugget)==0) {
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-         }
-         mu <- D%*%beta
-         diff.y <- y-mu
-         q.f <- t(diff.y)%*%R.inv%*%diff.y
-         grad.beta <-  t(D)%*%R.inv%*%(diff.y)/sigma2
-         grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-         grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.y)%*%m2.phi%*%(diff.y))/sigma2)*phi
-         if(length(fixed.rel.nugget)==0){
-            grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/sigma2)*nu2
-            out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
-         } else {
-            out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
-         }
-         return(out)
+        v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
+        q.f1 <- sum(diff.y^2)
+        q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
+        q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
+
+        grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
+                                          v[ID.coords]/(nu2.2^2)))/sigma2
+        grad.sigma2 <- -0.5*(m-q.f/sigma2)
+
+        M.det <- t(R*n.coords/nu2.2)
+        diag(M.det) <- diag(M.det)+1
+        M.det.inv <- solve(M.det)
+
+        R1.phi <- matern.grad.phi(U,phi,kappa)*phi
+        Omega.star.R.inv <- Omega.star.inv%*%R.inv
+        der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
+        der.M.phi <- t(R1.phi*n.coords/nu2.2)
+        M1.trace.phi <- M.det.inv*t(der.M.phi)
+        trace1.phi <- sum(M1.trace.phi)
+        v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
+        q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
+        grad.phi <- -0.5*(trace1.phi-
+                            q.f.phi/((nu2.2^2)*sigma2))
+
+        if(length(fixed.rel.nugget)==0) {
+          der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
+          trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
+          v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
+                                       diff.y.tilde)
+          q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
+          grad.nu2.1 <- -0.5*(trace1.nu2.1+
+                                q.f.nu2.1/((nu2.2^2)*sigma2))
+        }
+
+        der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
+          Omega.star.inv
+        der.M.nu2.2 <- -t(R*n.coords/nu2.2)
+        M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
+        trace1.nu2.2 <- sum(M1.trace.nu2.2)
+        v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
+                                     diff.y.tilde)
+        q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
+        grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
+          -0.5*(m+trace1.nu2.2+
+                  q.f.nu2.2/((nu2.2^2)*sigma2))
+
+        ind.beta <- 1:p
+        ind.sigma2 <- p+1
+        ind.phi <- p+2
+        if(length(fixed.rel.nugget)==0) {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
+        } else {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
+        }
+
+        return(g)
       }
 
-      hess.log.lik <- function(par) {
-         beta <- par[1:p]
-	   sigma2 <- exp(par[p+1])
-	   phi <- exp(par[p+2])
-	   mu <- D%*%beta
-	   if(length(fixed.rel.nugget)==1) {
-            nu2 <- fixed.rel.nugget
-	   } else {
-	      nu2 <- exp(par[p+3])
-	   }
+      hessian.log.lik <- function(par) {
+        beta <- par[1:p]
+        sigma2 <- exp(par[p+1])
+        phi <- exp(par[p+2])
+        if(length(fixed.rel.nugget)==1) {
+          nu2.1 <- fixed.rel.nugget
+          nu2.2 <- exp(par[p+3])
+        } else {
+          nu2.1 <- exp(par[p+3])
+          nu2.2 <- exp(par[p+4])
+        }
+        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+                            kappa=kappa)$varcov
+        diag(R) <- diag(R)+nu2.1
+        R.inv <- solve(R)
+        Omega.star <- R.inv
+        diag(Omega.star) <- (diag(Omega.star)+n.coords/nu2.2)
+        Omega.star.inv <- solve(Omega.star)
 
-   	   R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                    cov.pars=c(1,phi),
-	                    nugget=nu2,kappa=kappa)$varcov
+        mu <- as.numeric(D%*%beta)
+        diff.y <- y-mu
+        diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
 
-	   R.inv <- solve(R)
-	   R1.phi <- matern.grad.phi(U,phi,kappa)
-         m1.phi <- R.inv%*%R1.phi
-         t1.phi <- -0.5*sum(diag(m1.phi))
-         m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+        v <- as.numeric(Omega.star.inv%*%diff.y.tilde)
+        q.f1 <- sum(diff.y^2)
+        q.f2 <- as.numeric(t(diff.y.tilde)%*%v)
+        q.f <- q.f1/nu2.2-q.f2/(nu2.2^2)
 
-         if(length(fixed.rel.nugget)==0) {
-            t1.nu2 <- -0.5*sum(diag(R.inv))
-            m2.nu2 <- R.inv%*%R.inv
-            t2.nu2 <- 0.5*sum(diag(m2.nu2))
-            n2.nu2 <- 2*R.inv%*%m2.nu2
-            t2.nu2.phi <- 0.5*sum(diag(R.inv%*%R1.phi%*%R.inv))
-            n2.nu2.phi <- R.inv%*%(R.inv%*%R1.phi+
-                        R1.phi%*%R.inv)%*%R.inv
-         }
+        grad.beta <- as.numeric(t(D)%*%(diff.y/nu2.2-
+                                          v[ID.coords]/(nu2.2^2)))/sigma2
+        grad.sigma2 <- -0.5*(m-q.f/sigma2)
 
-         R2.phi <- matern.hessian.phi(U,phi,kappa)
-         t2.phi <- -0.5*sum(diag(R.inv%*%R2.phi-R.inv%*%R1.phi%*%R.inv%*%R1.phi))
-         n2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
+        M.det <- t(R*n.coords/nu2.2)
+        diag(M.det) <- diag(M.det)+1
+        M.det.inv <- solve(M.det)
 
-         diff.y <- y-mu
-         q.f <- t(diff.y)%*%R.inv%*%diff.y
-         grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-         grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.y)%*%m2.phi%*%(diff.y))/sigma2)*phi
-         if(length(fixed.rel.nugget)==0){
-            grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/sigma2)*nu2
-         }
+        R1.phi <- matern.grad.phi(U,phi,kappa)*phi
+        Omega.star.R.inv <- Omega.star.inv%*%R.inv
+        der.Omega.star.inv.phi <- Omega.star.R.inv%*%R1.phi%*%t(Omega.star.R.inv)
+        der.M.phi <- t(R1.phi*n.coords/nu2.2)
+        M1.trace.phi <- M.det.inv*t(der.M.phi)
+        trace1.phi <- sum(M1.trace.phi)
+        v.beta.phi <- as.numeric(der.Omega.star.inv.phi%*%diff.y.tilde)
+        q.f.phi <-  as.numeric(t(diff.y.tilde)%*%v.beta.phi)
+        grad.phi <- -0.5*(trace1.phi-
+                            q.f.phi/((nu2.2^2)*sigma2))
 
-         H <- matrix(0,nrow=length(par),ncol=length(par))
-         H[1:p,1:p] <- -t(D)%*%R.inv%*%D/sigma2
-         H[1:p,p+1] <- H[p+1,1:p] <- -t(D)%*%R.inv%*%(diff.y)/sigma2
-         H[1:p,p+2] <- H[p+2,1:p] <- -phi*as.numeric(t(D)%*%m2.phi%*%(diff.y))/sigma2
-         H[p+1,p+1] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
-                                grad.log.sigma2
+        if(length(fixed.rel.nugget)==0) {
+          der.Omega.star.inv.nu2.1 <- -Omega.star.R.inv%*%t(Omega.star.R.inv)*nu2.1
+          trace1.nu2.1 <- sum(diag(M.det.inv)*n.coords*nu2.1/nu2.2)
+          v.beta.nu2.1 <- as.numeric(der.Omega.star.inv.nu2.1%*%
+                                       diff.y.tilde)
+          q.f.nu2.1 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.1)
+          grad.nu2.1 <- -0.5*(trace1.nu2.1+
+                                q.f.nu2.1/((nu2.2^2)*sigma2))
+        }
 
-         H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
+        der.Omega.star.inv.nu2.2 <- -t(Omega.star.inv*n.coords/nu2.2)%*%
+          Omega.star.inv
+        der.M.nu2.2 <- -t(R*n.coords/nu2.2)
+        M1.trace.nu2.2 <- M.det.inv*t(der.M.nu2.2)
+        trace1.nu2.2 <- sum(M1.trace.nu2.2)
+        v.beta.nu2.2 <- as.numeric(der.Omega.star.inv.nu2.2%*%
+                                     diff.y.tilde)
+        q.f.nu2.2 <- as.numeric(t(diff.y.tilde)%*%v.beta.nu2.2)
+        grad.nu2.2 <- -0.5*(-q.f1/nu2.2+2*q.f2/(nu2.2^2))/sigma2+
+          -0.5*(m+trace1.nu2.2+
+                  q.f.nu2.2/((nu2.2^2)*sigma2))
 
-         H[p+2,p+2] <- (t2.phi-0.5*t(diff.y)%*%n2.phi%*%(diff.y)/sigma2)*phi^2+
-                                            grad.log.phi
+        ind.beta <- 1:p
+        ind.sigma2 <- p+1
+        ind.phi <- p+2
+        if(length(fixed.rel.nugget)==0) {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.1,grad.nu2.2)
+          H <- matrix(NA,p+4,p+4)
+          ind.nu2.1 <- p+3
+          ind.nu2.2 <- p+4
+        } else {
+          g <- c(grad.beta,grad.sigma2,grad.phi,grad.nu2.2)
+          H <- matrix(NA,p+3,p+3)
+          ind.nu2.2 <- p+3
+        }
 
-         if(length(fixed.rel.nugget)==0) {
-            H[1:p,p+3] <- H[p+3,1:p] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.y))/sigma2
-            H[p+2,p+3] <- H[p+3,p+2] <- (t2.nu2.phi-0.5*t(diff.y)%*%n2.nu2.phi%*%(diff.y)/sigma2)*phi*nu2
-            H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
-            H[p+3,p+3] <- (t2.nu2-0.5*t(diff.y)%*%n2.nu2%*%(diff.y)/sigma2)*nu2^2+
-                                         grad.log.nu2
-         }
-         return(H)
+
+
+        H[ind.beta,ind.beta] <- (-DtD/nu2.2+
+                                   t(D.tilde)%*%Omega.star.inv%*%D.tilde/(nu2.2^2))/sigma2
+
+        H[ind.beta,ind.sigma2] <- H[ind.sigma2,ind.beta] <- -grad.beta
+
+        H[ind.beta,ind.phi] <- H[ind.phi,ind.beta] <- -t(D)%*%v.beta.phi[ID.coords]/((nu2.2^2)*sigma2)
+
+        if(length(fixed.rel.nugget)==0) {
+
+          H[ind.beta,ind.nu2.1] <- H[ind.nu2.1,ind.beta] <- t(D)%*%v.beta.nu2.1[ID.coords]/((nu2.2^2)*sigma2)
+
+        }
+
+        H[ind.beta,ind.nu2.2] <-
+          H[ind.nu2.2,ind.beta] <- as.numeric(t(D)%*%(-diff.y/nu2.2+2*v[ID.coords]/(nu2.2^2))/sigma2)+
+          t(D)%*%v.beta.nu2.2[ID.coords]/((nu2.2^2)*sigma2)
+
+        H[ind.sigma2,ind.sigma2] <- -0.5*q.f/sigma2
+        H[ind.sigma2,ind.phi] <- H[ind.phi,ind.sigma2] <- -(grad.phi+0.5*(trace1.phi))
+        if(length(fixed.rel.nugget)==0) {
+          H[ind.sigma2,ind.nu2.1] <- H[ind.nu2.1,ind.sigma2] <- -(grad.nu2.1+0.5*(trace1.nu2.1))
+        }
+        H[ind.sigma2,ind.nu2.2] <- H[ind.nu2.2,ind.sigma2] <- -(grad.nu2.2+0.5*(trace1.nu2.2+m))
+
+        R2.phi <- matern.hessian.phi(U,phi,kappa)*(phi^2)+
+          R1.phi
+        V1.phi <- -R.inv%*%R1.phi%*%R.inv
+        V2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
+        der2.Omega.star.inv.phi <- Omega.star.inv%*%(2*V1.phi%*%
+                                                       Omega.star.inv%*%V1.phi-V2.phi)%*%
+          Omega.star.inv
+        M2.trace.phi <- M.det.inv*((R2.phi*n.coords/nu2.2))
+        B2.phi <- M.det.inv%*%der.M.phi
+
+        trace2.phi <- sum(M2.trace.phi)-
+          sum(B2.phi*t(B2.phi))
+        H[ind.phi,ind.phi] <- -0.5*(trace2.phi-
+                                      as.numeric(t(diff.y.tilde)%*%
+                                                   der2.Omega.star.inv.phi%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+        if(length(fixed.rel.nugget)==0) {
+
+          V1.nu2.1 <- -R.inv%*%R.inv*nu2.1
+          V2.phi.nu2.1 <- nu2.1*R.inv%*%(R1.phi%*%R.inv+R.inv%*%R1.phi)%*%R.inv
+          der2.Omega.star.inv.phi.nu2.1 <- Omega.star.inv%*%(
+            V1.phi%*%Omega.star.inv%*%V1.nu2.1+
+              V1.nu2.1%*%Omega.star.inv%*%V1.phi-
+              V2.phi.nu2.1)%*%
+            Omega.star.inv
+          B2.nu2.1 <- t(t(M.det.inv)*n.coords*nu2.1/nu2.2)
+          trace2.phi.nu2.1 <- -sum(B2.phi*t(B2.nu2.1))
+
+          H[ind.phi,ind.nu2.1] <- H[ind.nu2.1,ind.phi] <- -0.5*(trace2.phi.nu2.1-
+                                                                  as.numeric(t(diff.y.tilde)%*%
+                                                                               der2.Omega.star.inv.phi.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+        }
+
+        der2.Omega.star.inv.phi.nu2.2 <- Omega.star.inv%*%(
+          V1.phi%*%t(-Omega.star.inv*
+                       n.coords/nu2.2)+
+            (-Omega.star.inv*
+               n.coords/nu2.2)%*%V1.phi)%*%
+          Omega.star.inv
+        B2.nu2.2 <- M.det.inv%*%der.M.nu2.2
+        trace2.phi.nu2.2 <- -trace1.phi-sum(B2.phi*t(B2.nu2.2))
+        H[ind.phi,ind.nu2.2] <- H[ind.nu2.2,ind.phi] <- -0.5*(trace2.phi.nu2.2+
+                                                                -as.numeric(t(diff.y.tilde)%*%
+                                                                              der2.Omega.star.inv.phi.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
+                                                                +2*q.f.phi/((nu2.2^2)*sigma2))
+
+        if(length(fixed.rel.nugget)==0) {
+          aux.nu2.1 <- 2*R.inv*(nu2.1^2)
+          diag(aux.nu2.1) <- diag(aux.nu2.1)-nu2.1
+          V2.nu2.1 <- R.inv%*%aux.nu2.1%*%R.inv
+          der2.Omega.star.inv.nu2.1 <- Omega.star.inv%*%(2*V1.nu2.1%*%
+                                                           Omega.star.inv%*%V1.nu2.1-V2.nu2.1)%*%
+            Omega.star.inv
+
+          trace2.nu2.1 <- trace1.nu2.1-
+            sum(B2.nu2.1*t(B2.nu2.1))
+
+          H[ind.nu2.1,ind.nu2.1] <- -0.5*(trace2.nu2.1-
+                                            as.numeric(t(diff.y.tilde)%*%
+                                                         der2.Omega.star.inv.nu2.1%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+          der2.Omega.star.inv.nu2.1.nu2.2 <- Omega.star.inv%*%(
+            V1.nu2.1%*%t(-Omega.star.inv*
+                           n.coords/nu2.2)+
+              (-Omega.star.inv*
+                 n.coords/nu2.2)%*%V1.nu2.1)%*%
+            Omega.star.inv
+
+          trace2.nu2.1.nu2.2 <- -trace1.nu2.1-sum(B2.nu2.1*t(B2.nu2.2))
+          H[ind.nu2.1,ind.nu2.2] <- H[ind.nu2.2,ind.nu2.1] <- -0.5*(trace2.nu2.1.nu2.2+
+                                                                      -as.numeric(t(diff.y.tilde)%*%
+                                                                                    der2.Omega.star.inv.nu2.1.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2)+
+                                                                      -2*q.f.nu2.1/((nu2.2^2)*sigma2))
+
+        }
+
+        aux.nu2.2 <- 2*t(Omega.star.inv*n.coords)*n.coords/
+          (nu2.2^2)
+        diag(aux.nu2.2) <- diag(aux.nu2.2)-n.coords/nu2.2
+        der2.Omega.star.inv.nu2.2 <- -Omega.star.inv%*%(
+          aux.nu2.2)%*%
+          Omega.star.inv
+
+        trace2.nu2.2 <- -trace1.nu2.2-
+          sum(B2.nu2.2*t(B2.nu2.2))
+        H[ind.nu2.2,ind.nu2.2] <- -0.5*(q.f1/nu2.2-4*q.f2/(nu2.2^2)-4*q.f.nu2.2/(nu2.2^2))/sigma2+
+          -0.5*(trace2.nu2.2+as.numeric(t(diff.y.tilde)%*%
+                                          der2.Omega.star.inv.nu2.2%*%diff.y.tilde)/((nu2.2^2)*sigma2))
+
+
+        return(H)
       }
       estim <- list()
-      if(method=="BFGS") {
-         estimBFGS <- maxBFGS(log.lik,grad.log.lik,hess.log.lik,
-                           start.par,print.level=1*messages)
-         estim$estimate <- estimBFGS$estimate
-         estim$covariance <- solve(-estimBFGS$hessian)
-         estim$log.lik <- estimBFGS$maximum
-      } else if(method=="nlminb") {
-         estimNLMINB <- nlminb(start.par,function(x) -log.lik(x),
-         function(x) -grad.log.lik(x),
-         function(x) -hess.log.lik(x),control=list(trace=1*messages))
-         estim$estimate <- estimNLMINB$par
-         estim$covariance <- solve(-hess.log.lik(estimNLMINB$par))
-         estim$log.lik <- -estimNLMINB$objective
+      if(method=="nlminb") {
+        estNLMINB <- nlminb(start.par,
+                            function(x) -log.lik(x),
+                            function(x) -grad.log.lik(x),
+                            function(x) -hessian.log.lik(x),
+                            control=list(trace=1*messages))
+
+        estim$estimate <- estNLMINB$par
+        hess.MLE <- hessian.log.lik(estim$estimate)
+        if(messages) {
+          grad.MLE <- grad.log.lik(estim$estimate)
+          cat("\n","Gradient at MLE:",
+              paste(round(grad.MLE,10)),"\n")
+        }
+        estim$covariance <- solve(-hess.MLE)
+        estim$log.lik <- -estNLMINB$objective
+
+      } else if(method=="BFGS") {
+        estimBFGS <- maxBFGS(log.lik,grad.log.lik,hessian.log.lik,
+                             start.par,print.level=1*messages)
+        estim$estimate <- estimBFGS$estimate
+        if(messages) {
+          cat("\n","Gradient at MLE:",
+              paste(round(estimBFGS$gradient,10)),"\n")
+        }
+        estim$covariance <- solve(-estimBFGS$hessian)
+        estim$log.lik <- estimBFGS$maximum
       }
-   }
-   names(estim$estimate)[1:p] <- colnames(D)
-   names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
-   if(length(fixed.rel.nugget)==0) names(estim$estimate)[p+3] <- "log(nu^2)"
-   if(length(ID.coords)>0) {
-      if(length(fixed.rel.nugget)==0) {
-         names(estim$estimate)[p+4] <- "log(nu.star^2)"
+
+    }
+  } else {
+    log.lik <- function(par) {
+      beta <- par[1:p]
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+      if(length(fixed.rel.nugget)==1) {
+        nu2 <- fixed.rel.nugget
       } else {
-         names(estim$estimate)[p+3] <- "log(nu.star^2)"
+        nu2 <- exp(par[p+3])
       }
-   }
-   rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
-   estim$y <- y
-   estim$D <- D
-   estim$coords <- coords
-   if(length(ID.coords)>0) estim$ID.coords <- ID.coords
-   estim$method <- method
-   estim$kappa <- kappa
-   if(length(fixed.rel.nugget)==1) {
-      estim$fixed.rel.nugget <- fixed.rel.nugget
-   } else {
-      estim$fixed.rel.nugget <- NULL
-   }
-   class(estim) <- "PrevMap"
-   return(estim)
+      R <- varcov.spatial(dists.lowertri=U,kappa=kappa,
+                          cov.pars=c(1,phi),nugget=nu2)$varcov
+      R.inv <- solve(R)
+      ldet.R <- determinant(R)$modulus
+      mu <- as.numeric(D%*%beta)
+      diff.y <- y-mu
+      out <- -0.5*(n*log(sigma2)+ldet.R+
+                     t(diff.y)%*%R.inv%*%(diff.y)/sigma2)
+      as.numeric(out)
+    }
+
+    grad.log.lik <- function(par) {
+      beta <- par[1:p]
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+      if(length(fixed.rel.nugget)==1) {
+        nu2 <- fixed.rel.nugget
+      } else {
+        nu2 <- exp(par[p+3])
+      }
+
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                          cov.pars=c(1,phi),
+                          nugget=nu2,kappa=kappa)$varcov
+
+      R.inv <- solve(R)
+      R1.phi <- matern.grad.phi(U,phi,kappa)
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+
+      if(length(fixed.rel.nugget)==0) {
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
+      }
+      mu <- D%*%beta
+      diff.y <- y-mu
+      q.f <- t(diff.y)%*%R.inv%*%diff.y
+      grad.beta <-  t(D)%*%R.inv%*%(diff.y)/sigma2
+      grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+      grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.y)%*%m2.phi%*%(diff.y))/sigma2)*phi
+      if(length(fixed.rel.nugget)==0){
+        grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/sigma2)*nu2
+        out <- c(grad.beta,grad.log.sigma2,grad.log.phi,grad.log.nu2)
+      } else {
+        out <- c(grad.beta,grad.log.sigma2,grad.log.phi)
+      }
+      return(out)
+    }
+
+    hess.log.lik <- function(par) {
+      beta <- par[1:p]
+      sigma2 <- exp(par[p+1])
+      phi <- exp(par[p+2])
+      mu <- D%*%beta
+      if(length(fixed.rel.nugget)==1) {
+        nu2 <- fixed.rel.nugget
+      } else {
+        nu2 <- exp(par[p+3])
+      }
+
+      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                          cov.pars=c(1,phi),
+                          nugget=nu2,kappa=kappa)$varcov
+
+      R.inv <- solve(R)
+      R1.phi <- matern.grad.phi(U,phi,kappa)
+      m1.phi <- R.inv%*%R1.phi
+      t1.phi <- -0.5*sum(diag(m1.phi))
+      m2.phi <- m1.phi%*%R.inv; rm(m1.phi)
+
+      if(length(fixed.rel.nugget)==0) {
+        t1.nu2 <- -0.5*sum(diag(R.inv))
+        m2.nu2 <- R.inv%*%R.inv
+        t2.nu2 <- 0.5*sum(diag(m2.nu2))
+        n2.nu2 <- 2*R.inv%*%m2.nu2
+        t2.nu2.phi <- 0.5*sum(diag(R.inv%*%R1.phi%*%R.inv))
+        n2.nu2.phi <- R.inv%*%(R.inv%*%R1.phi+
+                                 R1.phi%*%R.inv)%*%R.inv
+      }
+
+      R2.phi <- matern.hessian.phi(U,phi,kappa)
+      t2.phi <- -0.5*sum(diag(R.inv%*%R2.phi-R.inv%*%R1.phi%*%R.inv%*%R1.phi))
+      n2.phi <- R.inv%*%(2*R1.phi%*%R.inv%*%R1.phi-R2.phi)%*%R.inv
+
+      diff.y <- y-mu
+      q.f <- t(diff.y)%*%R.inv%*%diff.y
+      grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+      grad.log.phi <- (t1.phi+0.5*as.numeric(t(diff.y)%*%m2.phi%*%(diff.y))/sigma2)*phi
+      if(length(fixed.rel.nugget)==0){
+        grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/sigma2)*nu2
+      }
+
+      H <- matrix(0,nrow=length(par),ncol=length(par))
+      H[1:p,1:p] <- -t(D)%*%R.inv%*%D/sigma2
+      H[1:p,p+1] <- H[p+1,1:p] <- -t(D)%*%R.inv%*%(diff.y)/sigma2
+      H[1:p,p+2] <- H[p+2,1:p] <- -phi*as.numeric(t(D)%*%m2.phi%*%(diff.y))/sigma2
+      H[p+1,p+1] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
+        grad.log.sigma2
+
+      H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.phi/phi-t1.phi)*(-phi)
+
+      H[p+2,p+2] <- (t2.phi-0.5*t(diff.y)%*%n2.phi%*%(diff.y)/sigma2)*phi^2+
+        grad.log.phi
+
+      if(length(fixed.rel.nugget)==0) {
+        H[1:p,p+3] <- H[p+3,1:p] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.y))/sigma2
+        H[p+2,p+3] <- H[p+3,p+2] <- (t2.nu2.phi-0.5*t(diff.y)%*%n2.nu2.phi%*%(diff.y)/sigma2)*phi*nu2
+        H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
+        H[p+3,p+3] <- (t2.nu2-0.5*t(diff.y)%*%n2.nu2%*%(diff.y)/sigma2)*nu2^2+
+          grad.log.nu2
+      }
+      return(H)
+    }
+    estim <- list()
+    if(method=="BFGS") {
+      estimBFGS <- maxBFGS(log.lik,grad.log.lik,hess.log.lik,
+                           start.par,print.level=1*messages)
+      estim$estimate <- estimBFGS$estimate
+      estim$covariance <- solve(-estimBFGS$hessian)
+      estim$log.lik <- estimBFGS$maximum
+    } else if(method=="nlminb") {
+      estimNLMINB <- nlminb(start.par,function(x) -log.lik(x),
+                            function(x) -grad.log.lik(x),
+                            function(x) -hess.log.lik(x),control=list(trace=1*messages))
+      estim$estimate <- estimNLMINB$par
+      estim$covariance <- solve(-hess.log.lik(estimNLMINB$par))
+      estim$log.lik <- -estimNLMINB$objective
+    }
+  }
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
+  if(length(fixed.rel.nugget)==0) names(estim$estimate)[p+3] <- "log(nu^2)"
+  if(length(ID.coords)>0) {
+    if(length(fixed.rel.nugget)==0) {
+      names(estim$estimate)[p+4] <- "log(nu.star^2)"
+    } else {
+      names(estim$estimate)[p+3] <- "log(nu.star^2)"
+    }
+  }
+  rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
+  estim$y <- y
+  estim$D <- D
+  estim$coords <- coords
+  if(length(ID.coords)>0) estim$ID.coords <- ID.coords
+  estim$method <- method
+  estim$kappa <- kappa
+  if(length(fixed.rel.nugget)==1) {
+    estim$fixed.rel.nugget <- fixed.rel.nugget
+  } else {
+    estim$fixed.rel.nugget <- NULL
+  }
+  class(estim) <- "PrevMap"
+  return(estim)
 }
 
 ##' @title Spatial predictions for the geostatistical Linear Gaussian model using plug-in of ML estimates
@@ -3800,7 +3894,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only marginal predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
-##' @param n.sim.prev number of simulation for predictions of prevalence. Default is \code{n.sim.prev=1000}.
+##' @param n.sim.prev number of simulation for predictions of prevalence. Default is \code{n.sim.prev=0}.
 ##' @param standard.errors logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.
 ##' @param thresholds a vector of exceedance thresholds; default is \code{thresholds=NULL}.
 ##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.
@@ -3811,6 +3905,8 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 ##' @return \code{predictions}: a vector of the predictive mean for the associated quantity (logit, odds or prevalence).
 ##' @return \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
 ##' @return \code{quantiles}: a matrix of quantiles of the resulting predictions with each column corresponding to a quantile specified through the argument \code{quantiles}.
+##'
+##' @return \code{samples}: If \code{n.sim.prev > 0}, the function returns \code{n.sim.prev} samples of the linear predictor at each of the prediction locations.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
@@ -3821,280 +3917,282 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
                                     type="marginal",
                                     scale.predictions=c("logit","prevalence","odds"),
-                                    quantiles=c(0.025,0.975),n.sim.prev=1000,
+                                    quantiles=c(0.025,0.975),n.sim.prev=0,
                                     standard.errors=FALSE,
                                     thresholds=NULL,scale.thresholds=NULL,
                                     messages=TRUE,include.nugget=FALSE) {
-   linear.ID.coords <- length(object$ID.coords) > 0 &
-                       substr(object$call[1],1,6)=="linear"
-   if(linear.ID.coords & messages & !include.nugget) cat("NOTE: the nugget effect IS NOT included in the predictions. \n")
-   if(linear.ID.coords & messages & include.nugget) cat("NOTE: the nugget effect IS included in the predictions. \n")
-   if(include.nugget & !linear.ID.coords) warning("the argument 'include.nugget' is ignored; the option of
-   including the nugget effect in the target predictions is
-   available only for models having locations with multiple observations.")
-   if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-   if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-   if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
-   p <- ncol(object$D)
-   kappa <- object$kappa
-   n.pred <- nrow(grid.pred)
-   coords <- object$coords
-   out <- list()
+  linear.ID.coords <- length(object$ID.coords) > 0 &
+    substr(object$call[1],1,6)=="linear"
+  if(scale.predictions=="prevalence" & n.sim.prev==0) stop("To predict prevalence, a poisitive number of simulations in 'n.sim.prev' must be provided.")
+  if(linear.ID.coords & messages & !include.nugget) cat("NOTE: the nugget effect IS NOT included in the predictions. \n")
+  if(linear.ID.coords & messages & include.nugget) cat("NOTE: the nugget effect IS included in the predictions. \n")
+  if(include.nugget & !linear.ID.coords) warning("the argument 'include.nugget' is ignored; the option of
+                                                 including the nugget effect in the target predictions is
+                                                 available only for models having locations with multiple observations.")
+  if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  p <- ncol(object$D)
+  kappa <- object$kappa
+  n.pred <- nrow(grid.pred)
+  coords <- object$coords
+  out <- list()
 
-   for(i in 1:length(scale.predictions)) {
-      if(any(c("logit","prevalence","odds")==scale.predictions[i])==
-		          FALSE) stop("invalid scale.predictions")
-   }
-   if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
+  for(i in 1:length(scale.predictions)) {
+    if(any(c("logit","prevalence","odds")==scale.predictions[i])==
+       FALSE) stop("invalid scale.predictions")
+  }
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
 
 
-   if(length(thresholds)>0) {
-      if(any(c("logit","prevalence","odds")==scale.thresholds)==FALSE) {
-	   stop("scale thresholds must be logit, prevalence or odds scale.")
-	}
-   }
-   if(length(thresholds)==0 & length(scale.thresholds)>0 |
-      length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
+  if(length(thresholds)>0) {
+    if(any(c("logit","prevalence","odds")==scale.thresholds)==FALSE) {
+      stop("scale thresholds must be logit, prevalence or odds scale.")
+    }
+  }
+  if(length(thresholds)==0 & length(scale.thresholds)>0 |
+     length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
 
-   if(p==1) {
-	predictors <- matrix(1,nrow=n.pred)
-   } else {
-	if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-	predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
-	if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-	if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
-   }
+  if(p==1) {
+    predictors <- matrix(1,nrow=n.pred)
+  } else {
+    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+  }
 
-   beta <- object$estimate[1:p]
-   mu <- as.numeric(object$D%*%beta)
-   ck <- length(dim(object$knots)) > 0
-   if(ck & type=="joint") {
-      warning("only marginal predictions are available for the low-rank approximation.")
-    	type<-"marginal"
-   }
-   spde <- length(object$mesh)>0
+  beta <- object$estimate[1:p]
+  mu <- as.numeric(object$D%*%beta)
+  ck <- length(dim(object$knots)) > 0
+  if(ck & type=="joint") {
+    warning("only marginal predictions are available for the low-rank approximation.")
+    type<-"marginal"
+  }
+  spde <- length(object$mesh)>0
 
-   if(spde) {
-      grid.pred <- as.matrix(grid.pred)
-      beta <- object$estimate[1:p]
-      nu2.marg <- exp(object$estimate[p+3])
-      sigma2.marg <- exp(object$estimate[p+1])
-      tau2 <- sigma2.marg*nu2.marg
-      phi <- exp(object$estimate[p+2])
-      omega <- 1/phi
+  if(spde) {
+    grid.pred <- as.matrix(grid.pred)
+    beta <- object$estimate[1:p]
+    nu2.marg <- exp(object$estimate[p+3])
+    sigma2.marg <- exp(object$estimate[p+1])
+    tau2 <- sigma2.marg*nu2.marg
+    phi <- exp(object$estimate[p+2])
+    omega <- 1/phi
 
-      sigma2 <- sigma2.marg*4*pi*(omega^2)
+    sigma2 <- sigma2.marg*4*pi*(omega^2)
 
-      A <- INLA::inla.spde.make.A(object$mesh,loc=coords)
-      A.pred <- INLA::inla.spde.make.A(object$mesh,loc=grid.pred)
-      mu.pred <- as.numeric(predictors%*%beta)
+    A <- INLA::inla.spde.make.A(object$mesh,loc=coords)
+    A.pred <- INLA::inla.spde.make.A(object$mesh,loc=grid.pred)
+    mu.pred <- as.numeric(predictors%*%beta)
 
-      mesh.fem <- INLA::inla.mesh.fem(object$mesh,order=1)
-      AtA <- t(A)%*%A
-      Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
-           mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
-      Q.cond <- Q/sigma2+AtA/tau2
+    mesh.fem <- INLA::inla.mesh.fem(object$mesh,order=1)
+    AtA <- t(A)%*%A
+    Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
+            mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
+    Q.cond <- Q/sigma2+AtA/tau2
+    diff.y <- object$y-mu
+    At.diff.y.std <- as.numeric(t(A)%*%diff.y/tau2)
+    mu.X.cond <- as.numeric(solve(Q.cond,At.diff.y.std))
+
+    mu.cond <- mu.pred+as.numeric(A.pred%*%mu.X.cond)
+
+    M.aux.pred <- solve(Q.cond,t(A.pred))
+
+    sd.cond <- sqrt(apply(A.pred*t(M.aux.pred),1,sum))
+
+  } else if(ck) {
+    sigma2 <- exp(object$estimate[p+1])/object$const.sigma2
+    rho <- 2*sqrt(object$kappa)*exp(object$estimate[p+2])
+    if(length(object$fixed.rel.nugget)==0){
+      tau2 <- sigma2*exp(object$estimate[p+3])
+    } else {
+      tau2 <- object$fixed.rel.nugget*sigma2
+    }
+
+    inv.vcov <- function(nu2,A,K) {
+      mat <- (nu2^(-1))*A
+      diag(mat) <- diag(mat)+1
+      mat <- solve(mat)
+      mat <- -(nu2^(-1))*K%*%mat%*%t(K)
+      diag(mat) <- diag(mat)+1
+      mat*(nu2^(-1))
+    }
+
+    mu.pred <- as.numeric(predictors%*%beta)
+    U.k <- as.matrix(pdist(coords,object$knots))
+    U.k.pred <- as.matrix(pdist(grid.pred,object$knots))
+    K <- matern.kernel(U.k,rho,kappa)
+    K.pred <- matern.kernel(U.k.pred,rho,kappa)
+
+    C <- K.pred%*%t(K)*sigma2
+    Sigma.inv <- inv.vcov(tau2/sigma2,t(K)%*%K,K)/sigma2
+    A <- C%*%Sigma.inv
+
+    mu.cond <- as.vector(mu.pred+C%*%Sigma.inv%*%(object$y-mu))
+    sd.cond <- sqrt(sigma2*apply(K.pred,1,function(x) sum(x^2))-
+                      apply(A*C,1,sum))
+
+  } else {
+    sigma2 <- exp(object$estimate[p+1])
+    phi <- exp(object$estimate[p+2])
+    if(length(object$fixed.rel.nugget)==0){
+      tau2 <- sigma2*exp(object$estimate[p+3])
+      if(linear.ID.coords) omega2 <- sigma2*exp(object$estimate[p+4])
+    } else {
+      tau2 <- object$fixed.rel.nugget*sigma2
+      if(linear.ID.coords) omega2 <- sigma2*exp(object$estimate[p+3])
+    }
+    mu.pred <- as.numeric(predictors%*%beta)
+
+    U <- dist(coords)
+    U.pred.coords <- as.matrix(pdist(grid.pred,coords))
+    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
+    Sigma.inv <- solve(Sigma)
+    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    if(linear.ID.coords) {
+      nu2.2 <- omega2/sigma2
+      n.coords <- as.numeric(tapply(object$ID.coords,object$ID.coords,length))
       diff.y <- object$y-mu
-      At.diff.y.std <- as.numeric(t(A)%*%diff.y/tau2)
-      mu.X.cond <- as.numeric(solve(Q.cond,At.diff.y.std))
+      diff.y.tilde <- tapply(diff.y, object$ID.coords,sum)
+      Omega.star <- Sigma.inv*sigma2
+      diag(Omega.star) <- diag(Omega.star)+n.coords/nu2.2
+      Omega.star.inv <- solve(Omega.star)
+      M.sd <- Omega.star.inv%*%(t(C)*n.coords)
+      mu.cond <- mu.pred+C%*%diff.y.tilde/(sigma2*nu2.2)+
+        -t(t(C)*n.coords)%*%Omega.star.inv%*%diff.y.tilde/
+        (sigma2*nu2.2^2)
 
-      mu.cond <- mu.pred+as.numeric(A.pred%*%mu.X.cond)
+      if(type=="marginal") {
+        if(include.nugget) {
+          sd.cond <- sqrt(sigma2+tau2-
+                            apply(
+                              (t(t(C)*n.coords)*C)/(sigma2*nu2.2)+
+                                -t(t(C)*n.coords)*t(M.sd)/(sigma2*nu2.2^2),1,sum))
 
-      M.aux.pred <- solve(Q.cond,t(A.pred))
-
-      sd.cond <- sqrt(apply(A.pred*t(M.aux.pred),1,sum))
-
-   } else if(ck) {
-      sigma2 <- exp(object$estimate[p+1])/object$const.sigma2
-	rho <- 2*sqrt(object$kappa)*exp(object$estimate[p+2])
-	if(length(object$fixed.rel.nugget)==0){
-	   tau2 <- sigma2*exp(object$estimate[p+3])
-	} else {
-	   tau2 <- object$fixed.rel.nugget*sigma2
-	}
-
-      inv.vcov <- function(nu2,A,K) {
-	   mat <- (nu2^(-1))*A
-	   diag(mat) <- diag(mat)+1
-	   mat <- solve(mat)
-	   mat <- -(nu2^(-1))*K%*%mat%*%t(K)
-         diag(mat) <- diag(mat)+1
-         mat*(nu2^(-1))
+        } else {
+          sd.cond <- sqrt(sigma2-
+                            apply(
+                              (t(t(C)*n.coords)*C)/(sigma2*nu2.2)+
+                                -t(t(C)*n.coords)*t(M.sd)/(sigma2*nu2.2^2),1,sum))
+        }
       }
-
-      mu.pred <- as.numeric(predictors%*%beta)
-      U.k <- as.matrix(pdist(coords,object$knots))
-	U.k.pred <- as.matrix(pdist(grid.pred,object$knots))
-	K <- matern.kernel(U.k,rho,kappa)
-	K.pred <- matern.kernel(U.k.pred,rho,kappa)
-
-      C <- K.pred%*%t(K)*sigma2
-      Sigma.inv <- inv.vcov(tau2/sigma2,t(K)%*%K,K)/sigma2
+    } else {
       A <- C%*%Sigma.inv
 
-      mu.cond <- as.vector(mu.pred+C%*%Sigma.inv%*%(object$y-mu))
-      sd.cond <- sqrt(sigma2*apply(K.pred,1,function(x) sum(x^2))-
-                 apply(A*C,1,sum))
+      mu.cond <- as.numeric(mu.pred+A%*%(object$y-mu))
+      if(type=="marginal") sd.cond <- sqrt(sigma2-apply(A*C,1,sum))
+    }
+  }
 
-   } else {
-	sigma2 <- exp(object$estimate[p+1])
-	phi <- exp(object$estimate[p+2])
-	if(length(object$fixed.rel.nugget)==0){
-	   tau2 <- sigma2*exp(object$estimate[p+3])
-         if(linear.ID.coords) omega2 <- sigma2*exp(object$estimate[p+4])
-	} else {
-	   tau2 <- object$fixed.rel.nugget*sigma2
-         if(linear.ID.coords) omega2 <- sigma2*exp(object$estimate[p+3])
-	}
-      mu.pred <- as.numeric(predictors%*%beta)
-
-	U <- dist(coords)
-	U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-	Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
-	Sigma.inv <- solve(Sigma)
-      C <- sigma2*matern(U.pred.coords,phi,kappa)
-      if(linear.ID.coords) {
-         nu2.2 <- omega2/sigma2
-         n.coords <- as.numeric(tapply(object$ID.coords,object$ID.coords,length))
-         diff.y <- object$y-mu
-         diff.y.tilde <- tapply(diff.y, object$ID.coords,sum)
-         Omega.star <- Sigma.inv*sigma2
-         diag(Omega.star) <- diag(Omega.star)+n.coords/nu2.2
-         Omega.star.inv <- solve(Omega.star)
-         M.sd <- Omega.star.inv%*%(t(C)*n.coords)
-         mu.cond <- mu.pred+C%*%diff.y.tilde/(sigma2*nu2.2)+
-                    -t(t(C)*n.coords)%*%Omega.star.inv%*%diff.y.tilde/
-                   (sigma2*nu2.2^2)
-
-         if(type=="marginal") {
-            if(include.nugget) {
-               sd.cond <- sqrt(sigma2+tau2-
-                       apply(
-                       (t(t(C)*n.coords)*C)/(sigma2*nu2.2)+
-                       -t(t(C)*n.coords)*t(M.sd)/(sigma2*nu2.2^2),1,sum))
-
-            } else {
-               sd.cond <- sqrt(sigma2-
-                          apply(
-                          (t(t(C)*n.coords)*C)/(sigma2*nu2.2)+
-                          -t(t(C)*n.coords)*t(M.sd)/(sigma2*nu2.2^2),1,sum))
-            }
-         }
+  if(type=="joint" & any(scale.predictions=="prevalence")) {
+    if(messages) cat("Type of prevalence predictions: joint (this step might be demanding) \n")
+    if(linear.ID.coords) {
+      if(include.nugget) {
+        Sigma.pred <-  varcov.spatial(coords=grid.pred,
+                                      cov.model="matern",nugget=tau2,
+                                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
       } else {
-         A <- C%*%Sigma.inv
+        Sigma.pred <-  varcov.spatial(coords=grid.pred,
+                                      cov.model="matern",nugget=0,
+                                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
 
-         mu.cond <- as.numeric(mu.pred+A%*%(object$y-mu))
-	   if(type=="marginal") sd.cond <- sqrt(sigma2-apply(A*C,1,sum))
       }
-   }
+      Sigma.cond <- Sigma.pred+
+        -t(t(C)*n.coords)%*%t(C)/(sigma2*nu2.2)+
+        t(t(C)*n.coords)%*%M.sd/(sigma2*nu2.2^2)
+      sd.cond <- sqrt(diag(Sigma.cond))
+    } else if(!spde) {
+      A <- C%*%Sigma.inv
+      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+                                    cov.pars=c(sigma2,phi),kappa=kappa)$varcov
+      Sigma.cond <- Sigma.pred - A%*%t(C)
+      sd.cond <- sqrt(diag(Sigma.cond))
+    }
+  }
 
-   if(type=="joint" & any(scale.predictions=="prevalence")) {
-      if(messages) cat("Type of prevalence predictions: joint (this step might be demanding) \n")
-      if(linear.ID.coords) {
-         if(include.nugget) {
-            Sigma.pred <-  varcov.spatial(coords=grid.pred,
-                           cov.model="matern",nugget=tau2,
-	                     cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-         } else {
-            Sigma.pred <-  varcov.spatial(coords=grid.pred,
-                           cov.model="matern",nugget=0,
-	                     cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-
-         }
-         Sigma.cond <- Sigma.pred+
-                       -t(t(C)*n.coords)%*%t(C)/(sigma2*nu2.2)+
-                       t(t(C)*n.coords)%*%M.sd/(sigma2*nu2.2^2)
-         sd.cond <- sqrt(diag(Sigma.cond))
-      } else if(!spde) {
-         A <- C%*%Sigma.inv
-    	   Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
-	                cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-         Sigma.cond <- Sigma.pred - A%*%t(C)
-	   sd.cond <- sqrt(diag(Sigma.cond))
+  if(any(scale.predictions=="prevalence") | n.sim.prev > 0) {
+    if(type=="marginal") {
+      if(messages) cat("Type of prevalence predictions: marginal \n")
+      eta.sim <- sapply(1:n.sim.prev, function(i) rnorm(n.pred,mu.cond,sd.cond))
+    } else if(type=="joint") {
+      if(spde) {
+        X.samples <- INLA::inla.qsample(n.sim.prev,Q.cond,mu=mu.X.cond)
+        eta.sim <- sapply(1:n.sim.prev,function(i)
+        mu.pred + as.numeric(A.pred%*%X.samples[,i]))
+      } else {
+        Sigma.cond.sroot <- t(chol(Sigma.cond))
+        eta.sim <- sapply(1:n.sim.prev, function(i) mu.cond+Sigma.cond.sroot%*%rnorm(n.pred))
       }
-   }
+    }
+    out$samples <- eta.sim
+  }
 
-   if(any(scale.predictions=="prevalence")) {
-      if(type=="marginal") {
-         if(messages) cat("Type of prevalence predictions: marginal \n")
-         eta.sim <- sapply(1:n.sim.prev, function(i) rnorm(n.pred,mu.cond,sd.cond))
-      } else if(type=="joint") {
-         if(spde) {
-            X.samples <- INLA::inla.qsample(n.sim.prev,Q.cond,mu=mu.X.cond)
-            eta.sim <- sapply(1:n.sim.prev,function(i)
-                       mu.pred + as.numeric(A.pred%*%X.samples[,i]))
-         } else {
-            Sigma.cond.sroot <- t(chol(Sigma.cond))
-            eta.sim <- sapply(1:n.sim.prev, function(i) mu.cond+Sigma.cond.sroot%*%rnorm(n.pred))
-         }
-      }
-   }
+  if(any(scale.predictions=="logit")) {
+    if(messages) cat("Spatial predictions: logit \n")
+    out$logit$predictions <-  mu.cond
+    if(standard.errors) {
+      out$logit$standard.errors <- sd.cond
+    }
+    if(length(quantiles) > 0) {
+      out$logit$quantiles <- sapply(quantiles,function(q) qnorm(q,mean=mu.cond,sd=sd.cond))
+    }
 
-   if(any(scale.predictions=="logit")) {
-      if(messages) cat("Spatial predictions: logit \n")
-    	out$logit$predictions <-  mu.cond
-      if(standard.errors) {
-         out$logit$standard.errors <- sd.cond
-      }
-      if(length(quantiles) > 0) {
-         out$logit$quantiles <- sapply(quantiles,function(q) qnorm(q,mean=mu.cond,sd=sd.cond))
-      }
-
-      if(length(thresholds) > 0 && scale.thresholds=="logit") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-         out$exceedance.prob <- sapply(thresholds, function(x)
-                                                           1-pnorm(x,mean=mu.cond,sd=sd.cond))
-         colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-      }
-   }
+    if(length(thresholds) > 0 && scale.thresholds=="logit") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      out$exceedance.prob <- sapply(thresholds, function(x)
+        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+    }
+  }
 
 
-   if(any(scale.predictions=="prevalence")) {
-      if(messages) cat("Spatial predictions: prevalence \n")
-      prev.sim <- 1/(1+exp(-eta.sim))
-      out$prevalence$predictions <- apply(prev.sim,1,mean)
-      if(standard.errors) {
-         out$prevalence$standard.errors <- apply(prev.sim,1,sd)
-      }
+  if(any(scale.predictions=="prevalence")) {
+    if(messages) cat("Spatial predictions: prevalence \n")
+    prev.sim <- 1/(1+exp(-eta.sim))
+    out$prevalence$predictions <- apply(prev.sim,1,mean)
+    if(standard.errors) {
+      out$prevalence$standard.errors <- apply(prev.sim,1,sd)
+    }
 
-      if(length(quantiles) > 0) {
-         out$prevalence$quantiles <- t(apply(prev.sim,1,
-                                     function(r) quantile(r,quantiles)))
-      }
+    if(length(quantiles) > 0) {
+      out$prevalence$quantiles <- t(apply(prev.sim,1,
+                                          function(r) quantile(r,quantiles)))
+    }
 
-      if(length(thresholds) > 0 && scale.thresholds=="prevalence") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-         out$exceedance.prob <- sapply(log(thresholds/(1-thresholds)), function(x)
-                                                           1-pnorm(x,mean=mu.cond,sd=sd.cond))
-         colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-      }
-   }
+    if(length(thresholds) > 0 && scale.thresholds=="prevalence") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      out$exceedance.prob <- sapply(log(thresholds/(1-thresholds)), function(x)
+        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+    }
+  }
 
-   if(any(scale.predictions=="odds")) {
-      if(messages) cat("Spatial predictions: odds \n")
-      out$odds$predictions <- exp(mu.cond+0.5*(sd.cond^2))
-      if(standard.errors) {
-         out$odds$standard.errors <- sqrt(exp(2*mu.cond+sd.cond^2)*(exp(sd.cond^2)-1))
-      }
+  if(any(scale.predictions=="odds")) {
+    if(messages) cat("Spatial predictions: odds \n")
+    out$odds$predictions <- exp(mu.cond+0.5*(sd.cond^2))
+    if(standard.errors) {
+      out$odds$standard.errors <- sqrt(exp(2*mu.cond+sd.cond^2)*(exp(sd.cond^2)-1))
+    }
 
-      if(length(quantiles) > 0) {
-         out$odds$quantiles <- sapply(quantiles,function(q) qlnorm(q,meanlog=mu.cond,sdlog=sd.cond))
-      }
+    if(length(quantiles) > 0) {
+      out$odds$quantiles <- sapply(quantiles,function(q) qlnorm(q,meanlog=mu.cond,sdlog=sd.cond))
+    }
 
-      if(length(thresholds) > 0 && scale.thresholds=="odds") {
-         out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-         out$exceedance.prob <- sapply(log(thresholds), function(x)
-                                                           1-pnorm(x,mean=mu.cond,sd=sd.cond))
-         colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-      }
-   }
-   out$grid.pred <- grid.pred
-   if(any(scale.predictions=="prevalence")) {
-      out$samples <- eta.sim
-   }
-   class(out) <- "pred.PrevMap"
-   out
+    if(length(thresholds) > 0 && scale.thresholds=="odds") {
+      out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+      out$exceedance.prob <- sapply(log(thresholds), function(x)
+        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+    }
+  }
+  out$grid.pred <- grid.pred
+  if(any(scale.predictions=="prevalence")) {
+    out$samples <- eta.sim
+  }
+  class(out) <- "pred.PrevMap"
+  out
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -4102,246 +4200,246 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 ##' @importFrom maxLik maxBFGS
 ##' @importFrom pdist pdist
 geo.linear.MLE.lr <- function(formula,coords,knots,data,kappa,start.cov.pars,
-                                           method="BFGS",messages=TRUE) {
-    knots <- as.matrix(knots)
-    start.cov.pars <- as.numeric(start.cov.pars)
-    kappa <- as.numeric(kappa)
-    	coords <- as.matrix(model.frame(coords,data))
-	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-	if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
-	mf <- model.frame(formula,data=data)
-	y <- as.numeric(model.response(mf))
-	n <- length(y)
-	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-	p <- ncol(D)
+                              method="BFGS",messages=TRUE) {
+  knots <- as.matrix(knots)
+  start.cov.pars <- as.numeric(start.cov.pars)
+  kappa <- as.numeric(kappa)
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
 
-	if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
+  if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
 
-    U.k <- as.matrix(pdist(coords,knots))
+  U.k <- as.matrix(pdist(coords,knots))
 
-    log.det.vcov <- function(nu2,A) {
-	   mat <- A/nu2
-	   diag(mat) <- diag(mat)+1
-	   determinant(mat)$modulus+(n*log(nu2))
+  log.det.vcov <- function(nu2,A) {
+    mat <- A/nu2
+    diag(mat) <- diag(mat)+1
+    determinant(mat)$modulus+(n*log(nu2))
+  }
+
+  inv.vcov <- function(nu2,A,K) {
+    mat <- (nu2^(-1))*A
+    diag(mat) <- diag(mat)+1
+    mat <- solve(mat)
+    mat <- -(nu2^(-1))*K%*%mat%*%t(K)
+    diag(mat) <- diag(mat)+1
+    mat*(nu2^(-1))
+  }
+
+  if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
+  start.cov.pars[1] <- 2*sqrt(kappa)*start.cov.pars[1]
+  K.start <- matern.kernel(U.k,start.cov.pars[1],kappa)
+  A.start <- t(K.start)%*%K.start
+  R.inv <- inv.vcov(start.cov.pars[2],A.start,K.start)
+  beta.start <- as.numeric(solve(t(D)%*%R.inv%*%D)%*%t(D)%*%R.inv%*%y)
+  diff.b <- y-D%*%beta.start
+  sigma2.start <- as.numeric(t(diff.b)%*%R.inv%*%diff.b/length(y))
+  start.par <- c(beta.start,sigma2.start,start.cov.pars)
+
+  start.par[-(1:p)] <- log(start.par[-(1:p)])
+  der.rho <- function(u,rho,kappa) {
+    u <- u+10e-16
+    if(kappa==2) {
+      out <- ((2^(7/2)*u-4*rho)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^3)
+    } else {
+      out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-5/2)*u^(kappa/2-1/2)*
+                (2*sqrt(kappa)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*
+                   u+2*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*
+                   u-besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho-
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho))/
+        (sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
     }
+    out
+  }
 
-    inv.vcov <- function(nu2,A,K) {
-	   mat <- (nu2^(-1))*A
-	   diag(mat) <- diag(mat)+1
-	   mat <- solve(mat)
-	   mat <- -(nu2^(-1))*K%*%mat%*%t(K)
-       diag(mat) <- diag(mat)+1
-       mat*(nu2^(-1))
+  der2.rho <- function(u,rho,kappa) {
+    u <- u+10e-16
+    if(kappa==2) {
+      out <- (8*(4*u^2-2^(5/2)*rho*u+rho^2)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^5)
+    } else {
+      out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-9/2)*u^(kappa/2-1/2)*
+                (4*kappa*besselK((2*sqrt(kappa)*u)/rho,(kappa+3)/2)*u^2+
+                   8*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*u^2+
+                   4*besselK((2*sqrt(kappa)*u)/rho,(kappa-5)/2)*kappa*u^2-
+                   4*kappa^(3/2)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-12*sqrt(kappa)*
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-4*
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*kappa^(3/2)*rho*u-
+                   12*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*rho*u+
+                   besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa^2*rho^2+
+                   4*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho^2+
+                   3*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho^2))/
+        (2*sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
     }
+    out
+  }
 
-    if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
-    start.cov.pars[1] <- 2*sqrt(kappa)*start.cov.pars[1]
-    K.start <- matern.kernel(U.k,start.cov.pars[1],kappa)
-    A.start <- t(K.start)%*%K.start
-    R.inv <- inv.vcov(start.cov.pars[2],A.start,K.start)
-    beta.start <- as.numeric(solve(t(D)%*%R.inv%*%D)%*%t(D)%*%R.inv%*%y)
-    diff.b <- y-D%*%beta.start
-    sigma2.start <- as.numeric(t(diff.b)%*%R.inv%*%diff.b/length(y))
-    start.par <- c(beta.start,sigma2.start,start.cov.pars)
+  log.lik <- function(par) {
+    beta <- par[1:p]
+    sigma2 <- exp(par[p+1])
+    rho <- exp(par[p+2])
+    nu2 <- exp(par[p+3])
 
-    start.par[-(1:p)] <- log(start.par[-(1:p)])
-    der.rho <- function(u,rho,kappa) {
-        u <- u+10e-16
-        if(kappa==2) {
-           out <- ((2^(7/2)*u-4*rho)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^3)
-        } else {
-           out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-5/2)*u^(kappa/2-1/2)*
-                     (2*sqrt(kappa)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*
-                     u+2*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*
-                     u-besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho-
-                     besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho))/
-                     (sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
-        }
-        out
-     }
+    K <- matern.kernel(U.k,rho,kappa)
+    A <- t(K)%*%K
+    R.inv <- inv.vcov(nu2,A,K)
+    ldet.R <- log.det.vcov(nu2,A)
+    mu <- as.numeric(D%*%beta)
+    diff.y <- y-mu
+    out <- -0.5*(n*log(sigma2)+ldet.R+
+                   t(diff.y)%*%R.inv%*%(diff.y)/sigma2)
+    as.numeric(out)
+  }
 
-    der2.rho <- function(u,rho,kappa) {
-        u <- u+10e-16
-        if(kappa==2) {
-          	out <- (8*(4*u^2-2^(5/2)*rho*u+rho^2)*exp(-(2^(3/2)*u)/rho))/(sqrt(pi)*rho^5)
-        } else {
-            out <- (kappa^(kappa/4+1/4)*sqrt(gamma(kappa+1))*rho^(-kappa/2-9/2)*u^(kappa/2-1/2)*
-                      (4*kappa*besselK((2*sqrt(kappa)*u)/rho,(kappa+3)/2)*u^2+
-                      8*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*u^2+
-                      4*besselK((2*sqrt(kappa)*u)/rho,(kappa-5)/2)*kappa*u^2-
-                      4*kappa^(3/2)*besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-12*sqrt(kappa)*
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa+1)/2)*rho*u-4*
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*kappa^(3/2)*rho*u-
-                      12*besselK((2*sqrt(kappa)*u)/rho,(kappa-3)/2)*sqrt(kappa)*rho*u+
-                      besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa^2*rho^2+
-                      4*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*kappa*rho^2+
-                      3*besselK((2*sqrt(kappa)*u)/rho,(kappa-1)/2)*rho^2))/
-                     (2*sqrt(gamma(kappa))*gamma((kappa+1)/2)*sqrt(pi))
-        }
-        out
-    }
+  grad.log.lik <- function(par) {
+    beta <- par[1:p]
+    sigma2 <- exp(par[p+1])
+    rho <- exp(par[p+2])
+    nu2 <- 	exp(par[p+3])
 
-	log.lik <- function(par) {
-		beta <- par[1:p]
-		sigma2 <- exp(par[p+1])
-		rho <- exp(par[p+2])
-		nu2 <- exp(par[p+3])
-
-	    K <- matern.kernel(U.k,rho,kappa)
-	    A <- t(K)%*%K
-        R.inv <- inv.vcov(nu2,A,K)
-        ldet.R <- log.det.vcov(nu2,A)
-        mu <- as.numeric(D%*%beta)
-        diff.y <- y-mu
-	    out <- -0.5*(n*log(sigma2)+ldet.R+
-	               t(diff.y)%*%R.inv%*%(diff.y)/sigma2)
-	    as.numeric(out)
-	 }
-
-	 grad.log.lik <- function(par) {
-	 	beta <- par[1:p]
-		sigma2 <- exp(par[p+1])
-		rho <- exp(par[p+2])
-		nu2 <- 	exp(par[p+3])
-
-		K <- matern.kernel(U.k,rho,kappa)
-	    A <- t(K)%*%K
-	    R.inv <- inv.vcov(nu2,A,K)
-	    K.d <- der.rho(U.k,rho,kappa)
-	    R1.rho <- K.d%*%t(K)+K%*%t(K.d)
-        m1.rho <- R.inv%*%R1.rho
-        t1.rho <- -0.5*sum(diag(m1.rho))
-        m2.rho <- m1.rho%*%R.inv; rm(m1.rho)
+    K <- matern.kernel(U.k,rho,kappa)
+    A <- t(K)%*%K
+    R.inv <- inv.vcov(nu2,A,K)
+    K.d <- der.rho(U.k,rho,kappa)
+    R1.rho <- K.d%*%t(K)+K%*%t(K.d)
+    m1.rho <- R.inv%*%R1.rho
+    t1.rho <- -0.5*sum(diag(m1.rho))
+    m2.rho <- m1.rho%*%R.inv; rm(m1.rho)
 
 
-        t1.nu2 <- -0.5*sum(diag(R.inv))
-        m2.nu2 <- R.inv%*%R.inv
+    t1.nu2 <- -0.5*sum(diag(R.inv))
+    m2.nu2 <- R.inv%*%R.inv
 
-        mu <- D%*%beta
-        diff.y <- y-mu
-        q.f <- t(diff.y)%*%R.inv%*%diff.y
-        grad.beta <-  t(D)%*%R.inv%*%(diff.y)/sigma2
-        grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-        grad.log.rho <- (t1.rho+0.5*as.numeric(t(diff.y)%*%m2.rho%*%(diff.y))/sigma2)*rho
-        grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/
-                                    sigma2)*nu2
-        out <- c(grad.beta,grad.log.sigma2,grad.log.rho,grad.log.nu2)
-        return(out)
-	 }
+    mu <- D%*%beta
+    diff.y <- y-mu
+    q.f <- t(diff.y)%*%R.inv%*%diff.y
+    grad.beta <-  t(D)%*%R.inv%*%(diff.y)/sigma2
+    grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+    grad.log.rho <- (t1.rho+0.5*as.numeric(t(diff.y)%*%m2.rho%*%(diff.y))/sigma2)*rho
+    grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/
+                        sigma2)*nu2
+    out <- c(grad.beta,grad.log.sigma2,grad.log.rho,grad.log.nu2)
+    return(out)
+  }
 
-	 hess.log.lik <- function(par) {
-	 	beta <- par[1:p]
-		sigma2 <- exp(par[p+1])
-		rho <- exp(par[p+2])
-		nu2 <- 	exp(par[p+3])
-
-
-		K <- matern.kernel(U.k,rho,kappa)
-	    A <- t(K)%*%K
-	    R.inv <- inv.vcov(nu2,A,K)
-	    K.d <- der.rho(U.k,rho,kappa)
-	    R1.rho <- K.d%*%t(K)+K%*%t(K.d)
-        m1.rho <- R.inv%*%R1.rho
-        t1.rho <- -0.5*sum(diag(m1.rho))
-        m2.rho <- m1.rho%*%R.inv; rm(m1.rho)
-
-        mu <- D%*%beta
-        diff.y <- y-mu
-
-        t1.nu2 <- -0.5*sum(diag(R.inv))
-        m2.nu2 <- R.inv%*%R.inv
-
-        t1.nu2 <- -0.5*sum(diag(R.inv))
-        m2.nu2 <- R.inv%*%R.inv
-        t2.nu2 <- 0.5*sum(diag(m2.nu2))
-        n2.nu2 <- 2*R.inv%*%m2.nu2
-        t2.nu2.rho <- 0.5*sum(diag(R.inv%*%R1.rho%*%R.inv))
-        n2.nu2.rho <- R.inv%*%(R.inv%*%R1.rho+
-                               R1.rho%*%R.inv)%*%R.inv
-
-         K.d2 <- der2.rho(U.k,rho,kappa)
-         R2.rho <- K.d2%*%t(K)+K%*%t(K.d2)+2*K.d%*%t(K.d)
-         t2.rho <- -0.5*sum(diag(R.inv%*%R2.rho-R.inv%*%R1.rho%*%R.inv%*%R1.rho))
-         n2.rho <- R.inv%*%(2*R1.rho%*%R.inv%*%R1.rho-R2.rho)%*%R.inv
-
-         q.f <- t(diff.y)%*%R.inv%*%diff.y
-         grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
-         grad.log.rho <- (t1.rho+0.5*as.numeric(t(diff.y)%*%m2.rho%*%(diff.y))/
-                                   sigma2)*rho
-          grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/
-                                      sigma2)*nu2
-
-         H <- matrix(0,nrow=length(par),ncol=length(par))
-         H[1:p,1:p] <- -t(D)%*%R.inv%*%D/sigma2
-         H[1:p,p+1] <- H[p+1,1:p] <- -t(D)%*%R.inv%*%(diff.y)/sigma2
-         H[1:p,p+2] <- H[p+2,1:p] <- -rho*as.numeric(t(D)%*%m2.rho%*%(diff.y))/sigma2
-         H[p+1,p+1] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
-                                grad.log.sigma2
-
-         H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.rho/rho-t1.rho)*(-rho)
-
-         H[p+2,p+2] <- (t2.rho-0.5*t(diff.y)%*%n2.rho%*%(diff.y)/sigma2)*rho^2+
-                                grad.log.rho
+  hess.log.lik <- function(par) {
+    beta <- par[1:p]
+    sigma2 <- exp(par[p+1])
+    rho <- exp(par[p+2])
+    nu2 <- 	exp(par[p+3])
 
 
-         	H[1:p,p+3] <- H[p+3,1:p] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.y))/
-         	                                         sigma2
-         	H[p+2,p+3] <- H[p+3,p+2] <- (t2.nu2.rho-0.5*t(diff.y)%*%n2.nu2.rho%*%(diff.y)/
-         	                                               sigma2)*rho*nu2
-         	H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
-         	H[p+3,p+3] <- (t2.nu2-0.5*t(diff.y)%*%n2.nu2%*%(diff.y)/sigma2)*nu2^2+
-                                         grad.log.nu2
+    K <- matern.kernel(U.k,rho,kappa)
+    A <- t(K)%*%K
+    R.inv <- inv.vcov(nu2,A,K)
+    K.d <- der.rho(U.k,rho,kappa)
+    R1.rho <- K.d%*%t(K)+K%*%t(K.d)
+    m1.rho <- R.inv%*%R1.rho
+    t1.rho <- -0.5*sum(diag(m1.rho))
+    m2.rho <- m1.rho%*%R.inv; rm(m1.rho)
 
-         return(H)
-	 }
+    mu <- D%*%beta
+    diff.y <- y-mu
 
-     estim <- list()
-     if(method=="BFGS") {
-        estimBFGS <- maxBFGS(log.lik,grad.log.lik,hess.log.lik,
-                           start.par,print.level=1*messages)
-        estim$estimate <- estimBFGS$estimate
-        hessian <- estimBFGS$hessian
-        estim$log.lik <- estimBFGS$maximum
-     }
+    t1.nu2 <- -0.5*sum(diag(R.inv))
+    m2.nu2 <- R.inv%*%R.inv
 
-      if(method=="nlminb") {
-      	estimNLMINB <- nlminb(start.par,function(x) -log.lik(x),
-      	            function(x) -grad.log.lik(x),
-      	            function(x) -hess.log.lik(x),control=list(trace=1*messages))
-      	estim$estimate <- estimNLMINB$par
-      	hessian <- hess.log.lik(estimNLMINB$par)
-      	estim$log.lik <- -estimNLMINB$objective
-      }
-      K.hat <- matern.kernel(U.k,exp(estim$estimate[p+2]),kappa)
-      const.sigma2 <- mean(apply(K.hat,1,function(r) sqrt(sum(r^2))))
-      const.sigma2.grad <- mean(apply(U.k,1,function(r) {
-      	                          rho <- exp(estim$estimate[p+2])
-		                          k <- matern.kernel(r,rho,kappa)
-		                          k.grad <- der.rho(r,rho,kappa)
-		                          den <- sqrt(sum(k^2))
-		                          num <- sum(k*k.grad)
-	                              num/den
-	                              }))
-      estim$estimate[p+1] <- estim$estimate[p+1]+log(const.sigma2)
-      estim$estimate[p+2] <- estim$estimate[p+2]-log(2*sqrt(kappa))
-      J <- diag(1,p+3)
-      J[p+1,p+2] <- exp(estim$estimate[p+2])*const.sigma2.grad/const.sigma2
-      hessian <- J%*%hessian%*%t(J)
-      names(estim$estimate)[1:p] <- colnames(D)
-      names(estim$estimate)[(p+1):(p+3)] <- c("log(sigma^2)","log(phi)","log(nu^2)")
-      estim$covariance <- solve(-J%*%hessian%*%t(J))
-      colnames(estim$covariance) <- rownames(estim$covariance) <-
-      names(estim$estimate)
-      estim$y <- y
-      estim$D <- D
-      estim$coords <- coords
-      estim$method <- method
-      estim$kappa <- kappa
-      estim$knots <- knots
-      estim$fixed.rel.nugget <- NULL
-      estim$const.sigma2 <- const.sigma2
-      class(estim) <- "PrevMap"
-      return(estim)
+    t1.nu2 <- -0.5*sum(diag(R.inv))
+    m2.nu2 <- R.inv%*%R.inv
+    t2.nu2 <- 0.5*sum(diag(m2.nu2))
+    n2.nu2 <- 2*R.inv%*%m2.nu2
+    t2.nu2.rho <- 0.5*sum(diag(R.inv%*%R1.rho%*%R.inv))
+    n2.nu2.rho <- R.inv%*%(R.inv%*%R1.rho+
+                             R1.rho%*%R.inv)%*%R.inv
+
+    K.d2 <- der2.rho(U.k,rho,kappa)
+    R2.rho <- K.d2%*%t(K)+K%*%t(K.d2)+2*K.d%*%t(K.d)
+    t2.rho <- -0.5*sum(diag(R.inv%*%R2.rho-R.inv%*%R1.rho%*%R.inv%*%R1.rho))
+    n2.rho <- R.inv%*%(2*R1.rho%*%R.inv%*%R1.rho-R2.rho)%*%R.inv
+
+    q.f <- t(diff.y)%*%R.inv%*%diff.y
+    grad.log.sigma2 <- (-n/(2*sigma2)+0.5*q.f/(sigma2^2))*sigma2
+    grad.log.rho <- (t1.rho+0.5*as.numeric(t(diff.y)%*%m2.rho%*%(diff.y))/
+                       sigma2)*rho
+    grad.log.nu2 <-  (t1.nu2+0.5*as.numeric(t(diff.y)%*%m2.nu2%*%(diff.y))/
+                        sigma2)*nu2
+
+    H <- matrix(0,nrow=length(par),ncol=length(par))
+    H[1:p,1:p] <- -t(D)%*%R.inv%*%D/sigma2
+    H[1:p,p+1] <- H[p+1,1:p] <- -t(D)%*%R.inv%*%(diff.y)/sigma2
+    H[1:p,p+2] <- H[p+2,1:p] <- -rho*as.numeric(t(D)%*%m2.rho%*%(diff.y))/sigma2
+    H[p+1,p+1] <- (n/(2*sigma2^2)-q.f/(sigma2^3))*sigma2^2+
+      grad.log.sigma2
+
+    H[p+1,p+2] <- H[p+2,p+1] <- (grad.log.rho/rho-t1.rho)*(-rho)
+
+    H[p+2,p+2] <- (t2.rho-0.5*t(diff.y)%*%n2.rho%*%(diff.y)/sigma2)*rho^2+
+      grad.log.rho
+
+
+    H[1:p,p+3] <- H[p+3,1:p] <- -nu2*as.numeric(t(D)%*%m2.nu2%*%(diff.y))/
+      sigma2
+    H[p+2,p+3] <- H[p+3,p+2] <- (t2.nu2.rho-0.5*t(diff.y)%*%n2.nu2.rho%*%(diff.y)/
+                                   sigma2)*rho*nu2
+    H[p+1,p+3] <- H[p+3,p+1] <- (grad.log.nu2/nu2-t1.nu2)*(-nu2)
+    H[p+3,p+3] <- (t2.nu2-0.5*t(diff.y)%*%n2.nu2%*%(diff.y)/sigma2)*nu2^2+
+      grad.log.nu2
+
+    return(H)
+  }
+
+  estim <- list()
+  if(method=="BFGS") {
+    estimBFGS <- maxBFGS(log.lik,grad.log.lik,hess.log.lik,
+                         start.par,print.level=1*messages)
+    estim$estimate <- estimBFGS$estimate
+    hessian <- estimBFGS$hessian
+    estim$log.lik <- estimBFGS$maximum
+  }
+
+  if(method=="nlminb") {
+    estimNLMINB <- nlminb(start.par,function(x) -log.lik(x),
+                          function(x) -grad.log.lik(x),
+                          function(x) -hess.log.lik(x),control=list(trace=1*messages))
+    estim$estimate <- estimNLMINB$par
+    hessian <- hess.log.lik(estimNLMINB$par)
+    estim$log.lik <- -estimNLMINB$objective
+  }
+  K.hat <- matern.kernel(U.k,exp(estim$estimate[p+2]),kappa)
+  const.sigma2 <- mean(apply(K.hat,1,function(r) sqrt(sum(r^2))))
+  const.sigma2.grad <- mean(apply(U.k,1,function(r) {
+    rho <- exp(estim$estimate[p+2])
+    k <- matern.kernel(r,rho,kappa)
+    k.grad <- der.rho(r,rho,kappa)
+    den <- sqrt(sum(k^2))
+    num <- sum(k*k.grad)
+    num/den
+  }))
+  estim$estimate[p+1] <- estim$estimate[p+1]+log(const.sigma2)
+  estim$estimate[p+2] <- estim$estimate[p+2]-log(2*sqrt(kappa))
+  J <- diag(1,p+3)
+  J[p+1,p+2] <- exp(estim$estimate[p+2])*const.sigma2.grad/const.sigma2
+  hessian <- J%*%hessian%*%t(J)
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[(p+1):(p+3)] <- c("log(sigma^2)","log(phi)","log(nu^2)")
+  estim$covariance <- solve(-J%*%hessian%*%t(J))
+  colnames(estim$covariance) <- rownames(estim$covariance) <-
+    names(estim$estimate)
+  estim$y <- y
+  estim$D <- D
+  estim$coords <- coords
+  estim$method <- method
+  estim$kappa <- kappa
+  estim$knots <- knots
+  estim$fixed.rel.nugget <- NULL
+  estim$const.sigma2 <- const.sigma2
+  class(estim) <- "PrevMap"
+  return(estim)
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -4352,357 +4450,357 @@ geo.MCML.SPDE <- function(formula,units.m,coords,data,mesh,
                           par0,control.mcmc,kappa,
                           start.cov.pars,
                           plot.correlogram,messages,method) {
-   requireNamespace("INLA")
-   start.cov.pars <- as.numeric(start.cov.pars)
-   if(length(start.cov.pars)!=1) stop("wrong values for start.cov.pars")
-   kappa <- as.numeric(kappa)
-   coords <- as.matrix(model.frame(coords,data))
+  requireNamespace("INLA")
+  start.cov.pars <- as.numeric(start.cov.pars)
+  if(length(start.cov.pars)!=1) stop("wrong values for start.cov.pars")
+  kappa <- as.numeric(kappa)
+  coords <- as.matrix(model.frame(coords,data))
 
-   if(any(is.na(data))) stop("missing values are not accepted")
-   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  if(any(is.na(data))) stop("missing values are not accepted")
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
 
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   n <- length(y)
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
 
-   units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  units.m <-  as.numeric(model.frame(units.m,data)[,1])
 
-   if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+  if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
 
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   p <- ncol(D)
-   if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
-   beta0 <- par0[1:p]
-   mu0 <- as.numeric(D%*%beta0)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(any(par0[-(1:p)] <= 0)) stop("the covariance parameters in 'par0' must be positive.")
+  beta0 <- par0[1:p]
+  mu0 <- as.numeric(D%*%beta0)
 
-   sigma2.0 <- par0[p+1]
-   phi0 <- par0[p+2]
+  sigma2.0 <- par0[p+1]
+  phi0 <- par0[p+2]
 
 
-   spde <- INLA::inla.spde2.matern(mesh,alpha=as.numeric(kappa)+1)
-   Q0 <- forceSymmetric(INLA::inla.spde.precision(spde,
-         theta=c(0,-log(phi0))))
+  spde <- INLA::inla.spde2.matern(mesh,alpha=as.numeric(kappa)+1)
+  Q0 <- forceSymmetric(INLA::inla.spde.precision(spde,
+                                                 theta=c(0,-log(phi0))))
 
-   A <- INLA::inla.spde.make.A(mesh,loc=coords)
-   n.sim <- control.mcmc$n.sim
-   S.sim <- Laplace.sampling.SPDE(mu=mu0,sigma2=sigma2.0,phi=phi0,kappa=kappa,
-            y=y,units.m=units.m,mesh=mesh,
-            coords=coords,control.mcmc=control.mcmc,messages=messages,
-            plot.correlogram=plot.correlogram,poisson.llik = FALSE)
-   S.samples <- S.sim$samples
-   n.spde <- mesh$n
-   n.samples <- nrow(S.samples)
+  A <- INLA::inla.spde.make.A(mesh,loc=coords)
+  n.sim <- control.mcmc$n.sim
+  S.sim <- Laplace.sampling.SPDE(mu=mu0,sigma2=sigma2.0,phi=phi0,kappa=kappa,
+                                 y=y,units.m=units.m,mesh=mesh,
+                                 coords=coords,control.mcmc=control.mcmc,messages=messages,
+                                 plot.correlogram=plot.correlogram,poisson.llik = FALSE)
+  S.samples <- S.sim$samples
+  n.spde <- mesh$n
+  n.samples <- nrow(S.samples)
 
-   log.integrand <- function(mu,S,S.i,Q,log.det.Q,sigma2,phi) {
-      sigma2.t <- 4*pi*sigma2/(phi^2)
-      eta <- as.numeric(mu+S.i)
-      v <- as.numeric(Q%*%S)
-      out <- -0.5*(n.spde*log(sigma2.t)-log.det.Q+sum(S*v)/sigma2.t)+
+  log.integrand <- function(mu,S,S.i,Q,log.det.Q,sigma2,phi) {
+    sigma2.t <- 4*pi*sigma2/(phi^2)
+    eta <- as.numeric(mu+S.i)
+    v <- as.numeric(Q%*%S)
+    out <- -0.5*(n.spde*log(sigma2.t)-log.det.Q+sum(S*v)/sigma2.t)+
       sum(y*eta-units.m*log(1+exp(eta)))
-      return(as.numeric(out))
-   }
+    return(as.numeric(out))
+  }
 
-   log.det.Q0 <- determinant(Q0)$modulus
-   log.f.tilde <- sapply(1:n.samples,
-                  function(i) log.integrand(mu0,S.samples[i,],
-                              as.numeric(A%*%S.samples[i,]),Q0,log.det.Q0,
-                              sigma2.0,phi0))
+  log.det.Q0 <- determinant(Q0)$modulus
+  log.f.tilde <- sapply(1:n.samples,
+                        function(i) log.integrand(mu0,S.samples[i,],
+                                                  as.numeric(A%*%S.samples[i,]),Q0,log.det.Q0,
+                                                  sigma2.0,phi0))
 
-   MC.log.lik.aux <- function(par) {
-      beta <- par[1:p]
-      sigma2 <- exp(par[p+1])
-      phi <- exp(par[p+2])
+  MC.log.lik.aux <- function(par) {
+    beta <- par[1:p]
+    sigma2 <- exp(par[p+1])
+    phi <- exp(par[p+2])
 
-      Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
-            -log(phi))))
-      log.det.Q <- as.numeric(determinant(Q)$modulus)
+    Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
+                                                               -log(phi))))
+    log.det.Q <- as.numeric(determinant(Q)$modulus)
 
-      sigma2.t <- 4*pi*sigma2/(phi^2)
-      mu <- as.numeric(D%*%beta)
-      log.f <- sapply(1:n.samples,
-                  function(i) log.integrand(mu,S.samples[i,],
-                              as.numeric(A%*%S.samples[i,]),Q,log.det.Q,
-                              sigma2,phi))
-      return(log(mean(exp(log.f-log.f.tilde))))
-   }
+    sigma2.t <- 4*pi*sigma2/(phi^2)
+    mu <- as.numeric(D%*%beta)
+    log.f <- sapply(1:n.samples,
+                    function(i) log.integrand(mu,S.samples[i,],
+                                              as.numeric(A%*%S.samples[i,]),Q,log.det.Q,
+                                              sigma2,phi))
+    return(log(mean(exp(log.f-log.f.tilde))))
+  }
 
-   f <- function(par) {
-      beta <- par[1:p]
-      sigma2.t <- exp(par[p+1])
-      phi <- exp(par[p+2])
-      sigma2.t*(phi^2)/(4*pi) -> sigma2
+  f <- function(par) {
+    beta <- par[1:p]
+    sigma2.t <- exp(par[p+1])
+    phi <- exp(par[p+2])
+    sigma2.t*(phi^2)/(4*pi) -> sigma2
 
-      Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
-            -par[p+2])))
-      log.det.Q <- as.numeric(determinant(Q)$modulus)
+    Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
+                                                               -par[p+2])))
+    log.det.Q <- as.numeric(determinant(Q)$modulus)
 
-      mu <- as.numeric(D%*%beta)
+    mu <- as.numeric(D%*%beta)
 
-      weight.sum <- 0
+    weight.sum <- 0
 
-      for(i in 1:n.samples) {
-         S.i.samples <- as.numeric(A%*%S.samples[i,])
-         eta.i <- S.i.samples+mu
-         mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
-         grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
-         v.i <- as.numeric(Q%*%S.samples[i,])
-         q.f.i <- sum(S.samples[i,]*v.i)
-         log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
-                     log.det.Q+q.f.i/sigma2.t)+
-                     sum(y*eta.i-units.m*log(1+exp(eta.i)))
-         weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
-         weight.sum <- weight.sum+weight.grad
-      }
-      f <- log(weight.sum)
-      return(f)
-   }
+    for(i in 1:n.samples) {
+      S.i.samples <- as.numeric(A%*%S.samples[i,])
+      eta.i <- S.i.samples+mu
+      mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
+      grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
+      v.i <- as.numeric(Q%*%S.samples[i,])
+      q.f.i <- sum(S.samples[i,]*v.i)
+      log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
+                          log.det.Q+q.f.i/sigma2.t)+
+        sum(y*eta.i-units.m*log(1+exp(eta.i)))
+      weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
+      weight.sum <- weight.sum+weight.grad
+    }
+    f <- log(weight.sum)
+    return(f)
+  }
 
-   grad <- function(par) {
-      beta <- par[1:p]
-      sigma2.t <- exp(par[p+1])
-      phi <- exp(par[p+2])
-      sigma2.t*(phi^2)/(4*pi) -> sigma2
+  grad <- function(par) {
+    beta <- par[1:p]
+    sigma2.t <- exp(par[p+1])
+    phi <- exp(par[p+2])
+    sigma2.t*(phi^2)/(4*pi) -> sigma2
 
-      Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
-            -par[p+2])))
-      log.det.Q <- as.numeric(determinant(Q)$modulus)
+    Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
+                                                               -par[p+2])))
+    log.det.Q <- as.numeric(determinant(Q)$modulus)
 
-      mu <- as.numeric(D%*%beta)
+    mu <- as.numeric(D%*%beta)
 
-      weight.sum <- 0
-      grad <- rep(0,p+2)
-      grad.i <- rep(0,p+2)
-
-
-      der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
-      diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
-                           4*exp(-4*par[p+2])*diag(mesh.fem$c0)
-
-      A.l.phi <- solve(Q,der.Q.l.phi)
-      trace1.l.phi <- 0.5*sum(diag(A.l.phi))
-
-      for(i in 1:n.samples) {
-         S.i.samples <- as.numeric(A%*%S.samples[i,])
-         eta.i <- S.i.samples+mu
-         mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
-         grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
-         v.i <- as.numeric(Q%*%S.samples[i,])
-         v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
-         q.f.i <- sum(S.samples[i,]*v.i)
-         q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
-         log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
-                     log.det.Q+q.f.i/sigma2.t)+
-                     sum(y*eta.i-units.m*log(1+exp(eta.i)))
-         weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
-         weight.sum <- weight.sum+weight.grad
-         grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
-         grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
-         grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
-         grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
-         grad <- grad+weight.grad*grad.i
-
-      }
-      grad <- grad/weight.sum
-      return(grad)
-   }
-
-   hess <- function(par) {
-      beta <- par[1:p]
-      sigma2.t <- exp(par[p+1])
-      phi <- exp(par[p+2])
-      sigma2.t*(phi^2)/(4*pi) -> sigma2
-
-      Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
-            -par[p+2])))
-      log.det.Q <- as.numeric(determinant(Q)$modulus)
-
-      mu <- as.numeric(D%*%beta)
-
-      weight.sum <- 0
-      grad <- rep(0,p+2)
-      grad.i <- rep(0,p+2)
-      H <- matrix(0,nrow=p+2,ncol=p+2)
-      H.i <- matrix(0,nrow=p+2,ncol=p+2)
-
-      ind.beta <- 1:p
-      ind.sigma2.t <- p+1
-      ind.phi <- p+2
-
-      der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
-      der2.Q.l.phi <- 8*exp(-2*par[p+2])*mesh.fem$g1
-      diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+
-                            16*exp(-4*par[p+2])*diag(mesh.fem$c0)
-
-      diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
-                           4*exp(-4*par[p+2])*diag(mesh.fem$c0)
-
-      A.l.phi <- solve(Q,der.Q.l.phi)
-      A2.l.phi <- solve(Q,der2.Q.l.phi)
-      trace1.l.phi <- 0.5*sum(diag(A.l.phi))
-      C.l.phi <- t(solve(Q,t(A.l.phi)))%*%der.Q.l.phi
-      trace2.l.phi <- 0.5*(sum(diag(A2.l.phi))-sum(diag(C.l.phi)))
-
-      for(i in 1:n.samples) {
-         S.i.samples <- as.numeric(A%*%S.samples[i,])
-         eta.i <- S.i.samples+mu
-         mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
-         grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
-         v.i <- as.numeric(Q%*%S.samples[i,])
-         v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
-         v.i.phi2 <- as.numeric(der2.Q.l.phi%*%S.samples[i,])
-         q.f.i <- sum(S.samples[i,]*v.i)
-         q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
-         q.f.phi2.i <- sum(S.samples[i,]*v.i.phi2)
-         log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
-                     log.det.Q+q.f.i/sigma2.t)+
-                     sum(y*eta.i-units.m*log(1+exp(eta.i)))
-         weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
-         weight.sum <- weight.sum+weight.grad
-         grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
-         grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
-         grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
-         grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
-         grad <- grad+weight.grad*grad.i
-
-         H.i[ind.beta,ind.beta] <- -t(D)%*%(D*grad.mean.y.i)
-         H.i[ind.beta,ind.sigma2.t] <-
-         H.i[ind.sigma2.t,ind.beta] <- 0
-         H.i[ind.sigma2.t,ind.sigma2.t] <- -0.5*q.f.i/sigma2.t
-         H.i[ind.sigma2.t,ind.phi] <-
-         H.i[ind.phi,ind.sigma2.t] <- 0.5*q.f.phi.i/sigma2.t
-         H.i[ind.phi,ind.phi] <- trace2.l.phi-0.5*q.f.phi2.i/sigma2.t
-         H <- H+weight.grad*(H.i+grad.i%*%t(grad.i))
-      }
-      grad <- grad/weight.sum
-      hess <- H/weight.sum-(grad)%*%t(grad)
-      return(hess)
-   }
+    weight.sum <- 0
+    grad <- rep(0,p+2)
+    grad.i <- rep(0,p+2)
 
 
+    der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
+    diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
+      4*exp(-4*par[p+2])*diag(mesh.fem$c0)
+
+    A.l.phi <- solve(Q,der.Q.l.phi)
+    trace1.l.phi <- 0.5*sum(diag(A.l.phi))
+
+    for(i in 1:n.samples) {
+      S.i.samples <- as.numeric(A%*%S.samples[i,])
+      eta.i <- S.i.samples+mu
+      mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
+      grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
+      v.i <- as.numeric(Q%*%S.samples[i,])
+      v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
+      q.f.i <- sum(S.samples[i,]*v.i)
+      q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
+      log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
+                          log.det.Q+q.f.i/sigma2.t)+
+        sum(y*eta.i-units.m*log(1+exp(eta.i)))
+      weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
+      weight.sum <- weight.sum+weight.grad
+      grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
+      grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
+      grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
+      grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
+      grad <- grad+weight.grad*grad.i
+
+    }
+    grad <- grad/weight.sum
+    return(grad)
+  }
+
+  hess <- function(par) {
+    beta <- par[1:p]
+    sigma2.t <- exp(par[p+1])
+    phi <- exp(par[p+2])
+    sigma2.t*(phi^2)/(4*pi) -> sigma2
+
+    Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
+                                                               -par[p+2])))
+    log.det.Q <- as.numeric(determinant(Q)$modulus)
+
+    mu <- as.numeric(D%*%beta)
+
+    weight.sum <- 0
+    grad <- rep(0,p+2)
+    grad.i <- rep(0,p+2)
+    H <- matrix(0,nrow=p+2,ncol=p+2)
+    H.i <- matrix(0,nrow=p+2,ncol=p+2)
+
+    ind.beta <- 1:p
+    ind.sigma2.t <- p+1
+    ind.phi <- p+2
+
+    der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
+    der2.Q.l.phi <- 8*exp(-2*par[p+2])*mesh.fem$g1
+    diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+
+      16*exp(-4*par[p+2])*diag(mesh.fem$c0)
+
+    diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
+      4*exp(-4*par[p+2])*diag(mesh.fem$c0)
+
+    A.l.phi <- solve(Q,der.Q.l.phi)
+    A2.l.phi <- solve(Q,der2.Q.l.phi)
+    trace1.l.phi <- 0.5*sum(diag(A.l.phi))
+    C.l.phi <- t(solve(Q,t(A.l.phi)))%*%der.Q.l.phi
+    trace2.l.phi <- 0.5*(sum(diag(A2.l.phi))-sum(diag(C.l.phi)))
+
+    for(i in 1:n.samples) {
+      S.i.samples <- as.numeric(A%*%S.samples[i,])
+      eta.i <- S.i.samples+mu
+      mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
+      grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
+      v.i <- as.numeric(Q%*%S.samples[i,])
+      v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
+      v.i.phi2 <- as.numeric(der2.Q.l.phi%*%S.samples[i,])
+      q.f.i <- sum(S.samples[i,]*v.i)
+      q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
+      q.f.phi2.i <- sum(S.samples[i,]*v.i.phi2)
+      log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
+                          log.det.Q+q.f.i/sigma2.t)+
+        sum(y*eta.i-units.m*log(1+exp(eta.i)))
+      weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
+      weight.sum <- weight.sum+weight.grad
+      grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
+      grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
+      grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
+      grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
+      grad <- grad+weight.grad*grad.i
+
+      H.i[ind.beta,ind.beta] <- -t(D)%*%(D*grad.mean.y.i)
+      H.i[ind.beta,ind.sigma2.t] <-
+        H.i[ind.sigma2.t,ind.beta] <- 0
+      H.i[ind.sigma2.t,ind.sigma2.t] <- -0.5*q.f.i/sigma2.t
+      H.i[ind.sigma2.t,ind.phi] <-
+        H.i[ind.phi,ind.sigma2.t] <- 0.5*q.f.phi.i/sigma2.t
+      H.i[ind.phi,ind.phi] <- trace2.l.phi-0.5*q.f.phi2.i/sigma2.t
+      H <- H+weight.grad*(H.i+grad.i%*%t(grad.i))
+    }
+    grad <- grad/weight.sum
+    hess <- H/weight.sum-(grad)%*%t(grad)
+    return(hess)
+  }
 
 
-   sigma2.t0 <- 4*pi*sigma2.0/(phi0^2)
-   mesh.fem <- INLA::inla.mesh.fem(mesh,order=1)
-
-   full.log.lik <- function(par) {
-      beta <- par[1:p]
-      sigma2.t <- exp(par[p+1])
-      phi <- exp(par[p+2])
-      sigma2.t*(phi^2)/(4*pi) -> sigma2
-
-      Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
-            -par[p+2])))
-      log.det.Q <- as.numeric(determinant(Q)$modulus)
-
-      mu <- as.numeric(D%*%beta)
-
-      weight.sum <- 0
-      grad <- rep(0,p+2)
-      grad.i <- rep(0,p+2)
-      H <- matrix(0,nrow=p+2,ncol=p+2)
-      H.i <- matrix(0,nrow=p+2,ncol=p+2)
-
-      ind.beta <- 1:p
-      ind.sigma2.t <- p+1
-      ind.phi <- p+2
-
-      der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
-      der2.Q.l.phi <- 8*exp(-2*par[p+2])*mesh.fem$g1
-      diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+
-                            16*exp(-4*par[p+2])*diag(mesh.fem$c0)
-
-      diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
-                           4*exp(-4*par[p+2])*diag(mesh.fem$c0)
-
-      A.l.phi <- solve(Q,der.Q.l.phi)
-      A2.l.phi <- solve(Q,der2.Q.l.phi)
-      trace1.l.phi <- 0.5*sum(diag(A.l.phi))
-      C.l.phi <- t(solve(Q,t(A.l.phi)))%*%der.Q.l.phi
-      trace2.l.phi <- 0.5*(sum(diag(A2.l.phi))-sum(diag(C.l.phi)))
-
-      for(i in 1:n.samples) {
-         S.i.samples <- as.numeric(A%*%S.samples[i,])
-         eta.i <- S.i.samples+mu
-         mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
-         grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
-         v.i <- as.numeric(Q%*%S.samples[i,])
-         v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
-         v.i.phi2 <- as.numeric(der2.Q.l.phi%*%S.samples[i,])
-         q.f.i <- sum(S.samples[i,]*v.i)
-         q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
-         q.f.phi2.i <- sum(S.samples[i,]*v.i.phi2)
-         log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
-                     log.det.Q+q.f.i/sigma2.t)+
-                     sum(y*eta.i-units.m*log(1+exp(eta.i)))
-         weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
-         weight.sum <- weight.sum+weight.grad
-         grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
-         grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
-         grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
-         grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
-         grad <- grad+weight.grad*grad.i
-
-         H.i[ind.beta,ind.beta] <- -t(D)%*%(D*grad.mean.y.i)
-         H.i[ind.beta,ind.sigma2.t] <-
-         H.i[ind.sigma2.t,ind.beta] <- 0
-         H.i[ind.sigma2.t,ind.sigma2.t] <- -0.5*q.f.i/sigma2.t
-         H.i[ind.sigma2.t,ind.phi] <-
-         H.i[ind.phi,ind.sigma2.t] <- 0.5*q.f.phi.i/sigma2.t
-         H.i[ind.phi,ind.phi] <- trace2.l.phi-0.5*q.f.phi2.i/sigma2.t
-         H <- H+weight.grad*(H.i+grad.i%*%t(grad.i))
-      }
-      weight.sum <- weight.sum
-      f <- log(weight.sum)
-      grad <- grad/weight.sum
-      hess <- H/weight.sum-(grad)%*%t(grad)
-      return(list(f=f,grad=grad,hess=hess))
-   }
-
-   if(messages) cat("Estimation: \n")
-   start.par <- c(beta0,log(sigma2.t0),log(start.cov.pars))
-
-   estim <- list()
-   J <- diag(1,p+2)
-   J[p+1,-(1:p)] <- c(1,2)
-
-   if(method=="BFGS") {
-      estimBFGS <- maxBFGS(f,grad,hess,
-                   start.par,print.level=1*messages)
-      estim$estimate <- estimBFGS$estimate
-      estim$covariance <- solve(-t(J)%*%estimBFGS$hessian%*%J)
-      estim$log.lik <- estimBFGS$maximum
-   } else if(method=="nlminb") {
-      estimNLMINB <- nlminb(start.par,function(x) -f(x),
-      	         function(x) -grad(x),
-      	         function(x) -hess(x),
-                     control=list(trace=1*messages))
-      estim$estimate <- estimNLMINB$par
-      estimNLMINB$hessian <- hess(estimNLMINB$par)
-      estim$covariance <- solve(-t(J)%*%estimNLMINB$hessian%*%J)
-      estim$log.lik <- -estimNLMINB$objective
-   }
 
 
-   estim$estimate <- c(estim$estimate[1:p],exp(estim$estimate[p+1]),
-                       exp(estim$estimate[p+2]))
-   estim$estimate[p+1]*(estim$estimate[p+2]^2)/(4*pi) -> estim$estimate[p+1]
-   estim$estimate[-(1:p)] <- log(estim$estimate[-(1:p)])
-   names(estim$estimate)[1:p] <- colnames(D)
-   names(estim$estimate)[-(1:p)] <- c("log(sigma^2)","log(phi)")
+  sigma2.t0 <- 4*pi*sigma2.0/(phi0^2)
+  mesh.fem <- INLA::inla.mesh.fem(mesh,order=1)
 
-   colnames(estim$covariance) <- rownames(estim$covariance) <-
-   names(estim$estimate)
-   estim$y <- y
-   estim$units.m <- units.m
-   estim$D <- D
-   estim$coords <- coords
-   estim$method <- "nlminb"
-   estim$kappa <- kappa
-   estim$fixed.rel.nugget <- 0
-   estim$mesh <- mesh
-   estim$samples <- S.samples
-   class(estim) <- "PrevMap"
-   return(estim)
+  full.log.lik <- function(par) {
+    beta <- par[1:p]
+    sigma2.t <- exp(par[p+1])
+    phi <- exp(par[p+2])
+    sigma2.t*(phi^2)/(4*pi) -> sigma2
+
+    Q <- forceSymmetric(INLA::inla.spde.precision(spde,theta=c(0,
+                                                               -par[p+2])))
+    log.det.Q <- as.numeric(determinant(Q)$modulus)
+
+    mu <- as.numeric(D%*%beta)
+
+    weight.sum <- 0
+    grad <- rep(0,p+2)
+    grad.i <- rep(0,p+2)
+    H <- matrix(0,nrow=p+2,ncol=p+2)
+    H.i <- matrix(0,nrow=p+2,ncol=p+2)
+
+    ind.beta <- 1:p
+    ind.sigma2.t <- p+1
+    ind.phi <- p+2
+
+    der.Q.l.phi <- -4*exp(-2*par[p+2])*mesh.fem$g1
+    der2.Q.l.phi <- 8*exp(-2*par[p+2])*mesh.fem$g1
+    diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+
+      16*exp(-4*par[p+2])*diag(mesh.fem$c0)
+
+    diag(der.Q.l.phi) <- diag(der.Q.l.phi)-
+      4*exp(-4*par[p+2])*diag(mesh.fem$c0)
+
+    A.l.phi <- solve(Q,der.Q.l.phi)
+    A2.l.phi <- solve(Q,der2.Q.l.phi)
+    trace1.l.phi <- 0.5*sum(diag(A.l.phi))
+    C.l.phi <- t(solve(Q,t(A.l.phi)))%*%der.Q.l.phi
+    trace2.l.phi <- 0.5*(sum(diag(A2.l.phi))-sum(diag(C.l.phi)))
+
+    for(i in 1:n.samples) {
+      S.i.samples <- as.numeric(A%*%S.samples[i,])
+      eta.i <- S.i.samples+mu
+      mean.y.i <- units.m*exp(eta.i)/(1+exp(eta.i))
+      grad.mean.y.i <- mean.y.i/(1+exp(eta.i))
+      v.i <- as.numeric(Q%*%S.samples[i,])
+      v.i.phi <- as.numeric(der.Q.l.phi%*%S.samples[i,])
+      v.i.phi2 <- as.numeric(der2.Q.l.phi%*%S.samples[i,])
+      q.f.i <- sum(S.samples[i,]*v.i)
+      q.f.phi.i <- sum(S.samples[i,]*v.i.phi)
+      q.f.phi2.i <- sum(S.samples[i,]*v.i.phi2)
+      log.f.i <-  -0.5*(n.spde*log(sigma2.t)-
+                          log.det.Q+q.f.i/sigma2.t)+
+        sum(y*eta.i-units.m*log(1+exp(eta.i)))
+      weight.grad <- exp(log.f.i-log.f.tilde[i]-log(n.samples))
+      weight.sum <- weight.sum+weight.grad
+      grad.beta <- as.numeric(t(D)%*%(y-mean.y.i))
+      grad.sigma2.t <- -0.5*(n.spde-q.f.i/sigma2.t)
+      grad.phi <- trace1.l.phi-0.5*q.f.phi.i/sigma2.t
+      grad.i <- c(grad.beta,grad.sigma2.t,grad.phi)
+      grad <- grad+weight.grad*grad.i
+
+      H.i[ind.beta,ind.beta] <- -t(D)%*%(D*grad.mean.y.i)
+      H.i[ind.beta,ind.sigma2.t] <-
+        H.i[ind.sigma2.t,ind.beta] <- 0
+      H.i[ind.sigma2.t,ind.sigma2.t] <- -0.5*q.f.i/sigma2.t
+      H.i[ind.sigma2.t,ind.phi] <-
+        H.i[ind.phi,ind.sigma2.t] <- 0.5*q.f.phi.i/sigma2.t
+      H.i[ind.phi,ind.phi] <- trace2.l.phi-0.5*q.f.phi2.i/sigma2.t
+      H <- H+weight.grad*(H.i+grad.i%*%t(grad.i))
+    }
+    weight.sum <- weight.sum
+    f <- log(weight.sum)
+    grad <- grad/weight.sum
+    hess <- H/weight.sum-(grad)%*%t(grad)
+    return(list(f=f,grad=grad,hess=hess))
+  }
+
+  if(messages) cat("Estimation: \n")
+  start.par <- c(beta0,log(sigma2.t0),log(start.cov.pars))
+
+  estim <- list()
+  J <- diag(1,p+2)
+  J[p+1,-(1:p)] <- c(1,2)
+
+  if(method=="BFGS") {
+    estimBFGS <- maxBFGS(f,grad,hess,
+                         start.par,print.level=1*messages)
+    estim$estimate <- estimBFGS$estimate
+    estim$covariance <- solve(-t(J)%*%estimBFGS$hessian%*%J)
+    estim$log.lik <- estimBFGS$maximum
+  } else if(method=="nlminb") {
+    estimNLMINB <- nlminb(start.par,function(x) -f(x),
+                          function(x) -grad(x),
+                          function(x) -hess(x),
+                          control=list(trace=1*messages))
+    estim$estimate <- estimNLMINB$par
+    estimNLMINB$hessian <- hess(estimNLMINB$par)
+    estim$covariance <- solve(-t(J)%*%estimNLMINB$hessian%*%J)
+    estim$log.lik <- -estimNLMINB$objective
+  }
+
+
+  estim$estimate <- c(estim$estimate[1:p],exp(estim$estimate[p+1]),
+                      exp(estim$estimate[p+2]))
+  estim$estimate[p+1]*(estim$estimate[p+2]^2)/(4*pi) -> estim$estimate[p+1]
+  estim$estimate[-(1:p)] <- log(estim$estimate[-(1:p)])
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[-(1:p)] <- c("log(sigma^2)","log(phi)")
+
+  colnames(estim$covariance) <- rownames(estim$covariance) <-
+    names(estim$estimate)
+  estim$y <- y
+  estim$units.m <- units.m
+  estim$D <- D
+  estim$coords <- coords
+  estim$method <- "nlminb"
+  estim$kappa <- kappa
+  estim$fixed.rel.nugget <- 0
+  estim$mesh <- mesh
+  estim$samples <- S.samples
+  class(estim) <- "PrevMap"
+  return(estim)
 }
 
 
@@ -4712,240 +4810,240 @@ geo.MCML.SPDE <- function(formula,units.m,coords,data,mesh,
 ##' @importFrom numDeriv hessian
 ##' @importFrom Matrix t diag solve determinant
 geo.linear.MLE.SPDE <- function(formula,coords,mesh,data,
-                       kappa=1,start.cov.pars,
-                       method="BFGS",messages=TRUE,
-                       SPDE.analytic.hessian) {
-   start.cov.pars <- as.numeric(start.cov.pars)
-   if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
-   kappa <- as.numeric(kappa)
-   if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   n <- length(y)
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   coords <- as.matrix(model.frame(coords,data))
-   if(is.matrix(coords)==FALSE || (dim(coords)[2] !=2 & dim(coords)[2] !=3)) stop("wrong set of coordinates.")
-   p <- ncol(D)
-   if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
-   if(requireNamespace("INLA", quietly = TRUE)){
-      A <- INLA::inla.spde.make.A(mesh,coords)
-      mesh.fem <- INLA::inla.mesh.fem(mesh,order=1)
-      AtA <- t(A)%*%A
-      DtD <- t(D)%*%D
-      AtD <- t(A)%*%D
-      Aty <- as.numeric(t(A)%*%y)
-      yty <- sum(y^2)
+                                kappa=1,start.cov.pars,
+                                method="BFGS",messages=TRUE,
+                                SPDE.analytic.hessian) {
+  start.cov.pars <- as.numeric(start.cov.pars)
+  if(any(start.cov.pars<0)) stop("start.cov.pars must be positive.")
+  kappa <- as.numeric(kappa)
+  if(any(method==c("BFGS","nlminb"))==FALSE) stop("method must be either BFGS or nlminb.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || (dim(coords)[2] !=2 & dim(coords)[2] !=3)) stop("wrong set of coordinates.")
+  p <- ncol(D)
+  if(length(start.cov.pars)!=2) stop("wrong length of start.cov.pars")
+  if(requireNamespace("INLA", quietly = TRUE)){
+    A <- INLA::inla.spde.make.A(mesh,coords)
+    mesh.fem <- INLA::inla.mesh.fem(mesh,order=1)
+    AtA <- t(A)%*%A
+    DtD <- t(D)%*%D
+    AtD <- t(A)%*%D
+    Aty <- as.numeric(t(A)%*%y)
+    yty <- sum(y^2)
 
-      profile.log.lik <- function(par) {
-         l.nu2 <- par[2]
-         phi <- exp(par[1])
-         omega <- 1/phi
-         nu2 <- exp(par[2])
+    profile.log.lik <- function(par) {
+      l.nu2 <- par[2]
+      phi <- exp(par[1])
+      omega <- 1/phi
+      nu2 <- exp(par[2])
 
-         Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
-         mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
-         M <- Q+AtA/nu2
-         My <- as.numeric(y/nu2-A%*%solve(M,Aty)/(nu2^2))
-         M.beta <- as.matrix(DtD/nu2-t(AtD)%*%solve(M,AtD)/(nu2^2))
+      Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
+              mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
+      M <- Q+AtA/nu2
+      My <- as.numeric(y/nu2-A%*%solve(M,Aty)/(nu2^2))
+      M.beta <- as.matrix(DtD/nu2-t(AtD)%*%solve(M,AtD)/(nu2^2))
 
-         Q.l.det <- determinant(Q)$modulus
-         M.l.det <- determinant(M)$modulus
+      Q.l.det <- determinant(Q)$modulus
+      M.l.det <- determinant(M)$modulus
 
-         l.det.tot <- as.numeric(n*l.nu2-Q.l.det+M.l.det)
+      l.det.tot <- as.numeric(n*l.nu2-Q.l.det+M.l.det)
 
-         beta.hat.p <- as.numeric(solve(M.beta)%*%t(D)%*%My)
-         diff.y.p <- as.numeric(y-D%*%beta.hat.p)
-         At.diff.y.p <- as.numeric(t(A)%*%diff.y.p)
-         sigma2.hat.p <- as.numeric(sum(diff.y.p^2)/nu2-
-                      t(At.diff.y.p)%*%solve(M,At.diff.y.p)/(nu2^2))/n
-         return(-0.5*(l.det.tot+n*log(sigma2.hat.p)))
-      }
+      beta.hat.p <- as.numeric(solve(M.beta)%*%t(D)%*%My)
+      diff.y.p <- as.numeric(y-D%*%beta.hat.p)
+      At.diff.y.p <- as.numeric(t(A)%*%diff.y.p)
+      sigma2.hat.p <- as.numeric(sum(diff.y.p^2)/nu2-
+                                   t(At.diff.y.p)%*%solve(M,At.diff.y.p)/(nu2^2))/n
+      return(-0.5*(l.det.tot+n*log(sigma2.hat.p)))
+    }
 
-      log.lik <- function(par) {
-         beta <- par[1:p]
-         l.sigma2.marg <- par[p+1]
-         l.phi <- par[p+2]
-         l.nu2.marg <- par[p+3]
-         nu2.marg <- exp(l.nu2.marg)
-         phi <- exp(l.phi)
-         omega <- 1/phi
-         sigma2.marg <- exp(l.sigma2.marg)
-         sigma2 <- 4*pi*(omega^2)*sigma2.marg
-         tau2 <- sigma2.marg*nu2.marg
-         l.sigma2 <- log(sigma2)
-         nu2 <- tau2/sigma2
-         l.nu2 <- log(nu2)
+    log.lik <- function(par) {
+      beta <- par[1:p]
+      l.sigma2.marg <- par[p+1]
+      l.phi <- par[p+2]
+      l.nu2.marg <- par[p+3]
+      nu2.marg <- exp(l.nu2.marg)
+      phi <- exp(l.phi)
+      omega <- 1/phi
+      sigma2.marg <- exp(l.sigma2.marg)
+      sigma2 <- 4*pi*(omega^2)*sigma2.marg
+      tau2 <- sigma2.marg*nu2.marg
+      l.sigma2 <- log(sigma2)
+      nu2 <- tau2/sigma2
+      l.nu2 <- log(nu2)
 
-         mu <- as.numeric(D%*%beta)
-         diff.y <- y-mu
+      mu <- as.numeric(D%*%beta)
+      diff.y <- y-mu
 
-         Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
-         mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
-
-
-         Q.l.det <- determinant(Q)$modulus
-         M <- Q+AtA/nu2
-         M.l.det <- determinant(M)$modulus
-
-         l.det.tot <- n*l.sigma2+n*l.nu2-Q.l.det+M.l.det
-
-         z <- as.numeric(t(A)%*%diff.y)
-         w <- as.numeric(solve(M,z))
-         q.f <- (sum(diff.y^2)/nu2-sum(z*w)/(nu2^2))/sigma2
-
-         as.numeric(-0.5*(l.det.tot+q.f))
-      }
-
-      summary.est <- function(est.profile) {
-         l.phi <- est.profile$par[1]
-         l.nu2 <- est.profile$par[2]
-         phi <- exp(est.profile$par[1])
-         omega <- 1/phi
-         nu2 <- exp(est.profile$par[2])
-
-         Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
+      Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
               mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
 
-         M <- Q+AtA/nu2
-         My <- as.numeric(y/nu2-A%*%solve(M,Aty)/(nu2^2))
-         M.beta <- as.matrix(DtD/nu2-t(AtD)%*%solve(M,AtD)/(nu2^2))
-         beta <- as.numeric(solve(M.beta)%*%t(D)%*%My)
 
-         mu <- as.numeric(D%*%beta)
-         diff.y <- y-mu
-         At.diff.y <- as.numeric(t(A)%*%diff.y)
-         sigma2 <- as.numeric(sum(diff.y^2)/nu2-
-                      t(At.diff.y)%*%solve(M,At.diff.y)/(nu2^2))/n
-         out <- list()
-         sigma2.marg <- sigma2/(4*pi*(omega^2))
-         nu2.marg <- sigma2*nu2/sigma2.marg
-         out$estimate <- c(beta,log(c(sigma2.marg,phi,nu2.marg)))
-         out$log.lik <- -est.profile$objective
-         if(SPDE.analytic.hessian) {
-            z <- as.numeric(t(A)%*%diff.y)
-            w <- as.numeric(solve(M,z))
-            v <- as.numeric(A%*%w)
+      Q.l.det <- determinant(Q)$modulus
+      M <- Q+AtA/nu2
+      M.l.det <- determinant(M)$modulus
 
-            q.f.z <- sum(z*w)
-            sum.diff.y.sq <- sum(diff.y^2)
-            q.f <- (sum.diff.y.sq/nu2-q.f.z/(nu2^2))/sigma2
+      l.det.tot <- n*l.sigma2+n*l.nu2-Q.l.det+M.l.det
 
-            grad.beta <- as.numeric(t(D)%*%(diff.y/nu2-v/(nu2^2))/sigma2)
-            grad.l.sigma2 <- -0.5*(n-q.f)
+      z <- as.numeric(t(A)%*%diff.y)
+      w <- as.numeric(solve(M,z))
+      q.f <- (sum(diff.y^2)/nu2-sum(z*w)/(nu2^2))/sigma2
 
+      as.numeric(-0.5*(l.det.tot+q.f))
+    }
 
-            der.Q.l.phi <- -4*exp(-2*l.phi)*mesh.fem$g1
-            diag(der.Q.l.phi) <- diag(der.Q.l.phi)-4*exp(-4*l.phi)*diag(mesh.fem$c0)
-            A1.l.phi <- solve(Q,der.Q.l.phi,sparse=TRUE)
-            A2.l.phi <- solve(M,der.Q.l.phi,sparse=TRUE)
-            trace1.l.phi <- -sum(diag(A1.l.phi))+sum(diag(A2.l.phi))
-            w.beta.phi <- der.Q.l.phi%*%w
-            q.f.l.phi.aux <- as.numeric(t(w)%*%w.beta.phi)
-            grad.l.phi <- -0.5*(trace1.l.phi+
-                       q.f.l.phi.aux/((nu2^2)*sigma2))
+    summary.est <- function(est.profile) {
+      l.phi <- est.profile$par[1]
+      l.nu2 <- est.profile$par[2]
+      phi <- exp(est.profile$par[1])
+      omega <- 1/phi
+      nu2 <- exp(est.profile$par[2])
 
-            der.M.l.nu2 <- -AtA*exp(-l.nu2)
-            A.l.nu2 <- solve(M,der.M.l.nu2,sparse=TRUE)
-            trace1.l.nu2 <- sum(diag(A.l.nu2))
-            w.beta.nu2 <- der.M.l.nu2%*%w
-            q.f.l.nu2 <- as.numeric(t(w)%*%w.beta.nu2)
-            grad.l.nu2 <- -0.5*(-sum.diff.y.sq/nu2+2*q.f.z/(nu2^2))/sigma2+
-                       -0.5*(n+trace1.l.nu2+
-                       q.f.l.nu2/((nu2^2)*sigma2))
-            g <- c(grad.beta,grad.l.sigma2,grad.l.phi,grad.l.nu2)
+      Q <- (omega^4*mesh.fem$c0+2*omega^2*mesh.fem$g1+
+              mesh.fem$g1%*%(mesh.fem$g1*(1/diag(mesh.fem$c0))))
 
-            H <- matrix(NA,p+3,p+3)
+      M <- Q+AtA/nu2
+      My <- as.numeric(y/nu2-A%*%solve(M,Aty)/(nu2^2))
+      M.beta <- as.matrix(DtD/nu2-t(AtD)%*%solve(M,AtD)/(nu2^2))
+      beta <- as.numeric(solve(M.beta)%*%t(D)%*%My)
 
-            H.beta.aux <-  A%*%solve(M,t(A),sparse=TRUE)/(nu2^2)
-            diag(H.beta.aux) <- diag(H.beta.aux)-1/nu2
-            H[1:p,1:p] <- as.matrix(t(D)%*%H.beta.aux%*%D/sigma2)
+      mu <- as.numeric(D%*%beta)
+      diff.y <- y-mu
+      At.diff.y <- as.numeric(t(A)%*%diff.y)
+      sigma2 <- as.numeric(sum(diff.y^2)/nu2-
+                             t(At.diff.y)%*%solve(M,At.diff.y)/(nu2^2))/n
+      out <- list()
+      sigma2.marg <- sigma2/(4*pi*(omega^2))
+      nu2.marg <- sigma2*nu2/sigma2.marg
+      out$estimate <- c(beta,log(c(sigma2.marg,phi,nu2.marg)))
+      out$log.lik <- -est.profile$objective
+      if(SPDE.analytic.hessian) {
+        z <- as.numeric(t(A)%*%diff.y)
+        w <- as.numeric(solve(M,z))
+        v <- as.numeric(A%*%w)
 
-            H[1:p,p+1] <- H[p+1,1:p] <- -grad.beta
+        q.f.z <- sum(z*w)
+        sum.diff.y.sq <- sum(diff.y^2)
+        q.f <- (sum.diff.y.sq/nu2-q.f.z/(nu2^2))/sigma2
 
-            v.beta.phi <- as.numeric(A%*%solve(M,w.beta.phi))
-            H[1:p,p+2] <- H[p+2,1:p] <- t(D)%*%v.beta.phi/((nu2^2)*sigma2)
-
-            v.beta.nu2 <- as.numeric(A%*%solve(M,w.beta.nu2))
-            H[1:p,p+3] <- H[p+3,1:p] <- as.numeric(t(D)%*%(-diff.y/nu2+2*v/(nu2^2))/sigma2)+
-                               +t(D)%*%v.beta.nu2/((nu2^2)*sigma2)
-
-            H[p+1,p+1] <- -0.5*q.f
-            H[p+1,p+2] <- H[p+2,p+1] <- -(grad.l.phi+0.5*(trace1.l.phi))
-            H[p+1,p+3] <- H[p+3,p+1] <- -(grad.l.nu2+0.5*(trace1.l.nu2+n))
-
-            der2.Q.l.phi <- 8*exp(-2*l.phi)*mesh.fem$g1
-            diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+16*exp(-4*l.phi)*diag(mesh.fem$c0)
-            B1.l.phi <- solve(Q,der2.Q.l.phi,sparse=TRUE)-A1.l.phi%*%A1.l.phi
-            B2.l.phi <- solve(M,der2.Q.l.phi,sparse=TRUE)-A2.l.phi%*%A2.l.phi
-            trace2.l.phi <- -sum(diag(B1.l.phi))+sum(diag(B2.l.phi))
-            w1.phi.phi <- as.numeric(der.Q.l.phi%*%solve(M,w.beta.phi))
-            w2.phi.phi <- as.numeric(der2.Q.l.phi%*%w)
-            H[p+2,p+2] <- -0.5*(trace2.l.phi-sum(2*w*w1.phi.phi-w*w2.phi.phi)/((nu2^2)*sigma2))
+        grad.beta <- as.numeric(t(D)%*%(diff.y/nu2-v/(nu2^2))/sigma2)
+        grad.l.sigma2 <- -0.5*(n-q.f)
 
 
-            H[p+2,p+3] <- H[p+3,p+2] <- -0.5*(sum(diag(-A2.l.phi%*%A.l.nu2))-
-                                as.numeric(
-                                t(w)%*%(der.M.l.nu2%*%A2.l.phi+
-                                          der.Q.l.phi%*%A.l.nu2)%*%w)/((nu2^2)*sigma2)+
-                               -2*q.f.l.phi.aux/((nu2^2)*sigma2))
+        der.Q.l.phi <- -4*exp(-2*l.phi)*mesh.fem$g1
+        diag(der.Q.l.phi) <- diag(der.Q.l.phi)-4*exp(-4*l.phi)*diag(mesh.fem$c0)
+        A1.l.phi <- solve(Q,der.Q.l.phi,sparse=TRUE)
+        A2.l.phi <- solve(M,der.Q.l.phi,sparse=TRUE)
+        trace1.l.phi <- -sum(diag(A1.l.phi))+sum(diag(A2.l.phi))
+        w.beta.phi <- der.Q.l.phi%*%w
+        q.f.l.phi.aux <- as.numeric(t(w)%*%w.beta.phi)
+        grad.l.phi <- -0.5*(trace1.l.phi+
+                              q.f.l.phi.aux/((nu2^2)*sigma2))
 
-            B.l.nu2 <- -A.l.nu2-A.l.nu2%*%A.l.nu2
-            trace2.l.nu2 <- sum(diag(B.l.nu2))
-            w1.nu2.nu2 <- as.numeric(der.M.l.nu2%*%solve(M,w.beta.nu2))
-            w2.nu2.nu2 <- -w.beta.nu2
-            H[p+3,p+3] <- -0.5*(sum.diff.y.sq/nu2-4*q.f.z/(nu2^2)-2*q.f.l.nu2/(nu2^2))/sigma2+
-                 -0.5*(trace2.l.nu2-sum(2*w*w1.nu2.nu2-w*w2.nu2.nu2)/((nu2^2)*sigma2)+
-                       -2*q.f.l.nu2/((nu2^2)*sigma2))
-            J <- diag(1,p+3)
-            J[p+1,-(1:p)] <- c(1,-2,0)
-            J[p+3,-(1:p)] <- c(0,2,1)
-            out$hessian <- t(J)%*%H%*%J
-         } else {
-            out$hessian <- numDeriv::hessian(
-                           log.lik,x=out$estimate)
-         }
-         names(out$estimate)[1:p] <- colnames(D)
-         names(out$estimate)[-(1:p)] <- c("log(sigma^2)","log(phi)",
-                                          "log(nu^2)")
-         return(out)
+        der.M.l.nu2 <- -AtA*exp(-l.nu2)
+        A.l.nu2 <- solve(M,der.M.l.nu2,sparse=TRUE)
+        trace1.l.nu2 <- sum(diag(A.l.nu2))
+        w.beta.nu2 <- der.M.l.nu2%*%w
+        q.f.l.nu2 <- as.numeric(t(w)%*%w.beta.nu2)
+        grad.l.nu2 <- -0.5*(-sum.diff.y.sq/nu2+2*q.f.z/(nu2^2))/sigma2+
+          -0.5*(n+trace1.l.nu2+
+                  q.f.l.nu2/((nu2^2)*sigma2))
+        g <- c(grad.beta,grad.l.sigma2,grad.l.phi,grad.l.nu2)
+
+        H <- matrix(NA,p+3,p+3)
+
+        H.beta.aux <-  A%*%solve(M,t(A),sparse=TRUE)/(nu2^2)
+        diag(H.beta.aux) <- diag(H.beta.aux)-1/nu2
+        H[1:p,1:p] <- as.matrix(t(D)%*%H.beta.aux%*%D/sigma2)
+
+        H[1:p,p+1] <- H[p+1,1:p] <- -grad.beta
+
+        v.beta.phi <- as.numeric(A%*%solve(M,w.beta.phi))
+        H[1:p,p+2] <- H[p+2,1:p] <- t(D)%*%v.beta.phi/((nu2^2)*sigma2)
+
+        v.beta.nu2 <- as.numeric(A%*%solve(M,w.beta.nu2))
+        H[1:p,p+3] <- H[p+3,1:p] <- as.numeric(t(D)%*%(-diff.y/nu2+2*v/(nu2^2))/sigma2)+
+          +t(D)%*%v.beta.nu2/((nu2^2)*sigma2)
+
+        H[p+1,p+1] <- -0.5*q.f
+        H[p+1,p+2] <- H[p+2,p+1] <- -(grad.l.phi+0.5*(trace1.l.phi))
+        H[p+1,p+3] <- H[p+3,p+1] <- -(grad.l.nu2+0.5*(trace1.l.nu2+n))
+
+        der2.Q.l.phi <- 8*exp(-2*l.phi)*mesh.fem$g1
+        diag(der2.Q.l.phi) <- diag(der2.Q.l.phi)+16*exp(-4*l.phi)*diag(mesh.fem$c0)
+        B1.l.phi <- solve(Q,der2.Q.l.phi,sparse=TRUE)-A1.l.phi%*%A1.l.phi
+        B2.l.phi <- solve(M,der2.Q.l.phi,sparse=TRUE)-A2.l.phi%*%A2.l.phi
+        trace2.l.phi <- -sum(diag(B1.l.phi))+sum(diag(B2.l.phi))
+        w1.phi.phi <- as.numeric(der.Q.l.phi%*%solve(M,w.beta.phi))
+        w2.phi.phi <- as.numeric(der2.Q.l.phi%*%w)
+        H[p+2,p+2] <- -0.5*(trace2.l.phi-sum(2*w*w1.phi.phi-w*w2.phi.phi)/((nu2^2)*sigma2))
+
+
+        H[p+2,p+3] <- H[p+3,p+2] <- -0.5*(sum(diag(-A2.l.phi%*%A.l.nu2))-
+                                            as.numeric(
+                                              t(w)%*%(der.M.l.nu2%*%A2.l.phi+
+                                                        der.Q.l.phi%*%A.l.nu2)%*%w)/((nu2^2)*sigma2)+
+                                            -2*q.f.l.phi.aux/((nu2^2)*sigma2))
+
+        B.l.nu2 <- -A.l.nu2-A.l.nu2%*%A.l.nu2
+        trace2.l.nu2 <- sum(diag(B.l.nu2))
+        w1.nu2.nu2 <- as.numeric(der.M.l.nu2%*%solve(M,w.beta.nu2))
+        w2.nu2.nu2 <- -w.beta.nu2
+        H[p+3,p+3] <- -0.5*(sum.diff.y.sq/nu2-4*q.f.z/(nu2^2)-2*q.f.l.nu2/(nu2^2))/sigma2+
+          -0.5*(trace2.l.nu2-sum(2*w*w1.nu2.nu2-w*w2.nu2.nu2)/((nu2^2)*sigma2)+
+                  -2*q.f.l.nu2/((nu2^2)*sigma2))
+        J <- diag(1,p+3)
+        J[p+1,-(1:p)] <- c(1,-2,0)
+        J[p+3,-(1:p)] <- c(0,2,1)
+        out$hessian <- t(J)%*%H%*%J
+      } else {
+        out$hessian <- numDeriv::hessian(
+          log.lik,x=out$estimate)
       }
-      estim <- list()
-      nu2.start <- start.cov.pars[2]
-      phi.start <- start.cov.pars[1]
-      nu2.start.tilde <- nu2.start*(phi.start^2)/(4*pi)
-      log.start.cov.pars <- log(c(phi.start,nu2.start.tilde))
-      if(method=="nlminb") {
-         estimNLMINB <- nlminb(log.start.cov.pars,
-                        function(x) -profile.log.lik(x),
-                        control=list(trace=1*messages))
-         estim.s <- summary.est(estimNLMINB)
-      } else if(method=="BFGS") {
-         estimBFGS <- maxBFGS(profile.log.lik,
-                        start=log.start.cov.pars,
-                        print.level=1*messages)
-         estimBFGS$par <- estimBFGS$estimate
-         estimBFGS$objective <- -estimBFGS$maximum
-         estim.s <- summary.est(estimBFGS)
-      }
-      estim$estimate <- estim.s$estimate
-      estim$covariance <- solve(-estim.s$hessian)
-      estim$log.lik <- estim.s$log.lik
-   } else {
-      stop("The use of SPDE requires the INLA package.
-      The INLA package can be obtained from <http://www.r-inla.org>.
-      We recommend the testing version, which can be downloaded by running:
-      install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/testing').")
-   }
-   rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
-   estim$y <- y
-   estim$D <- D
-   estim$coords <- coords
-   estim$method <- method
-   estim$kappa <- kappa
-   estim$mesh <- mesh
-   class(estim) <- "PrevMap"
-   return(estim)
-}
+      names(out$estimate)[1:p] <- colnames(D)
+      names(out$estimate)[-(1:p)] <- c("log(sigma^2)","log(phi)",
+                                       "log(nu^2)")
+      return(out)
+    }
+    estim <- list()
+    nu2.start <- start.cov.pars[2]
+    phi.start <- start.cov.pars[1]
+    nu2.start.tilde <- nu2.start*(phi.start^2)/(4*pi)
+    log.start.cov.pars <- log(c(phi.start,nu2.start.tilde))
+    if(method=="nlminb") {
+      estimNLMINB <- nlminb(log.start.cov.pars,
+                            function(x) -profile.log.lik(x),
+                            control=list(trace=1*messages))
+      estim.s <- summary.est(estimNLMINB)
+    } else if(method=="BFGS") {
+      estimBFGS <- maxBFGS(profile.log.lik,
+                           start=log.start.cov.pars,
+                           print.level=1*messages)
+      estimBFGS$par <- estimBFGS$estimate
+      estimBFGS$objective <- -estimBFGS$maximum
+      estim.s <- summary.est(estimBFGS)
+    }
+    estim$estimate <- estim.s$estimate
+    estim$covariance <- solve(-estim.s$hessian)
+    estim$log.lik <- estim.s$log.lik
+  } else {
+    stop("The use of SPDE requires the INLA package.
+         The INLA package can be obtained from <http://www.r-inla.org>.
+         We recommend the testing version, which can be downloaded by running:
+         install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/testing').")
+  }
+  rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
+  estim$y <- y
+  estim$D <- D
+  estim$coords <- coords
+  estim$method <- method
+  estim$kappa <- kappa
+  estim$mesh <- mesh
+  class(estim) <- "PrevMap"
+  return(estim)
+  }
 
 ##' @title Priors specification
 ##' @description This function is used to define priors for the model parameters of a Bayesian geostatistical model.
@@ -4966,80 +5064,80 @@ geo.linear.MLE.SPDE <- function(formula,coords,mesh,data,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
-                                    log.prior.phi=NULL,log.prior.nugget=NULL,
-                                    uniform.sigma2=NULL,log.normal.sigma2=NULL,
-                                    uniform.phi=NULL,log.normal.phi=NULL,
-                                    uniform.nugget=NULL,log.normal.nugget=NULL) {
-   if(dim(as.matrix(beta.covar))[1]*
-      dim(as.matrix(beta.covar))[2] != (length(beta.mean)^2)) {
-      stop("incompatible values for beta.covar and beta.mean")
-   }
-   if(length(log.prior.sigma2) >0 && length(log.prior.sigma2(runif(1)))!=1) stop("invalid prior for sigma2")
-   if(length(log.prior.phi) >0 && length(log.prior.phi(runif(1)))!=1) stop("invalid prior for phi")
-   if(length(log.prior.nugget)>0) {
-   	if(length(log.prior.nugget(runif(1)))!=1) stop("invalid prior for the nugget effect")
-   }
-    if(prod(t(beta.covar)==beta.covar)==0) stop("beta.covar is not symmetric.")
-    if(prod(eigen(beta.covar)$values) <= 10e-07) stop("beta.covar is not positive definite.")
-    if(length(uniform.sigma2) > 0 && any(uniform.sigma2 < 0)) stop("uniform.sigma2 must be positive.")
-    if(length(uniform.phi) > 0 && any(uniform.phi < 0)) stop("uniform.phi must be positive.")
-    if(length(uniform.nugget) > 0 && any(uniform.nugget < 0)) stop("uniform.nugget must be positive.")
-
-    if(length(log.normal.sigma2) > 0 && log.normal.sigma2[2] < 0) stop("the second element of log.normal.sigma2 must be positive.")
-    if(length(log.normal.phi) > 0 && log.normal.phi[2] < 0) stop("the second element of log.normal.phi must be positive.")
-    if(length(log.normal.nugget) > 0 && log.normal.nugget[2] < 0) stop("the second element of log.normal.nugget must be positive.")
-
-    if((length(log.prior.sigma2) > 0 & (length(uniform.sigma2)>0 | length(log.normal.sigma2))) |
-       ((length(log.prior.sigma2) > 0 | length(uniform.sigma2)>0) & length(log.normal.sigma2)) |
-       ((length(log.prior.sigma2) > 0 | length(log.normal.sigma2)>0) & length(uniform.sigma2))) stop("only one prior for sigma2 must be provided.")
-    if((length(log.prior.phi) > 0 & (length(uniform.phi)>0 | length(log.normal.phi))) |
-       ((length(log.prior.phi) > 0 | length(uniform.phi)>0) & length(log.normal.phi)) |
-       ((length(log.prior.phi) > 0 | length(log.normal.phi)>0) & length(uniform.phi))) stop("only one prior for phi must be provided.")
-    if((length(log.prior.nugget) > 0 & (length(uniform.nugget)>0 | length(log.normal.nugget))) |
-       ((length(log.prior.nugget) > 0 | length(uniform.nugget)>0) & length(log.normal.nugget)) |
-       ((length(log.prior.nugget) > 0 | length(log.normal.nugget)>0) & length(uniform.nugget))) stop("only one prior for the variance of the nugget effect must be provided.")
-    if(length(uniform.sigma2) > 0 && length(uniform.sigma2) !=2) stop("wrong length of log.normal.sigma2")
-    if(length(uniform.phi) > 0 && length(uniform.phi) !=2) stop("wrong length of log.normal.phi")
-    if(length(uniform.nugget) > 0 && length(uniform.nugget) !=2) stop("wrong length of log.normal.nugget")
-    if(length(log.normal.sigma2) > 0 && length(log.normal.sigma2) !=2) stop("wrong length of log.normal.sigma2")
-    if(length(log.normal.phi) > 0 && length(log.normal.phi) !=2) stop("wrong length of log.normal.phi")
-    if(length(log.normal.nugget) > 0 && length(log.normal.nugget) !=2) stop("wrong length of log.normal.nugget")
-
-    if(length(uniform.sigma2) > 0 && (uniform.sigma2[2] < uniform.sigma2[1])) stop("wrong value for uniform.sigma2: the value for the upper limit is smaller than the lower limit.")
-    if(length(uniform.phi) > 0 && (uniform.phi[2] < uniform.phi[1])) stop("wrong value for uniform.phi: the value for the upper limit is smaller than the lower limit.")
-    if(length(uniform.nugget) > 0 && (uniform.nugget[2] < uniform.nugget[1])) stop("wrong value for uniform.nugget: the value for the upper limit is smaller than the lower limit.")
-
-       if(length(uniform.sigma2) > 0 && any(uniform.sigma2<0)) stop("uniform.sigma2 must be positive.")
-    if(length(uniform.phi) > 0 && any(uniform.phi<0)) stop("uniform.phi must be positive.")
-    if(length(uniform.nugget) > 0 && any(uniform.nugget<0)) stop("uniform.nugget must be positive.")
-
-   if(length(uniform.sigma2) > 0) {
-   	   log.prior.sigma2 <- function(sigma2) dunif(sigma2,uniform.sigma2[1], uniform.sigma2[2],log=TRUE)
-   } else if(length(log.normal.sigma2) > 0) {
-   	   log.prior.sigma2 <- function(sigma2) dlnorm(sigma2,meanlog=log.normal.sigma2[1],
-   	                                                             log.normal.sigma2[2],log=TRUE)
-   }
-   if(length(uniform.phi) > 0) {
-   	   log.prior.phi <- function(phi) dunif(phi,uniform.phi[1], uniform.phi[2],log=TRUE)
-   } else if(length(log.normal.phi) > 0) {
-   	   log.prior.phi <- function(phi) dlnorm(phi,meanlog=log.normal.phi[1],
-   	                                                            log.normal.phi[2],log=TRUE)
-   }
-   if(length(uniform.nugget) > 0) {
-   	   log.prior.nugget <- function(tau2) dunif(tau2,uniform.nugget[1], uniform.nugget[2],log=TRUE)
-   } else if(length(log.normal.nugget) > 0) {
-   	   log.prior.nugget <- function(tau2) dlnorm(tau2,meanlog=log.normal.nugget[1],
-   	                                                             log.normal.nugget[2],log=TRUE)
-   }
-   if(length(beta.mean)!=dim(as.matrix(beta.covar))[1] |
-      length(beta.mean)!=dim(as.matrix(beta.covar))[2]) {
-   	 stop("invalid mean or covariance matrix for the prior of beta")
-   }
-   out <- list(m=beta.mean,V.inv=solve(beta.covar),
-   log.prior.phi=log.prior.phi,
-   log.prior.sigma2=log.prior.sigma2,
-   log.prior.nugget=log.prior.nugget)
-   return(out)
+                          log.prior.phi=NULL,log.prior.nugget=NULL,
+                          uniform.sigma2=NULL,log.normal.sigma2=NULL,
+                          uniform.phi=NULL,log.normal.phi=NULL,
+                          uniform.nugget=NULL,log.normal.nugget=NULL) {
+  if(dim(as.matrix(beta.covar))[1]*
+     dim(as.matrix(beta.covar))[2] != (length(beta.mean)^2)) {
+    stop("incompatible values for beta.covar and beta.mean")
+  }
+  if(length(log.prior.sigma2) >0 && length(log.prior.sigma2(runif(1)))!=1) stop("invalid prior for sigma2")
+  if(length(log.prior.phi) >0 && length(log.prior.phi(runif(1)))!=1) stop("invalid prior for phi")
+  if(length(log.prior.nugget)>0) {
+    if(length(log.prior.nugget(runif(1)))!=1) stop("invalid prior for the nugget effect")
+  }
+  if(prod(t(beta.covar)==beta.covar)==0) stop("beta.covar is not symmetric.")
+  if(prod(eigen(beta.covar)$values) <= 10e-07) stop("beta.covar is not positive definite.")
+  if(length(uniform.sigma2) > 0 && any(uniform.sigma2 < 0)) stop("uniform.sigma2 must be positive.")
+  if(length(uniform.phi) > 0 && any(uniform.phi < 0)) stop("uniform.phi must be positive.")
+  if(length(uniform.nugget) > 0 && any(uniform.nugget < 0)) stop("uniform.nugget must be positive.")
+  
+  if(length(log.normal.sigma2) > 0 && log.normal.sigma2[2] < 0) stop("the second element of log.normal.sigma2 must be positive.")
+  if(length(log.normal.phi) > 0 && log.normal.phi[2] < 0) stop("the second element of log.normal.phi must be positive.")
+  if(length(log.normal.nugget) > 0 && log.normal.nugget[2] < 0) stop("the second element of log.normal.nugget must be positive.")
+  
+  if((length(log.prior.sigma2) > 0 & (length(uniform.sigma2)>0 | length(log.normal.sigma2))) |
+     ((length(log.prior.sigma2) > 0 | length(uniform.sigma2)>0) & length(log.normal.sigma2)) |
+     ((length(log.prior.sigma2) > 0 | length(log.normal.sigma2)>0) & length(uniform.sigma2))) stop("only one prior for sigma2 must be provided.")
+  if((length(log.prior.phi) > 0 & (length(uniform.phi)>0 | length(log.normal.phi))) |
+     ((length(log.prior.phi) > 0 | length(uniform.phi)>0) & length(log.normal.phi)) |
+     ((length(log.prior.phi) > 0 | length(log.normal.phi)>0) & length(uniform.phi))) stop("only one prior for phi must be provided.")
+  if((length(log.prior.nugget) > 0 & (length(uniform.nugget)>0 | length(log.normal.nugget))) |
+     ((length(log.prior.nugget) > 0 | length(uniform.nugget)>0) & length(log.normal.nugget)) |
+     ((length(log.prior.nugget) > 0 | length(log.normal.nugget)>0) & length(uniform.nugget))) stop("only one prior for the variance of the nugget effect must be provided.")
+  if(length(uniform.sigma2) > 0 && length(uniform.sigma2) !=2) stop("wrong length of log.normal.sigma2")
+  if(length(uniform.phi) > 0 && length(uniform.phi) !=2) stop("wrong length of log.normal.phi")
+  if(length(uniform.nugget) > 0 && length(uniform.nugget) !=2) stop("wrong length of log.normal.nugget")
+  if(length(log.normal.sigma2) > 0 && length(log.normal.sigma2) !=2) stop("wrong length of log.normal.sigma2")
+  if(length(log.normal.phi) > 0 && length(log.normal.phi) !=2) stop("wrong length of log.normal.phi")
+  if(length(log.normal.nugget) > 0 && length(log.normal.nugget) !=2) stop("wrong length of log.normal.nugget")
+  
+  if(length(uniform.sigma2) > 0 && (uniform.sigma2[2] < uniform.sigma2[1])) stop("wrong value for uniform.sigma2: the value for the upper limit is smaller than the lower limit.")
+  if(length(uniform.phi) > 0 && (uniform.phi[2] < uniform.phi[1])) stop("wrong value for uniform.phi: the value for the upper limit is smaller than the lower limit.")
+  if(length(uniform.nugget) > 0 && (uniform.nugget[2] < uniform.nugget[1])) stop("wrong value for uniform.nugget: the value for the upper limit is smaller than the lower limit.")
+  
+  if(length(uniform.sigma2) > 0 && any(uniform.sigma2<0)) stop("uniform.sigma2 must be positive.")
+  if(length(uniform.phi) > 0 && any(uniform.phi<0)) stop("uniform.phi must be positive.")
+  if(length(uniform.nugget) > 0 && any(uniform.nugget<0)) stop("uniform.nugget must be positive.")
+  
+  if(length(uniform.sigma2) > 0) {
+    log.prior.sigma2 <- function(sigma2) dunif(sigma2,uniform.sigma2[1], uniform.sigma2[2],log=TRUE)
+  } else if(length(log.normal.sigma2) > 0) {
+    log.prior.sigma2 <- function(sigma2) dlnorm(sigma2,meanlog=log.normal.sigma2[1],
+                                                log.normal.sigma2[2],log=TRUE)
+  }
+  if(length(uniform.phi) > 0) {
+    log.prior.phi <- function(phi) dunif(phi,uniform.phi[1], uniform.phi[2],log=TRUE)
+  } else if(length(log.normal.phi) > 0) {
+    log.prior.phi <- function(phi) dlnorm(phi,meanlog=log.normal.phi[1],
+                                          log.normal.phi[2],log=TRUE)
+  }
+  if(length(uniform.nugget) > 0) {
+    log.prior.nugget <- function(tau2) dunif(tau2,uniform.nugget[1], uniform.nugget[2],log=TRUE)
+  } else if(length(log.normal.nugget) > 0) {
+    log.prior.nugget <- function(tau2) dlnorm(tau2,meanlog=log.normal.nugget[1],
+                                              log.normal.nugget[2],log=TRUE)
+  }
+  if(length(beta.mean)!=dim(as.matrix(beta.covar))[1] |
+     length(beta.mean)!=dim(as.matrix(beta.covar))[2]) {
+    stop("invalid mean or covariance matrix for the prior of beta")
+  }
+  out <- list(m=beta.mean,V.inv=solve(beta.covar),
+              log.prior.phi=log.prior.phi,
+              log.prior.sigma2=log.prior.sigma2,
+              log.prior.nugget=log.prior.nugget)
+  return(out)
 }
 
 ##' @title Control settings for the MCMC algorithm used for Bayesian inference using SPDE
@@ -5064,37 +5162,37 @@ control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 control.mcmc.Bayes.SPDE <- function(n.sim,burnin,thin,
-                          h.theta1=0.01,h.theta2=0.01,
-                          start.beta="prior mean",start.sigma2="prior mean",
-                          start.phi="prior mean",
-                          start.S="prior mean",
-                          n.iter=1,h=1,
-                          c1.h.theta1=0.01,c2.h.theta1=0.0001,
-                          c1.h.theta2=0.01,c2.h.theta2=0.0001) {
+                                    h.theta1=0.01,h.theta2=0.01,
+                                    start.beta="prior mean",start.sigma2="prior mean",
+                                    start.phi="prior mean",
+                                    start.S="prior mean",
+                                    n.iter=1,h=1,
+                                    c1.h.theta1=0.01,c2.h.theta1=0.0001,
+                                    c1.h.theta2=0.01,c2.h.theta2=0.0001) {
 
-   if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
+  if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
 
-   if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
+  if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
 
-   if(h.theta1 <= 0 | h.theta2 <= 0) {
-      stop("the tuning parameters must be positive.")
-   }
+  if(h.theta1 <= 0 | h.theta2 <= 0) {
+    stop("the tuning parameters must be positive.")
+  }
 
-   if(n.iter < 0 | n.iter%%1!=0) stop("'n.iter' must be a non-negative integer.")
-   if(c1.h.theta1 <= 0 | c1.h.theta2 <= 0 |
-      c2.h.theta1 <= 0 | c2.h.theta2 <= 0) {
-      stop("the c1 and c2 parameters must be positive.")
-   }
+  if(n.iter < 0 | n.iter%%1!=0) stop("'n.iter' must be a non-negative integer.")
+  if(c1.h.theta1 <= 0 | c1.h.theta2 <= 0 |
+     c2.h.theta1 <= 0 | c2.h.theta2 <= 0) {
+    stop("the c1 and c2 parameters must be positive.")
+  }
 
-   out <- list(n.sim=n.sim,burnin=burnin,thin=thin,n.iter=n.iter,
-               h.theta1=h.theta1,h.theta2=h.theta2,
-               start.beta=start.beta,start.sigma2=start.sigma2,
-               start.phi=start.phi,
-               start.S=start.S,h=h,
-               c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
-               c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2)
-   class(out) <- "mcmc.Bayes.SPDE.PrevMap"
-   return(out)
+  out <- list(n.sim=n.sim,burnin=burnin,thin=thin,n.iter=n.iter,
+              h.theta1=h.theta1,h.theta2=h.theta2,
+              start.beta=start.beta,start.sigma2=start.sigma2,
+              start.phi=start.phi,
+              start.S=start.S,h=h,
+              c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
+              c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2)
+  class(out) <- "mcmc.Bayes.SPDE.PrevMap"
+  return(out)
 }
 
 
@@ -5126,1246 +5224,1243 @@ control.mcmc.Bayes.SPDE <- function(n.sim,burnin,thin,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 control.mcmc.Bayes <- function(n.sim,burnin,thin,
-                               h.theta1,h.theta2,h.theta3=NULL,
+                               h.theta1=0.01,h.theta2=0.01,h.theta3=0.01,
                                L.S.lim=NULL, epsilon.S.lim=NULL,
-                               start.beta,start.sigma2,
-                               start.phi,start.S,start.nugget=NULL,
+                               start.beta="prior mean",start.sigma2="prior mean",
+                               start.phi="prior mean",start.S="prior mean",start.nugget="prior mean",
                                c1.h.theta1=0.01,c2.h.theta1=0.0001,
                                c1.h.theta2=0.01,c2.h.theta2=0.0001,
                                c1.h.theta3=0.01,c2.h.theta3=0.0001,
                                linear.model=FALSE,binary=FALSE) {
-   if(!linear.model & !binary) epsilon.S.lim <- as.numeric(epsilon.S.lim)
-   if(!linear.model & !binary && (any(length(epsilon.S.lim)==c(1,2))==FALSE)) stop("epsilon.S.lim must be: atomic; a vector of length 2.")
-
-   if(!linear.model & !binary && (any(length(L.S.lim)==c(1,2))==FALSE))  stop("L.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")
-
-   	if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
-
-	if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
-
-	if(length(start.nugget) > 0 & length(h.theta3) == 0) stop("h.theta3 is missing.")
-
-	if(length(start.nugget) > 0 & length(c1.h.theta3) == 0) stop("c1.h.theta3 is missing.")
-
-	if(length(start.nugget) > 0 & length(c2.h.theta3) == 0) stop("c2.h.theta3 is missing.")
-
-	if(length(start.nugget) == 0 & length(h.theta3) > 0) stop("start.nugget is missing.")
-
-	if(c1.h.theta1 < 0) stop("c1.h.theta1 must be positive.")
-
-	if(c1.h.theta2 < 0) stop("c1.h.theta2 must be positive.")
-
-	if(length(c1.h.theta3) > 0 && c1.h.theta3 < 0) stop("c1.h.theta3 must be positive.")
-
-	if(c2.h.theta1 < 0 | c2.h.theta1 > 1) stop("c2.h.theta1 must be between 0 and 1.")
-
-	if(c2.h.theta2 < 0 | c2.h.theta2 > 1) stop("c2.h.theta2 must be between 0 and 1.")
-
-	if(length(c2.h.theta3) > 0 && (c2.h.theta3 < 0 | c2.h.theta3 > 1)) stop("c2.h.theta3 must be between 0 and 1.")
-
-	if(!linear.model & !binary && (length(epsilon.S.lim)==2 & epsilon.S.lim[2] < epsilon.S.lim[1])) stop("The first element of epsilon.S.lim must be smaller than the second.")
-
-    if(!linear.model & !binary && (length(L.S.lim)==2 & L.S.lim[2] < epsilon.S.lim[1])) stop("The first element of L.S.lim must be smaller than the second.")
-
-    if(linear.model) {
-         out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
-                   h.theta1=h.theta1,h.theta2=h.theta2,
-                   h.theta3=h.theta3,
-                   start.beta=start.beta,start.sigma2=start.sigma2,
-                   start.phi=start.phi,start.nugget=start.nugget,
-                   c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
-                   c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
-                   c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)
-   } else if (binary) {
-   	    if(length(start.nugget) != 0) warning("inclusion of the nugget effect is not available for the binary model")
-   	    out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
-                   h.theta1=h.theta1,h.theta2=h.theta2,
-                   start.beta=start.beta,start.sigma2=start.sigma2,
-                   start.phi=start.phi,
-                   c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
-                   c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2)
-   } else {
-         out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
-                   h.theta1=h.theta1,h.theta2=h.theta2,
-                   h.theta3=h.theta3,
-                   L.S.lim=L.S.lim, epsilon.S.lim=epsilon.S.lim,
-                   start.beta=start.beta,start.sigma2=start.sigma2,
-                   start.phi=start.phi,
-                   start.S=start.S,start.nugget=start.nugget,
-                   c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
-                   c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
-                   c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)
-   }
-   class(out) <- "mcmc.Bayes.PrevMap"
-   out
+  if(!linear.model & !binary) epsilon.S.lim <- as.numeric(epsilon.S.lim)
+  if(!linear.model & !binary && (any(length(epsilon.S.lim)==c(1,2))==FALSE)) stop("epsilon.S.lim must be: atomic; a vector of length 2.")
+  
+  if(!linear.model & !binary && (any(length(L.S.lim)==c(1,2))==FALSE))  stop("L.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")
+  
+  if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
+  
+  if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
+  
+  if(length(start.nugget) > 0 & length(h.theta3) == 0) stop("h.theta3 is missing.")
+  
+  if(length(start.nugget) > 0 & length(c1.h.theta3) == 0) stop("c1.h.theta3 is missing.")
+  
+  if(length(start.nugget) > 0 & length(c2.h.theta3) == 0) stop("c2.h.theta3 is missing.")
+  
+  if(c1.h.theta1 < 0) stop("c1.h.theta1 must be positive.")
+  
+  if(c1.h.theta2 < 0) stop("c1.h.theta2 must be positive.")
+  
+  if(length(c1.h.theta3) > 0 && c1.h.theta3 < 0) stop("c1.h.theta3 must be positive.")
+  
+  if(c2.h.theta1 < 0 | c2.h.theta1 > 1) stop("c2.h.theta1 must be between 0 and 1.")
+  
+  if(c2.h.theta2 < 0 | c2.h.theta2 > 1) stop("c2.h.theta2 must be between 0 and 1.")
+  
+  if(length(c2.h.theta3) > 0 && (c2.h.theta3 < 0 | c2.h.theta3 > 1)) stop("c2.h.theta3 must be between 0 and 1.")
+  
+  if(!linear.model & !binary && (length(epsilon.S.lim)==2 & epsilon.S.lim[2] < epsilon.S.lim[1])) stop("The first element of epsilon.S.lim must be smaller than the second.")
+  
+  if(!linear.model & !binary && (length(L.S.lim)==2 & L.S.lim[2] < epsilon.S.lim[1])) stop("The first element of L.S.lim must be smaller than the second.")
+  
+  if(linear.model) {
+    out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
+                h.theta1=h.theta1,h.theta2=h.theta2,
+                h.theta3=h.theta3,
+                start.beta=start.beta,start.sigma2=start.sigma2,
+                start.phi=start.phi,start.nugget=start.nugget,
+                c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
+                c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
+                c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)
+  } else if (binary) {
+    if(length(start.nugget) != 0) warning("inclusion of the nugget effect is not available for the binary model")
+    out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
+                h.theta1=h.theta1,h.theta2=h.theta2,
+                start.beta=start.beta,start.sigma2=start.sigma2,
+                start.phi=start.phi,
+                c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
+                c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2)
+  } else {
+    out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
+                h.theta1=h.theta1,h.theta2=h.theta2,
+                h.theta3=h.theta3,
+                L.S.lim=L.S.lim, epsilon.S.lim=epsilon.S.lim,
+                start.beta=start.beta,start.sigma2=start.sigma2,
+                start.phi=start.phi,
+                start.S=start.S,start.nugget=start.nugget,
+                c1.h.theta1=c1.h.theta1,c2.h.theta1=c2.h.theta1,
+                c1.h.theta2=c1.h.theta2,c2.h.theta2=c2.h.theta2,
+                c1.h.theta3=c1.h.theta3,c2.h.theta3=c2.h.theta3)
+  }
+  class(out) <- "mcmc.Bayes.PrevMap"
+  out
 }
-
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom Matrix Matrix determinant solve t diag forceSymmetric
 binomial.geo.Bayes.SPDE <- function(formula,units.m,coords,data,
-                                        control.prior,mesh,
-                                        control.mcmc,kappa,messages) {
-   kappa <- as.numeric(kappa)
+                                    control.prior,mesh,
+                                    control.mcmc,kappa,messages) {
+  kappa <- as.numeric(kappa)
 
-   if(any(is.na(data))) stop("missing values are not accepted.")
-   coords <- as.matrix(model.frame(coords,data))
-   units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  if(any(is.na(data))) stop("missing values are not accepted.")
+  coords <- as.matrix(model.frame(coords,data))
+  units.m <-  as.numeric(model.frame(units.m,data)[,1])
 
-   if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
-   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
 
-   out <- list()
+  out <- list()
 
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   n <- length(y)
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   p <- ncol(D)
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
 
-   if(!is.character(control.mcmc$start.beta) &&
-      length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   V.inv <- control.prior$V.inv
-   m <- control.prior$m
+  if(!is.character(control.mcmc$start.beta) &&
+     length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
 
-   acc.theta1 <- 0
-   acc.theta2 <- 0
+  acc.theta1 <- 0
+  acc.theta2 <- 0
 
-   acc.beta.S <- 0
+  acc.beta.S <- 0
 
-   n.sim <- control.mcmc$n.sim
-   burnin <- control.mcmc$burnin
-   thin <- control.mcmc$thin
-   h.theta1 <- control.mcmc$h.theta1
-   h.theta2 <- control.mcmc$h.theta2
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
 
-   c1.h.theta1 <- control.mcmc$c1.h.theta1
-   c2.h.theta1 <- control.mcmc$c2.h.theta1
-   c1.h.theta2 <- control.mcmc$c1.h.theta2
-   c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
 
-   h <- control.mcmc$h
+  h <- control.mcmc$h
 
-   n.iter <- control.mcmc$n.iter
+  n.iter <- control.mcmc$n.iter
 
-   out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-   colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
-   out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=mesh$n)
+  out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+  colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=mesh$n)
 
-   # Initialise all the parameters
-   if(!is.character(control.mcmc$start.sigma2)) {
-      sigma2.curr <- control.mcmc$start.sigma2
-   } else {
-      norm <- integrate(function(x)
-              exp(control.prior$log.prior.sigma2(x)),
-              lower=0,upper=Inf,rel.tol=10e-10)$value
-      sigma2.curr <- integrate(function(x)
-              x*exp(control.prior$log.prior.sigma2(x))/norm,
-              lower=0,upper=Inf,rel.tol=10e-10)$value
-   }
+  # Initialise all the parameters
+  if(!is.character(control.mcmc$start.sigma2)) {
+    sigma2.curr <- control.mcmc$start.sigma2
+  } else {
+    norm <- integrate(function(x)
+      exp(control.prior$log.prior.sigma2(x)),
+      lower=0,upper=Inf,rel.tol=10e-10)$value
+    sigma2.curr <- integrate(function(x)
+      x*exp(control.prior$log.prior.sigma2(x))/norm,
+      lower=0,upper=Inf,rel.tol=10e-10)$value
+  }
 
-   if(!is.character(control.mcmc$start.phi)) {
-      phi.curr <- control.mcmc$start.phi
-   } else {
-      norm <- integrate(function(x)
-              exp(control.prior$log.prior.phi(x)),
-              lower=0,upper=Inf,rel.tol=10e-10)$value
-      phi.curr <- integrate(function(x)
-              x*exp(control.prior$log.prior.phi(x))/norm,
-              lower=0,upper=Inf,rel.tol=10e-10)$value
-   }
+  if(!is.character(control.mcmc$start.phi)) {
+    phi.curr <- control.mcmc$start.phi
+  } else {
+    norm <- integrate(function(x)
+      exp(control.prior$log.prior.phi(x)),
+      lower=0,upper=Inf,rel.tol=10e-10)$value
+    phi.curr <- integrate(function(x)
+      x*exp(control.prior$log.prior.phi(x))/norm,
+      lower=0,upper=Inf,rel.tol=10e-10)$value
+  }
 
-   theta1.curr <- 0.5*log(sigma2.curr)
-   theta2.curr <- log(sigma2.curr/(phi.curr^(2*kappa)))
-   sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^(2*kappa)))
+  sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
 
-   if(!is.character(control.mcmc$start.beta)) {
-      beta.curr <- control.mcmc$start.beta
-   } else {
-      beta.curr <- m
-   }
+  if(!is.character(control.mcmc$start.beta)) {
+    beta.curr <- control.mcmc$start.beta
+  } else {
+    beta.curr <- m
+  }
 
-   if(!is.character(control.mcmc$start.S)) {
-      S.curr <- control.mcmc$start.S
-   } else {
-      S.curr <- rep(0,mesh$n)
-   }
+  if(!is.character(control.mcmc$start.S)) {
+    S.curr <- control.mcmc$start.S
+  } else {
+    S.curr <- rep(0,mesh$n)
+  }
 
-   mu.curr <- as.numeric(D%*%beta.curr)
-
-
-   if(requireNamespace("INLA", quietly = TRUE)){
-      n.spde <- mesh$n
-
-      # Compute log-posterior density
-      spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
-      Q.curr <- INLA::inla.spde2.precision(spde,
-                theta=c(0,-log(phi.curr)))
-      log.det.Q.curr <- as.numeric(determinant(Q.curr)$modulus)
-
-      A <- INLA::inla.spde.make.A(mesh,loc=coords)
-      S.i.curr <- as.numeric(A%*%S.curr)
+  mu.curr <- as.numeric(D%*%beta.curr)
 
 
-      h1 <- rep(NA,n.sim)
-      h2 <- rep(NA,n.sim)
+  if(requireNamespace("INLA", quietly = TRUE)){
+    n.spde <- mesh$n
 
-      log.prior.theta1_2 <- function(theta1,theta2) {
-         sigma2 <- exp(2*theta1)
-         phi <- exp((2*theta1-theta2)/(2*kappa))
-         control.prior$log.prior.phi(phi)+
-         control.prior$log.prior.sigma2(sigma2)+
-         log(sigma2)+log(phi)
-      }
+    # Compute log-posterior density
+    spde <- INLA::inla.spde2.matern(mesh,alpha=kappa+1)
+    Q.curr <- INLA::inla.spde2.precision(spde,
+                                         theta=c(0,-log(phi.curr)))
+    log.det.Q.curr <- as.numeric(determinant(Q.curr)$modulus)
 
-      log.posterior <- function(beta,theta1,theta2,S,S.i,mu,
-                       Q,log.det.Q) {
-         eta <- S.i+mu
-         sigma2 <- exp(2*theta1)
-         phi <- exp((2*theta1-theta2)/(2*kappa))
-         sigma2.t <- 4*pi*sigma2/(phi^2)
-         out <-
-         log.prior.theta1_2(theta1,theta2)+
-         -0.5*t(beta-m)%*%V.inv%*%(beta-m)+
-         -0.5*(n.spde*log(sigma2.t)+
-               -log.det.Q+t(S)%*%Q%*%S/sigma2.t)+
-         sum(y*eta-units.m*log(1+exp(eta)))
-         return(as.numeric(out))
-      }
-
-      ind.S <- 1:n.spde
-      ind.beta <- (n.spde+1):(n.spde+p)
-
-      eta.aux <- rnorm(n)
-      mean.y.aux <- units.m*exp(eta.aux)/(1+exp(eta.aux))
-      grad.mean.y.aux <- mean.y.aux/(1+exp(eta.aux))
-
-      S.S.aux <- -Q.curr/sigma2.t.curr-t(A)%*%(A*grad.mean.y.aux)
-      S.S.aux@x <- rep(2,length(S.S.aux@x))
-      hess <- Matrix(0,n.spde+p,n.spde+p,sparse=TRUE)
-      hess[ind.S,ind.S] <- S.S.aux
-      beta.beta.aux <- Matrix(-V.inv-t(D)%*%(D*grad.mean.y.aux))
-      beta.beta.aux@x <- rep(3,length(beta.beta.aux@x))
-      hess[ind.beta,ind.beta] <- beta.beta.aux
-      S.beta.aux <- Matrix(-t(A)%*%(D*grad.mean.y.aux),sparse=TRUE)
-      S.beta.aux@x <- rep(4,length(S.beta.aux@x))
-      hess[ind.S,ind.beta] <- S.beta.aux
-      hess <- forceSymmetric(hess)
-
-      S.S.aux <- forceSymmetric(S.S.aux)
-      beta.beta.aux <- forceSymmetric(beta.beta.aux)
-      i.S.S <- which(hess@x==2)
-      i.beta.beta <- which(hess@x==3)
-      i.S.beta <- which(hess@x==4)
-
-      der.S.beta <- function(S,beta,mu,S.i,Q,sigma2.t) {
-         eta <- S.i+mu
-         mean.y <- units.m*exp(eta)/(1+exp(eta))
-         grad.mean.y <- mean.y/(1+exp(eta))
-         diff.y <- y-mean.y
-         out <- list()
-         out$grad <- c(as.numeric(-Q%*%S/sigma2.t.curr+t(A)%*%diff.y),
-           as.numeric(-V.inv%*%(beta-m)+t(D)%*%diff.y))
-         out$hess <- Matrix(0,n.spde+p,n.spde+p,sparse=TRUE)
-         S.S <- -Q/sigma2.t.curr-t(A)%*%(A*grad.mean.y)
-         S.S <- forceSymmetric(S.S)
-         hess@x[i.S.S] <- S.S@x
-         beta.beta <- Matrix(-V.inv-t(D)%*%(D*grad.mean.y),sparse=TRUE)
-         beta.beta <- forceSymmetric(beta.beta)
-         hess@x[i.beta.beta] <- beta.beta@x
-         S.beta <- Matrix(-t(A)%*%(D*grad.mean.y),sparse=TRUE)
-         hess@x[i.S.beta] <- S.beta@x
-         out$hess <- hess
-         return(out)
-      }
+    A <- INLA::inla.spde.make.A(mesh,loc=coords)
+    S.i.curr <- as.numeric(A%*%S.curr)
 
 
-      x.curr <- c(S.curr,beta.curr)
+    h1 <- rep(NA,n.sim)
+    h2 <- rep(NA,n.sim)
 
-      compute.x.der <- function(x,n.iter=0,until.convergence=FALSE) {
-         if(until.convergence) {
-            done <- FALSE
-            while(!done) {
-               compute.der <- der.S.beta(x[ind.S],x[ind.beta],
-                        as.numeric(D%*%x[ind.beta]),
-                        as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
-               x <- x-solve(compute.der$hess,compute.der$grad)
-               if(sqrt(sum(compute.der$grad^2)) < 10e-11) {
-                  done <- TRUE
+    log.prior.theta1_2 <- function(theta1,theta2) {
+      sigma2 <- exp(2*theta1)
+      phi <- exp((2*theta1-theta2)/(2*kappa))
+      control.prior$log.prior.phi(phi)+
+        control.prior$log.prior.sigma2(sigma2)+
+        log(sigma2)+log(phi)
+    }
 
-               }
-            }
+    log.posterior <- function(beta,theta1,theta2,S,S.i,mu,
+                              Q,log.det.Q) {
+      eta <- S.i+mu
+      sigma2 <- exp(2*theta1)
+      phi <- exp((2*theta1-theta2)/(2*kappa))
+      sigma2.t <- 4*pi*sigma2/(phi^2)
+      out <-
+        log.prior.theta1_2(theta1,theta2)+
+        -0.5*t(beta-m)%*%V.inv%*%(beta-m)+
+        -0.5*(n.spde*log(sigma2.t)+
+                -log.det.Q+t(S)%*%Q%*%S/sigma2.t)+
+        sum(y*eta-units.m*log(1+exp(eta)))
+      return(as.numeric(out))
+    }
 
-         } else if(n.iter>0) {
-            for(i in 1:n.iter) {
-               compute.der <- der.S.beta(x[ind.S],x[ind.beta],
-                        as.numeric(D%*%x[ind.beta]),
-                        as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
-               x <- x-solve(compute.der$hess,compute.der$grad)
-            }
-         }
-         compute.der <- der.S.beta(x[ind.S],x[ind.beta],
-                        as.numeric(D%*%x[ind.beta]),
-                        as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
-         return(list(x=x,grad=compute.der$grad,hess=compute.der$hess/h))
-      }
+    ind.S <- 1:n.spde
+    ind.beta <- (n.spde+1):(n.spde+p)
 
-      der.curr <- compute.x.der(x.curr,until.convergence=TRUE)
-      S.curr <- der.curr$x[ind.S]
-      beta.curr <- der.curr$x[ind.beta]
-      mu.curr <- as.numeric(D%*%beta.curr)
-      S.i.curr <- as.numeric(A%*%S.curr)
-      x.curr <- c(S.curr,beta.curr)
-      lp.curr <- log.posterior(beta.curr,theta1.curr,theta2.curr,S.curr,S.i.curr,
-                 mu.curr,Q.curr,log.det.Q.curr)
+    eta.aux <- rnorm(n)
+    mean.y.aux <- units.m*exp(eta.aux)/(1+exp(eta.aux))
+    grad.mean.y.aux <- mean.y.aux/(1+exp(eta.aux))
 
-      Q.tot.curr <- Matrix(0,nrow=n.spde+p,ncol=n.spde+p)
+    S.S.aux <- -Q.curr/sigma2.t.curr-t(A)%*%(A*grad.mean.y.aux)
+    S.S.aux@x <- rep(2,length(S.S.aux@x))
+    hess <- Matrix(0,n.spde+p,n.spde+p,sparse=TRUE)
+    hess[ind.S,ind.S] <- S.S.aux
+    beta.beta.aux <- Matrix(-V.inv-t(D)%*%(D*grad.mean.y.aux))
+    beta.beta.aux@x <- rep(3,length(beta.beta.aux@x))
+    hess[ind.beta,ind.beta] <- beta.beta.aux
+    S.beta.aux <- Matrix(-t(A)%*%(D*grad.mean.y.aux),sparse=TRUE)
+    S.beta.aux@x <- rep(4,length(S.beta.aux@x))
+    hess[ind.S,ind.beta] <- S.beta.aux
+    hess <- forceSymmetric(hess)
 
-      for(i in 1:n.sim) {
+    S.S.aux <- forceSymmetric(S.S.aux)
+    beta.beta.aux <- forceSymmetric(beta.beta.aux)
+    i.S.S <- which(hess@x==2)
+    i.beta.beta <- which(hess@x==3)
+    i.S.beta <- which(hess@x==4)
 
-         any.theta.update <- 0
-
-         # Update theta1
-    	   theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	   sigma2.prop <- exp(2*theta1.prop)
-    	   phi.prop <- exp((2*theta1.prop-theta2.curr)/(2*kappa))
-         Q.prop <- INLA::inla.spde2.precision(spde,
-                theta=c(0,-log(phi.prop)))
-         log.det.Q.prop <- as.numeric(determinant(Q.prop)$modulus)
-
-         lp.prop <- log.posterior(beta.curr,theta1.prop,
-                    theta2.curr,S.curr,
-                    S.i.curr,mu.curr,Q.prop,log.det.Q.prop)
-	   if(log(runif(1)) < lp.prop-lp.curr) {
-            any.theta.update <- 1
-	      theta1.curr <- theta1.prop
-            lp.curr <- lp.prop
-	      sigma2.curr <- sigma2.prop
-            phi.curr <- phi.prop
-            sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
-            Q.curr <- Q.prop
-            log.det.Q.curr <- log.det.Q.prop
-	      acc.theta1 <- acc.theta1+1
-	   }
-	   rm(theta1.prop,sigma2.prop,phi.prop,Q.prop,log.det.Q.prop)
-         h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
-
-    	   # Update theta2
-    	   theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	   phi.prop <- exp((2*theta1.curr-theta2.prop)/(2*kappa))
-    	   Q.prop <- INLA::inla.spde2.precision(spde,
-                theta=c(0,-log(phi.prop)))
-         log.det.Q.prop <- as.numeric(determinant(Q.prop)$modulus)
-
-         lp.prop <- log.posterior(beta.curr,theta1.curr,
-                    theta2.prop,S.curr,
-                    S.i.curr,mu.curr,Q.prop,log.det.Q.prop)
-
-         if(log(runif(1)) < lp.prop-lp.curr) {
-            any.theta.update <- 1
-	      theta2.curr <- theta2.prop
-	      Q.curr <- Q.prop
-            log.det.Q.curr <- log.det.Q.prop
-	      lp.curr <- lp.prop
-	      phi.curr <- phi.prop
-            sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
-	      acc.theta2 <- acc.theta2+1
-	   }
-	   rm(theta2.prop,phi.prop,Q.prop,log.det.Q.prop)
-         h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                       (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
-
-         # Update S and beta
-         if(any.theta.update) {
-            der.curr <- compute.x.der(x.curr,n.iter=n.iter)
-         }
-
-
-         L <- t(chol(-der.curr$hess))
-         b <- as.numeric(-der.curr$hess%*%der.curr$x+der.curr$grad)
-         mean.curr <- as.numeric(solve(-der.curr$hess,b))
-         z <- rnorm(n.spde+p)
-         v <- as.numeric(solve(t(L),z))
-         x.prop <- mean.curr+v
-         dp.curr <- sum(log(diag(L)))-0.5*sum(z^2)
-
-         S.prop <- x.prop[ind.S]
-         beta.prop <- x.prop[ind.beta]
-         S.i.prop <- as.numeric(A%*%S.prop)
-         mu.prop <- as.numeric(D%*%beta.prop)
-
-         der.prop <- compute.x.der(x.prop,n.iter=n.iter)
-
-         tmp <- proc.time()
-         mean.prop <- as.numeric(solve(-der.prop$hess,
-                      -der.prop$hess%*%der.prop$x+der.prop$grad))
-         v <- x.curr-mean.prop
-         w <- as.numeric(der.prop$hess%*%v)
-         dp.prop <- as.numeric(0.5*determinant(-der.prop$hess)$modulus+
-         0.5*sum(w*v))
-
-         lp.prop <- log.posterior(beta.prop,theta1.curr,
-                    theta2.curr,S.prop,
-                    S.i.prop,mu.prop,Q.curr,log.det.Q.curr)
-
-         log.ratio <- lp.prop+dp.prop-lp.curr-dp.curr
-
-         if(log(runif(1)) < log.ratio) {
-            acc.beta.S <- acc.beta.S+1
-            lp.curr <- lp.prop
-            der.curr <- der.prop
-            S.curr <- S.prop
-            beta.curr <- beta.prop
-            S.i.curr <- S.i.prop
-            mu.curr <- mu.prop
-            x.curr <- x.prop
-         }
-         rm(S.prop,beta.prop,x.prop,lp.prop,mu.prop,S.i.prop,der.prop)
-         if(i > burnin & (i-burnin)%%thin==0) {
-            j <- (i-burnin)/thin
-            out$S[j,] <- S.curr
-            out$estimate[j,] <- c(beta.curr,sigma2.curr,phi.curr)
-         }
-         if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-         flush.console()
-      }
-      class(out) <- "Bayes.PrevMap"
-      out$y <- y
-      out$units.m <- units.m
-      out$D <- D
-      out$coords <- coords
-      out$kappa <- kappa
-      out$h1 <- h1
-      out$h2 <- h2
-      out$acc.beta.S <- acc.beta.S/n.sim
-      out$mesh <- mesh
+    der.S.beta <- function(S,beta,mu,S.i,Q,sigma2.t) {
+      eta <- S.i+mu
+      mean.y <- units.m*exp(eta)/(1+exp(eta))
+      grad.mean.y <- mean.y/(1+exp(eta))
+      diff.y <- y-mean.y
+      out <- list()
+      out$grad <- c(as.numeric(-Q%*%S/sigma2.t.curr+t(A)%*%diff.y),
+                    as.numeric(-V.inv%*%(beta-m)+t(D)%*%diff.y))
+      out$hess <- Matrix(0,n.spde+p,n.spde+p,sparse=TRUE)
+      S.S <- -Q/sigma2.t.curr-t(A)%*%(A*grad.mean.y)
+      S.S <- forceSymmetric(S.S)
+      hess@x[i.S.S] <- S.S@x
+      beta.beta <- Matrix(-V.inv-t(D)%*%(D*grad.mean.y),sparse=TRUE)
+      beta.beta <- forceSymmetric(beta.beta)
+      hess@x[i.beta.beta] <- beta.beta@x
+      S.beta <- Matrix(-t(A)%*%(D*grad.mean.y),sparse=TRUE)
+      hess@x[i.S.beta] <- S.beta@x
+      out$hess <- hess
       return(out)
-   } else {
-      stop("The use of SPDE requires the INLA package.
-      The INLA package can be obtained from <http://www.r-inla.org>.
-      We recommend the testing version, which can be downloaded by running:
-      install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/testing').")
-   }
-}
+    }
+
+
+    x.curr <- c(S.curr,beta.curr)
+
+    compute.x.der <- function(x,n.iter=0,until.convergence=FALSE) {
+      if(until.convergence) {
+        done <- FALSE
+        while(!done) {
+          compute.der <- der.S.beta(x[ind.S],x[ind.beta],
+                                    as.numeric(D%*%x[ind.beta]),
+                                    as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
+          x <- x-solve(compute.der$hess,compute.der$grad)
+          if(sqrt(sum(compute.der$grad^2)) < 10e-11) {
+            done <- TRUE
+
+          }
+        }
+
+      } else if(n.iter>0) {
+        for(i in 1:n.iter) {
+          compute.der <- der.S.beta(x[ind.S],x[ind.beta],
+                                    as.numeric(D%*%x[ind.beta]),
+                                    as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
+          x <- x-solve(compute.der$hess,compute.der$grad)
+        }
+      }
+      compute.der <- der.S.beta(x[ind.S],x[ind.beta],
+                                as.numeric(D%*%x[ind.beta]),
+                                as.numeric(A%*%x[ind.S]),Q.curr,sigma2.t.curr)
+      return(list(x=x,grad=compute.der$grad,hess=compute.der$hess/h))
+    }
+
+    der.curr <- compute.x.der(x.curr,until.convergence=TRUE)
+    S.curr <- der.curr$x[ind.S]
+    beta.curr <- der.curr$x[ind.beta]
+    mu.curr <- as.numeric(D%*%beta.curr)
+    S.i.curr <- as.numeric(A%*%S.curr)
+    x.curr <- c(S.curr,beta.curr)
+    lp.curr <- log.posterior(beta.curr,theta1.curr,theta2.curr,S.curr,S.i.curr,
+                             mu.curr,Q.curr,log.det.Q.curr)
+
+    Q.tot.curr <- Matrix(0,nrow=n.spde+p,ncol=n.spde+p)
+
+    for(i in 1:n.sim) {
+
+      any.theta.update <- 0
+
+      # Update theta1
+      theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+      sigma2.prop <- exp(2*theta1.prop)
+      phi.prop <- exp((2*theta1.prop-theta2.curr)/(2*kappa))
+      Q.prop <- INLA::inla.spde2.precision(spde,
+                                           theta=c(0,-log(phi.prop)))
+      log.det.Q.prop <- as.numeric(determinant(Q.prop)$modulus)
+
+      lp.prop <- log.posterior(beta.curr,theta1.prop,
+                               theta2.curr,S.curr,
+                               S.i.curr,mu.curr,Q.prop,log.det.Q.prop)
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        any.theta.update <- 1
+        theta1.curr <- theta1.prop
+        lp.curr <- lp.prop
+        sigma2.curr <- sigma2.prop
+        phi.curr <- phi.prop
+        sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
+        Q.curr <- Q.prop
+        log.det.Q.curr <- log.det.Q.prop
+        acc.theta1 <- acc.theta1+1
+      }
+      rm(theta1.prop,sigma2.prop,phi.prop,Q.prop,log.det.Q.prop)
+      h1[i] <- h.theta1 <- max(0,h.theta1 +
+                                 (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+
+      # Update theta2
+      theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+      phi.prop <- exp((2*theta1.curr-theta2.prop)/(2*kappa))
+      Q.prop <- INLA::inla.spde2.precision(spde,
+                                           theta=c(0,-log(phi.prop)))
+      log.det.Q.prop <- as.numeric(determinant(Q.prop)$modulus)
+
+      lp.prop <- log.posterior(beta.curr,theta1.curr,
+                               theta2.prop,S.curr,
+                               S.i.curr,mu.curr,Q.prop,log.det.Q.prop)
+
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        any.theta.update <- 1
+        theta2.curr <- theta2.prop
+        Q.curr <- Q.prop
+        log.det.Q.curr <- log.det.Q.prop
+        lp.curr <- lp.prop
+        phi.curr <- phi.prop
+        sigma2.t.curr <- 4*pi*sigma2.curr/(phi.curr^2)
+        acc.theta2 <- acc.theta2+1
+      }
+      rm(theta2.prop,phi.prop,Q.prop,log.det.Q.prop)
+      h2[i] <- h.theta2 <- max(0,h.theta2 +
+                                 (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+
+      # Update S and beta
+      if(any.theta.update) {
+        der.curr <- compute.x.der(x.curr,n.iter=n.iter)
+      }
+
+
+      L <- t(chol(-der.curr$hess))
+      b <- as.numeric(-der.curr$hess%*%der.curr$x+der.curr$grad)
+      mean.curr <- as.numeric(solve(-der.curr$hess,b))
+      z <- rnorm(n.spde+p)
+      v <- as.numeric(solve(t(L),z))
+      x.prop <- mean.curr+v
+      dp.curr <- sum(log(diag(L)))-0.5*sum(z^2)
+
+      S.prop <- x.prop[ind.S]
+      beta.prop <- x.prop[ind.beta]
+      S.i.prop <- as.numeric(A%*%S.prop)
+      mu.prop <- as.numeric(D%*%beta.prop)
+
+      der.prop <- compute.x.der(x.prop,n.iter=n.iter)
+
+      tmp <- proc.time()
+      mean.prop <- as.numeric(solve(-der.prop$hess,
+                                    -der.prop$hess%*%der.prop$x+der.prop$grad))
+      v <- x.curr-mean.prop
+      w <- as.numeric(der.prop$hess%*%v)
+      dp.prop <- as.numeric(0.5*determinant(-der.prop$hess)$modulus+
+                              0.5*sum(w*v))
+
+      lp.prop <- log.posterior(beta.prop,theta1.curr,
+                               theta2.curr,S.prop,
+                               S.i.prop,mu.prop,Q.curr,log.det.Q.curr)
+
+      log.ratio <- lp.prop+dp.prop-lp.curr-dp.curr
+
+      if(log(runif(1)) < log.ratio) {
+        acc.beta.S <- acc.beta.S+1
+        lp.curr <- lp.prop
+        der.curr <- der.prop
+        S.curr <- S.prop
+        beta.curr <- beta.prop
+        S.i.curr <- S.i.prop
+        mu.curr <- mu.prop
+        x.curr <- x.prop
+      }
+      rm(S.prop,beta.prop,x.prop,lp.prop,mu.prop,S.i.prop,der.prop)
+      if(i > burnin & (i-burnin)%%thin==0) {
+        j <- (i-burnin)/thin
+        out$S[j,] <- S.curr
+        out$estimate[j,] <- c(beta.curr,sigma2.curr,phi.curr)
+      }
+      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+      flush.console()
+    }
+    class(out) <- "Bayes.PrevMap"
+    out$y <- y
+    out$units.m <- units.m
+    out$D <- D
+    out$coords <- coords
+    out$kappa <- kappa
+    out$h1 <- h1
+    out$h2 <- h2
+    out$acc.beta.S <- acc.beta.S/n.sim
+    out$mesh <- mesh
+    return(out)
+  } else {
+    stop("The use of SPDE requires the INLA package.
+         The INLA package can be obtained from <http://www.r-inla.org>.
+         We recommend the testing version, which can be downloaded by running:
+         install.packages('INLA', repos='http://www.math.ntnu.no/inla/R/testing').")
+  }
+  }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom geoR varcov.spatial
 binomial.geo.Bayes <- function(formula,units.m,coords,data,
-                                                  ID.coords,
-                                                  control.prior,
-                                                  control.mcmc,
-                                                  kappa,messages) {
-   kappa <- as.numeric(kappa)
-   if(length(control.prior$log.prior.nugget)!=length(control.mcmc$start.nugget)) {
-      stop("missing prior or missing starting value for the nugget effect")
-   }
-   if(any(is.na(data))) stop("missing values are not accepted")
-   if(length(control.mcmc$L.S.lim)==0) stop("L.S.lim must be provided in control.mcmc")
-   if(length(control.mcmc$epsilon.S.lim)==0) stop("epsilon.S.lim must be provided in control.mcmc")
-   	coords <- as.matrix(model.frame(coords,data))
-    units.m <-  as.numeric(model.frame(units.m,data)[,1])
-    if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
-	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-   out <- list()
-   if(length(ID.coords)==0) {
-   	   mf <- model.frame(formula,data=data)
-	   y <- as.numeric(model.response(mf))
-	   n <- length(y)
-	   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   	   p <- ncol(D)
-   	   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   	   U <- dist(coords)
-   	   V.inv <- control.prior$V.inv
-   	   m <- control.prior$m
-   	   nu <- 2*kappa
-       log.prior.theta1_2 <- function(theta1,theta2) {
-         sigma2 <- exp(2*theta1)
-         phi <- (exp(2*theta1-theta2))^(1/nu)
-         log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
-         control.prior$log.prior.phi(phi)
-       }
+                               ID.coords,
+                               control.prior,
+                               control.mcmc,
+                               kappa,messages) {
+  kappa <- as.numeric(kappa)
+  if(length(control.prior$log.prior.nugget)!=length(control.mcmc$start.nugget)) {
+    stop("missing prior or missing starting value for the nugget effect")
+  }
+  if(any(is.na(data))) stop("missing values are not accepted")
+  if(length(control.mcmc$L.S.lim)==0) stop("L.S.lim must be provided in control.mcmc")
+  if(length(control.mcmc$epsilon.S.lim)==0) stop("epsilon.S.lim must be provided in control.mcmc")
+  coords <- as.matrix(model.frame(coords,data))
+  units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  out <- list()
+  if(length(ID.coords)==0) {
+    mf <- model.frame(formula,data=data)
+    y <- as.numeric(model.response(mf))
+    n <- length(y)
+    D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+    p <- ncol(D)
+    if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+    U <- dist(coords)
+    V.inv <- control.prior$V.inv
+    m <- control.prior$m
+    nu <- 2*kappa
+    log.prior.theta1_2 <- function(theta1,theta2) {
+      sigma2 <- exp(2*theta1)
+      phi <- (exp(2*theta1-theta2))^(1/nu)
+      log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+        control.prior$log.prior.phi(phi)
+    }
 
-       log.prior.theta3 <- function(theta3) {
-      	 tau2 <- exp(theta3)
-      	 theta3+control.prior$log.prior.nugget(tau2)
-       }
+    log.prior.theta3 <- function(theta3) {
+      tau2 <- exp(theta3)
+      theta3+control.prior$log.prior.nugget(tau2)
+    }
 
-       grad.log.posterior.S <- function(S,mu,sigma2,param.post) {
-	     h <- units.m*exp(S)/(1+exp(S))
-	     as.numeric(-param.post$R.inv%*%(S-mu)/sigma2+y-h)
-       }
+    grad.log.posterior.S <- function(S,mu,sigma2,param.post) {
+      h <- units.m*exp(S)/(1+exp(S))
+      as.numeric(-param.post$R.inv%*%(S-mu)/sigma2+y-h)
+    }
 
-       fixed.nugget <- length(control.mcmc$start.nugget)==0
+    fixed.nugget <- length(control.mcmc$start.nugget)==0
 
-       log.posterior <- function(theta1,theta2,beta,S,param.post,theta3=NULL) {
-	     sigma2 <- exp(2*theta1)
-	     mu <- D%*%beta
-	     diff.beta <- beta-m
-	     diff.S <- S-mu
-	     if(length(theta3)==1) {
-	     	lp.theta3 <- log.prior.theta3(theta3)
-	     } else {
-	     	lp.theta3 <- 0
-	     }
-	     out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
-	     -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-	     -0.5*(n*log(sigma2)+param.post$ldetR+
-	     t(diff.S)%*%param.post$R.inv%*%(diff.S)/sigma2)+
-         sum(y*S-units.m*log(1+exp(S)))
-         as.numeric(out)
-      }
-
-      acc.theta1 <- 0
-      acc.theta2 <- 0
-      if(fixed.nugget==FALSE) acc.theta3 <- 0
-      acc.S <- 0
-      n.sim <- control.mcmc$n.sim
-      burnin <- control.mcmc$burnin
-      thin <- control.mcmc$thin
-      h.theta1 <- control.mcmc$h.theta1
-      h.theta2 <- control.mcmc$h.theta2
-      h.theta3 <- control.mcmc$h.theta3
-
-      c1.h.theta1 <- control.mcmc$c1.h.theta1
-      c2.h.theta1 <- control.mcmc$c2.h.theta1
-      c1.h.theta2 <- control.mcmc$c1.h.theta2
-      c2.h.theta2 <- control.mcmc$c2.h.theta2
-      c1.h.theta3 <- control.mcmc$c1.h.theta3
-      c2.h.theta3 <- control.mcmc$c2.h.theta3
-
-      epsilon.S.lim <-  control.mcmc$epsilon.S.lim
-      L.S.lim <- control.mcmc$L.S.lim
-      if(!fixed.nugget) {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
-         tau2.curr <- control.mcmc$start.nugget
-         theta3.curr <- log(tau2.curr)
+    log.posterior <- function(theta1,theta2,beta,S,param.post,theta3=NULL) {
+      sigma2 <- exp(2*theta1)
+      mu <- D%*%beta
+      diff.beta <- beta-m
+      diff.S <- S-mu
+      if(length(theta3)==1) {
+        lp.theta3 <- log.prior.theta3(theta3)
       } else {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
-         theta3.curr <- NULL
-	  	 tau2.curr <- 0
+        lp.theta3 <- 0
       }
-      out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n)
+      out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
+        -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+        -0.5*(n*log(sigma2)+param.post$ldetR+
+                t(diff.S)%*%param.post$R.inv%*%(diff.S)/sigma2)+
+        sum(y*S-units.m*log(1+exp(S)))
+      as.numeric(out)
+    }
+
+    acc.theta1 <- 0
+    acc.theta2 <- 0
+    if(fixed.nugget==FALSE) acc.theta3 <- 0
+    acc.S <- 0
+    n.sim <- control.mcmc$n.sim
+    burnin <- control.mcmc$burnin
+    thin <- control.mcmc$thin
+    h.theta1 <- control.mcmc$h.theta1
+    h.theta2 <- control.mcmc$h.theta2
+    h.theta3 <- control.mcmc$h.theta3
+
+    c1.h.theta1 <- control.mcmc$c1.h.theta1
+    c2.h.theta1 <- control.mcmc$c2.h.theta1
+    c1.h.theta2 <- control.mcmc$c1.h.theta2
+    c2.h.theta2 <- control.mcmc$c2.h.theta2
+    c1.h.theta3 <- control.mcmc$c1.h.theta3
+    c2.h.theta3 <- control.mcmc$c2.h.theta3
+
+    epsilon.S.lim <-  control.mcmc$epsilon.S.lim
+    L.S.lim <- control.mcmc$L.S.lim
+    if(!fixed.nugget) {
+      out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
+      colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
+      tau2.curr <- control.mcmc$start.nugget
+      theta3.curr <- log(tau2.curr)
+    } else {
+      out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+      colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+      theta3.curr <- NULL
+      tau2.curr <- 0
+    }
+    out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n)
 
 
-      # Initialise all the parameters
-      sigma2.curr <- control.mcmc$start.sigma2
-	  phi.curr <- control.mcmc$start.phi
-	  theta1.curr <- 0.5*log(sigma2.curr)
-	  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
-	  beta.curr <- control.mcmc$start.beta
-	  S.curr <- control.mcmc$start.S
+    # Initialise all the parameters
+    sigma2.curr <- control.mcmc$start.sigma2
+    phi.curr <- control.mcmc$start.phi
+    theta1.curr <- 0.5*log(sigma2.curr)
+    theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+    beta.curr <- control.mcmc$start.beta
+    S.curr <- control.mcmc$start.S
 
-	  # Compute log-posterior density
-	  R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                        cov.pars=c(1,phi.curr),
-	                                        kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
+    # Compute log-posterior density
+    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.curr),
+                             kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
-	  param.post.curr <- list()
-	  param.post.curr$R.inv <- solve(R.curr)
-	  param.post.curr$ldetR <- determinant(R.curr)$modulus
-	  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
-	                                    param.post.curr,theta3.curr)
-      h1 <- rep(NA,n.sim)
-      h2 <- rep(NA,n.sim)
-      if(!fixed.nugget) h3 <- rep(NA,n.sim)
-      for(i in 1:n.sim) {
+    param.post.curr <- list()
+    param.post.curr$R.inv <- solve(R.curr)
+    param.post.curr$ldetR <- determinant(R.curr)$modulus
+    lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
+                             param.post.curr,theta3.curr)
+    h1 <- rep(NA,n.sim)
+    h2 <- rep(NA,n.sim)
+    if(!fixed.nugget) h3 <- rep(NA,n.sim)
+    for(i in 1:n.sim) {
 
-         # Update theta1
-    	 theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	 sigma2.prop <- exp(2*theta1.prop)
-	     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    	 R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
+      # Update theta1
+      theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+      sigma2.prop <- exp(2*theta1.prop)
+      phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                               cov.pars=c(1,phi.prop),
+                               kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
 
-         param.post.prop <- list()
-	     param.post.prop$R.inv <- solve(R.prop)
-	     param.post.prop$ldetR <- determinant(R.prop)$modulus
-	     lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,
-	                                          param.post.prop,theta3.curr)
-	     if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta1.curr <- theta1.prop
-	        param.post.curr <- param.post.prop
-	        lp.curr <- lp.prop
-	        sigma2.curr <- sigma2.prop
-	        phi.curr <- phi.prop
-	        acc.theta1 <- acc.theta1+1
-	     }
-	     rm(theta1.prop,sigma2.prop,phi.prop)
-         h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
-
-    	 # Update theta2
-    	 theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	     phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    	 R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
-
-         param.post.prop <- list()
-	     param.post.prop$R.inv <- solve(R.prop)
-	     param.post.prop$ldetR <- determinant(R.prop)$modulus
-	     lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,
-	                                          param.post.prop,theta3.curr)
-
-	     if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta2.curr <- theta2.prop
-	        param.post.curr <- param.post.prop
-	        lp.curr <- lp.prop
-	        phi.curr <- phi.prop
-	        acc.theta2 <- acc.theta2+1
-	     }
-	     rm(theta2.prop,phi.prop)
-         h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                       (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
-
-         # Update theta3
-         if(!fixed.nugget) {
-    	    theta3.prop <- theta3.curr+h.theta3*rnorm(1)
-	        tau2.prop <- exp(theta3.prop)
-    	    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.curr),
-	                                         kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
-
-            param.post.prop <- list()
-	        param.post.prop$R.inv <- solve(R.prop)
-	        param.post.prop$ldetR <- determinant(R.prop)$modulus
-	        lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
-	                                          param.post.prop,theta3.prop)
-
-	        if(log(runif(1)) < lp.prop-lp.curr) {
-	           theta3.curr <- theta3.prop
-	           param.post.curr <- param.post.prop
-	           lp.curr <- lp.prop
-	           tau2.curr <- tau2.prop
-	           acc.theta3 <- acc.theta3+1
-	        }
-	        rm(theta3.prop,tau2.prop)
-            h3[i] <- h.theta3 <- max(0,h.theta3 +
-	                       (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
-	     }
-
-         # Update beta
-         A <- t(D)%*%param.post.curr$R.inv
-         cov.beta <- solve(V.inv+A%*%D)
-         mean.beta <- as.numeric(cov.beta%*%(V.inv%*%m+A%*%S.curr))
-         beta.curr <- as.numeric(mean.beta+sqrt(sigma2.curr)*
-                             t(chol(cov.beta))%*%rnorm(p))
-         lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
-	                                                 param.post.curr,theta3.curr)
-         mu.curr <- D%*%beta.curr
-
-         # Update S
-         if(length(epsilon.S.lim)==2) {
-            epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
-         } else {
-         	epsilon.S <- epsilon.S.lim
-         }
-	     q.S <- S.curr
-	     p.S = rnorm(n)
-         current_p.S = p.S
-         p.S = p.S + epsilon.S *
-                     grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/ 2
-
-         if(length(L.S.lim)==2) {
-            L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
-         } else {
-         	L.S <- L.S.lim
-         }
-         for (j in 1:L.S) {
-           q.S = q.S + epsilon.S * p.S
-           if (j!=L.S) {p.S = p.S + epsilon.S *
-           grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)
-           }
-         }
-         if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-
-         p.S = p.S + epsilon.S*
-                  grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/2
-         p.S = -p.S
-         current_U = -lp.curr
-         current_K = sum(current_p.S^2) / 2
-         proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,
-	                                    param.post.curr,theta3.curr)
-         proposed_K = sum(p.S^2) / 2
-         if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-         if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
-            S.curr <- q.S  # accept
-            lp.curr <- -proposed_U
-         }
-
-         if(i > burnin & (i-burnin)%%thin==0) {
-		    out$S[(i-burnin)/thin,] <- S.curr
-		    if(fixed.nugget) {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr)
-		    	} else {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr,tau2.curr)
-		    }
-   	     }
-         if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-         flush.console()
+      param.post.prop <- list()
+      param.post.prop$R.inv <- solve(R.prop)
+      param.post.prop$ldetR <- determinant(R.prop)$modulus
+      lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,
+                               param.post.prop,theta3.curr)
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        theta1.curr <- theta1.prop
+        param.post.curr <- param.post.prop
+        lp.curr <- lp.prop
+        sigma2.curr <- sigma2.prop
+        phi.curr <- phi.prop
+        acc.theta1 <- acc.theta1+1
       }
-   } else if(length(ID.coords)>0) {
-   	   coords <- as.matrix(unique(coords))
-   	   mf <- model.frame(formula,data=data)
-	   y <- as.numeric(model.response(mf))
-	   n <- length(y)
-	   n.x <- nrow(coords)
-	   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   	   p <- ncol(D)
-   	   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   	   U <- dist(coords)
-   	   V.inv <- control.prior$V.inv
-   	   m <- control.prior$m
-   	   nu <- 2*kappa
-   	   C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
-       log.prior.theta1_2 <- function(theta1,theta2) {
-         sigma2 <- exp(2*theta1)
-         phi <- (exp(2*theta1-theta2))^(1/nu)
-         log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
-         control.prior$log.prior.phi(phi)
-       }
+      rm(theta1.prop,sigma2.prop,phi.prop)
+      h1[i] <- h.theta1 <- max(0,h.theta1 +
+                                 (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
 
-       log.prior.theta3 <- function(theta3) {
-      	 tau2 <- exp(theta3)
-      	 theta3+control.prior$log.prior.nugget(tau2)
-       }
+      # Update theta2
+      theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+      phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                               cov.pars=c(1,phi.prop),
+                               kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
-       fixed.nugget <- length(control.mcmc$start.nugget)==0
+      param.post.prop <- list()
+      param.post.prop$R.inv <- solve(R.prop)
+      param.post.prop$ldetR <- determinant(R.prop)$modulus
+      lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,
+                               param.post.prop,theta3.curr)
 
-       log.posterior <- function(theta1,theta2,beta,S,param.post,theta3=NULL) {
-	     sigma2 <- exp(2*theta1)
-	     mu <- as.numeric(D%*%beta)
-	     diff.beta <- beta-m
-	     eta <- mu+S[ID.coords]
-	     if(length(theta3)==1) {
-	     	lp.theta3 <- log.prior.theta3(theta3)
-	     } else {
-	     	lp.theta3 <- 0
-	     }
-	     as.numeric(log.prior.theta1_2(theta1,theta2)+lp.theta3+
-	     -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-	     -0.5*(n.x*log(sigma2)+param.post$ldetR+
-	     t(S)%*%param.post$R.inv%*%(S)/sigma2)+
-         sum(y*eta-units.m*log(1+exp(eta))))
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        theta2.curr <- theta2.prop
+        param.post.curr <- param.post.prop
+        lp.curr <- lp.prop
+        phi.curr <- phi.prop
+        acc.theta2 <- acc.theta2+1
       }
+      rm(theta2.prop,phi.prop)
+      h2[i] <- h.theta2 <- max(0,h.theta2 +
+                                 (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
 
-      integrand <- function(beta,sigma2,S) {
-      	 diff.beta <- beta-m
-      	 eta <- as.numeric(D%*%beta+S[ID.coords])
-      	 -0.5*(t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-      	 sum(y*eta-units.m*log(1+exp(eta)))
-      }
-
-      grad.integrand <- function(beta,sigma2,S) {
-      	 eta <- as.numeric(D%*%beta+S[ID.coords])
-      	 h <- units.m*exp(eta)/(1+exp(eta))
-      	 as.numeric(-V.inv%*%(beta-m)/sigma2+t(D)%*%(y-h))
-      }
-
-      hessian.integrand <- function(beta,sigma2,S) {
-      	 eta <- as.numeric(D%*%beta+S[ID.coords])
-      	 h1 <- units.m*exp(eta)/((1+exp(eta))^2)
-      	 -V.inv/sigma2-t(D)%*%(D*h1)
-      }
-
-      grad.log.posterior.S <- function(S,mu,sigma2,param.post) {
-      	 eta <- mu+S[ID.coords]
-	     h <- units.m*exp(eta)/(1+exp(eta))
-	     as.numeric(-param.post$R.inv%*%S/sigma2+
-	     sapply(1:n.x,function(i) sum((y-h)[C.S[i,]])))
-      }
-
-      acc.theta1 <- 0
-      acc.theta2 <- 0
-      if(fixed.nugget==FALSE) acc.theta3 <- 0
-      acc.S <- 0
-      n.sim <- control.mcmc$n.sim
-      burnin <- control.mcmc$burnin
-      thin <- control.mcmc$thin
-      h.theta1 <- control.mcmc$h.theta1
-      h.theta2 <- control.mcmc$h.theta2
-      h.theta3 <- control.mcmc$h.theta3
-
-      c1.h.theta1 <- control.mcmc$c1.h.theta1
-      c2.h.theta1 <- control.mcmc$c2.h.theta1
-      c1.h.theta2 <- control.mcmc$c1.h.theta2
-      c2.h.theta2 <- control.mcmc$c2.h.theta2
-      c1.h.theta3 <- control.mcmc$c1.h.theta3
-      c2.h.theta3 <- control.mcmc$c2.h.theta3
-
-      L.S.lim <- control.mcmc$L.S.lim
-      epsilon.S.lim <-  control.mcmc$epsilon.S.lim
-      out <- list()
+      # Update theta3
       if(!fixed.nugget) {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
-         tau2.curr <- control.mcmc$start.nugget
-         theta3.curr <- log(tau2.curr)
-      } else {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
-         theta3.curr <- NULL
-	  	 tau2.curr <- 0
+        theta3.prop <- theta3.curr+h.theta3*rnorm(1)
+        tau2.prop <- exp(theta3.prop)
+        R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                                 cov.pars=c(1,phi.curr),
+                                 kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
+
+        param.post.prop <- list()
+        param.post.prop$R.inv <- solve(R.prop)
+        param.post.prop$ldetR <- determinant(R.prop)$modulus
+        lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
+                                 param.post.prop,theta3.prop)
+
+        if(log(runif(1)) < lp.prop-lp.curr) {
+          theta3.curr <- theta3.prop
+          param.post.curr <- param.post.prop
+          lp.curr <- lp.prop
+          tau2.curr <- tau2.prop
+          acc.theta3 <- acc.theta3+1
+        }
+        rm(theta3.prop,tau2.prop)
+        h3[i] <- h.theta3 <- max(0,h.theta3 +
+                                   (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
       }
-      out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
 
-      # Initialise all the parameters
-      sigma2.curr <- control.mcmc$start.sigma2
-	  phi.curr <- control.mcmc$start.phi
-	  tau2.curr <- control.mcmc$start.nugget
-	  theta1.curr <- 0.5*log(sigma2.curr)
-	  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
-	  if(fixed.nugget==FALSE) {
-	  	theta3.curr <- log(tau2.curr)
-	  } else {
-	  	theta3.curr <- NULL
-	  	tau2.curr <- 0
-	  }
-	  beta.curr <- control.mcmc$start.beta
-	  S.curr <- control.mcmc$start.S
-
-	  # Compute the log-posterior density
-	  if(fixed.nugget) {
-	      R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                            cov.pars=c(1,phi.curr),
-	                                            kappa=kappa)$varcov
-	  } else {
-	   	   R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                            cov.pars=c(1,phi.curr),
-	                                            kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
-	  }
-
-	  param.post.curr <- list()
-	  param.post.curr$R.inv <- solve(R.curr)
-	  param.post.curr$ldetR <- determinant(R.curr)$modulus
-	  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
-	                                    param.post.curr,theta3.curr)
+      # Update beta
+      A <- t(D)%*%param.post.curr$R.inv
+      cov.beta <- solve(V.inv+A%*%D)
+      mean.beta <- as.numeric(cov.beta%*%(V.inv%*%m+A%*%S.curr))
+      beta.curr <- as.numeric(mean.beta+sqrt(sigma2.curr)*
+                                t(chol(cov.beta))%*%rnorm(p))
+      lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
+                               param.post.curr,theta3.curr)
       mu.curr <- D%*%beta.curr
 
-      h1 <- rep(NA,n.sim)
-      h2 <- rep(NA,n.sim)
-      if(!fixed.nugget) h3 <- rep(NA,n.sim)
-      for(i in 1:n.sim) {
-
-         # Update theta1
-    	 theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	 sigma2.prop <- exp(2*theta1.prop)
-	     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    	 R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
-
-         param.post.prop <- list()
-	     param.post.prop$R.inv <- solve(R.prop)
-	     param.post.prop$ldetR <- determinant(R.prop)$modulus
-	     lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,
-	                                          param.post.prop,theta3.curr)
-	     if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta1.curr <- theta1.prop
-	        param.post.curr <- param.post.prop
-	        lp.curr <- lp.prop
-	        sigma2.curr <- sigma2.prop
-	        phi.curr <- phi.prop
-	        acc.theta1 <- acc.theta1+1
-	     }
-	     rm(theta1.prop,sigma2.prop,phi.prop)
-         h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
-
-    	  # Update theta2
-    	  theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	      phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    	  R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
-
-          param.post.prop <- list()
-	      param.post.prop$R.inv <- solve(R.prop)
-	      param.post.prop$ldetR <- determinant(R.prop)$modulus
-	      lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,
-	                                           param.post.prop,theta3.curr)
-
-	      if(log(runif(1)) < lp.prop-lp.curr) {
-	         theta2.curr <- theta2.prop
-	         param.post.curr <- param.post.prop
-	         lp.curr <- lp.prop
-	         phi.curr <- phi.prop
-	         acc.theta2 <- acc.theta2+1
-	      }
-	      rm(theta2.prop,phi.prop)
-          h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                        (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
-
-          # Update theta3
-          if(!fixed.nugget) {
-    	      theta3.prop <- theta3.curr+h.theta3*rnorm(1)
-	          tau2.prop <- exp(theta3.prop)
-    	      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.curr),
-	                                         kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
-
-              param.post.prop <- list()
-	          param.post.prop$R.inv <- solve(R.prop)
-	          param.post.prop$ldetR <- determinant(R.prop)$modulus
-	          lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
-	                                          param.post.prop,theta3.prop)
-
-	          if(log(runif(1)) < lp.prop-lp.curr) {
-	             theta3.curr <- theta3.prop
-	             param.post.curr <- param.post.prop
-	             lp.curr <- lp.prop
-	             tau2.curr <- tau2.prop
-	             acc.theta3 <- acc.theta3+1
-	          }
-	          rm(theta3.prop,tau2.prop)
-              h3[i] <- h.theta3 <- max(0,h.theta3 +
-	                       (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
-	     }
-
-         # Update beta
-         max.beta <- maxBFGS(function(x) integrand(x,sigma2.curr,S.curr),
-                                               function(x) grad.integrand(x,sigma2.curr,S.curr),
-                                               function(x)  hessian.integrand(x,sigma2.curr,S.curr),
-                                               start=beta.curr)
-         Sigma.tilde <- solve(-max.beta$hessian)
-         Sigma.tilde.inv <- -max.beta$hessian
-         beta.prop <- as.numeric(max.beta$estimate+t(chol(Sigma.tilde))%*%rt(p,10))
-         diff.b.prop <- beta.curr-max.beta$estimate
-         diff.b.curr <- beta.prop-max.beta$estimate
-         q.prop <- as.numeric(-0.5*t(diff.b.prop)%*%Sigma.tilde.inv%*%(diff.b.prop))
-         q.curr <- as.numeric(-0.5*t(diff.b.curr)%*%Sigma.tilde.inv%*%(diff.b.curr))
-
-         lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.prop,S.curr,
-	                                          param.post.curr,theta3.curr)
-         if(log(runif(1)) < lp.prop+q.prop-lp.curr-q.curr) {
-         	lp.curr <- lp.prop
-         	beta.curr <- beta.prop
-         	mu.curr <- D%*%beta.curr
-         }
-
-         # Update S
-         if(length(epsilon.S.lim)==2) {
-            epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
-         } else {
-         	epsilon.S <- epsilon.S.lim
-         }
-
-         if(length(L.S.lim)==2) {
-            L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
-         } else {
-         	L.S <- L.S.lim
-         }
-
-	     q.S <- S.curr
-	     p.S = rnorm(n.x)
-         current_p.S = p.S
-         p.S = p.S + epsilon.S *
-                     grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/ 2
-         for (j in 1:L.S) {
-               q.S = q.S + epsilon.S * p.S
-               if (j!=L.S) {p.S = p.S + epsilon.S *
-               grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)
-            }
-         }
-         if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-
-         p.S = p.S + epsilon.S*
-                  grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/2
-         p.S = -p.S
-         current_U = -lp.curr
-         current_K = sum(current_p.S^2) / 2
-         proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,
-	                                    param.post.curr,theta3.curr)
-         proposed_K = sum(p.S^2) / 2
-         if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-         if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
-            S.curr <- q.S  # accept
-            lp.curr <- -proposed_U
-         }
-
-         if(i > burnin & (i-burnin)%%thin==0) {
-		    out$S[(i-burnin)/thin,] <- S.curr
-		    if(fixed.nugget) {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr)
-		    	} else {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr,tau2.curr)
-		    	}
-   	        }
-         if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-         flush.console()
+      # Update S
+      if(length(epsilon.S.lim)==2) {
+        epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
+      } else {
+        epsilon.S <- epsilon.S.lim
       }
-   }
-   class(out) <- "Bayes.PrevMap"
-   out$y <- y
-   out$units.m <- units.m
-   out$D <- D
-   out$coords <- coords
-   out$kappa <- kappa
-   out$ID.coords <- ID.coords
-   out$h1 <- h1
-   out$h2 <- h2
-   if(!fixed.nugget) out$h3 <- h3
-   return(out)
-}
+      q.S <- S.curr
+      p.S = rnorm(n)
+      current_p.S = p.S
+      p.S = p.S + epsilon.S *
+        grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/ 2
+
+      if(length(L.S.lim)==2) {
+        L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
+      } else {
+        L.S <- L.S.lim
+      }
+      for (j in 1:L.S) {
+        q.S = q.S + epsilon.S * p.S
+        if (j!=L.S) {p.S = p.S + epsilon.S *
+          grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)
+        }
+      }
+      if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                                1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                                2) less diffuse prior for the covariance parameters.")
+
+      p.S = p.S + epsilon.S*
+        grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/2
+      p.S = -p.S
+      current_U = -lp.curr
+      current_K = sum(current_p.S^2) / 2
+      proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,
+                                   param.post.curr,theta3.curr)
+      proposed_K = sum(p.S^2) / 2
+      if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                                                           1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                                                           2) less diffuse prior for the covariance parameters.")
+      if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
+        S.curr <- q.S  # accept
+        lp.curr <- -proposed_U
+      }
+
+      if(i > burnin & (i-burnin)%%thin==0) {
+        out$S[(i-burnin)/thin,] <- S.curr
+        if(fixed.nugget) {
+          out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                              phi.curr)
+        } else {
+          out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                              phi.curr,tau2.curr)
+        }
+      }
+      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+      flush.console()
+    }
+} else if(length(ID.coords)>0) {
+  coords <- as.matrix(unique(coords))
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  n.x <- nrow(coords)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  U <- dist(coords)
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
+  C.S <- t(sapply(1:n.x,function(i) ID.coords==i))
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)
+  }
+
+  log.prior.theta3 <- function(theta3) {
+    tau2 <- exp(theta3)
+    theta3+control.prior$log.prior.nugget(tau2)
+  }
+
+  fixed.nugget <- length(control.mcmc$start.nugget)==0
+
+  log.posterior <- function(theta1,theta2,beta,S,param.post,theta3=NULL) {
+    sigma2 <- exp(2*theta1)
+    mu <- as.numeric(D%*%beta)
+    diff.beta <- beta-m
+    eta <- mu+S[ID.coords]
+    if(length(theta3)==1) {
+      lp.theta3 <- log.prior.theta3(theta3)
+    } else {
+      lp.theta3 <- 0
+    }
+    as.numeric(log.prior.theta1_2(theta1,theta2)+lp.theta3+
+                 -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+                 -0.5*(n.x*log(sigma2)+param.post$ldetR+
+                         t(S)%*%param.post$R.inv%*%(S)/sigma2)+
+                 sum(y*eta-units.m*log(1+exp(eta))))
+  }
+
+  integrand <- function(beta,sigma2,S) {
+    diff.beta <- beta-m
+    eta <- as.numeric(D%*%beta+S[ID.coords])
+    -0.5*(t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+      sum(y*eta-units.m*log(1+exp(eta)))
+  }
+
+  grad.integrand <- function(beta,sigma2,S) {
+    eta <- as.numeric(D%*%beta+S[ID.coords])
+    h <- units.m*exp(eta)/(1+exp(eta))
+    as.numeric(-V.inv%*%(beta-m)/sigma2+t(D)%*%(y-h))
+  }
+
+  hessian.integrand <- function(beta,sigma2,S) {
+    eta <- as.numeric(D%*%beta+S[ID.coords])
+    h1 <- units.m*exp(eta)/((1+exp(eta))^2)
+    -V.inv/sigma2-t(D)%*%(D*h1)
+  }
+
+  grad.log.posterior.S <- function(S,mu,sigma2,param.post) {
+    eta <- mu+S[ID.coords]
+    h <- units.m*exp(eta)/(1+exp(eta))
+    as.numeric(-param.post$R.inv%*%S/sigma2+
+                 sapply(1:n.x,function(i) sum((y-h)[C.S[i,]])))
+  }
+
+  acc.theta1 <- 0
+  acc.theta2 <- 0
+  if(fixed.nugget==FALSE) acc.theta3 <- 0
+  acc.S <- 0
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
+  h.theta3 <- control.mcmc$h.theta3
+
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c1.h.theta3 <- control.mcmc$c1.h.theta3
+  c2.h.theta3 <- control.mcmc$c2.h.theta3
+
+  L.S.lim <- control.mcmc$L.S.lim
+  epsilon.S.lim <-  control.mcmc$epsilon.S.lim
+  out <- list()
+  if(!fixed.nugget) {
+    out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
+    colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
+    tau2.curr <- control.mcmc$start.nugget
+    theta3.curr <- log(tau2.curr)
+  } else {
+    out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+    colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+    theta3.curr <- NULL
+    tau2.curr <- 0
+  }
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
+
+  # Initialise all the parameters
+  sigma2.curr <- control.mcmc$start.sigma2
+  phi.curr <- control.mcmc$start.phi
+  tau2.curr <- control.mcmc$start.nugget
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  if(fixed.nugget==FALSE) {
+    theta3.curr <- log(tau2.curr)
+  } else {
+    theta3.curr <- NULL
+    tau2.curr <- 0
+  }
+  beta.curr <- control.mcmc$start.beta
+  S.curr <- control.mcmc$start.S
+
+  # Compute the log-posterior density
+  if(fixed.nugget) {
+    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.curr),
+                             kappa=kappa)$varcov
+  } else {
+    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.curr),
+                             kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
+  }
+
+  param.post.curr <- list()
+  param.post.curr$R.inv <- solve(R.curr)
+  param.post.curr$ldetR <- determinant(R.curr)$modulus
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
+                           param.post.curr,theta3.curr)
+  mu.curr <- D%*%beta.curr
+
+  h1 <- rep(NA,n.sim)
+  h2 <- rep(NA,n.sim)
+  if(!fixed.nugget) h3 <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
+
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
+
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,
+                             param.post.prop,theta3.curr)
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      acc.theta1 <- acc.theta1+1
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
+
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,
+                             param.post.prop,theta3.curr)
+
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      acc.theta2 <- acc.theta2+1
+    }
+    rm(theta2.prop,phi.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+
+    # Update theta3
+    if(!fixed.nugget) {
+      theta3.prop <- theta3.curr+h.theta3*rnorm(1)
+      tau2.prop <- exp(theta3.prop)
+      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                               cov.pars=c(1,phi.curr),
+                               kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
+
+      param.post.prop <- list()
+      param.post.prop$R.inv <- solve(R.prop)
+      param.post.prop$ldetR <- determinant(R.prop)$modulus
+      lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,
+                               param.post.prop,theta3.prop)
+
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        theta3.curr <- theta3.prop
+        param.post.curr <- param.post.prop
+        lp.curr <- lp.prop
+        tau2.curr <- tau2.prop
+        acc.theta3 <- acc.theta3+1
+      }
+      rm(theta3.prop,tau2.prop)
+      h3[i] <- h.theta3 <- max(0,h.theta3 +
+                                 (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
+    }
+
+    # Update beta
+    max.beta <- maxBFGS(function(x) integrand(x,sigma2.curr,S.curr),
+                        function(x) grad.integrand(x,sigma2.curr,S.curr),
+                        function(x)  hessian.integrand(x,sigma2.curr,S.curr),
+                        start=beta.curr)
+    Sigma.tilde <- solve(-max.beta$hessian)
+    Sigma.tilde.inv <- -max.beta$hessian
+    beta.prop <- as.numeric(max.beta$estimate+t(chol(Sigma.tilde))%*%rt(p,10))
+    diff.b.prop <- beta.curr-max.beta$estimate
+    diff.b.curr <- beta.prop-max.beta$estimate
+    q.prop <- as.numeric(-0.5*t(diff.b.prop)%*%Sigma.tilde.inv%*%(diff.b.prop))
+    q.curr <- as.numeric(-0.5*t(diff.b.curr)%*%Sigma.tilde.inv%*%(diff.b.curr))
+
+    lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.prop,S.curr,
+                             param.post.curr,theta3.curr)
+    if(log(runif(1)) < lp.prop+q.prop-lp.curr-q.curr) {
+      lp.curr <- lp.prop
+      beta.curr <- beta.prop
+      mu.curr <- D%*%beta.curr
+    }
+
+    # Update S
+    if(length(epsilon.S.lim)==2) {
+      epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
+    } else {
+      epsilon.S <- epsilon.S.lim
+    }
+
+    if(length(L.S.lim)==2) {
+      L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
+    } else {
+      L.S <- L.S.lim
+    }
+
+    q.S <- S.curr
+    p.S = rnorm(n.x)
+    current_p.S = p.S
+    p.S = p.S + epsilon.S *
+      grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/ 2
+    for (j in 1:L.S) {
+      q.S = q.S + epsilon.S * p.S
+      if (j!=L.S) {p.S = p.S + epsilon.S *
+        grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)
+      }
+    }
+    if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                              1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                              2) less diffuse prior for the covariance parameters.")
+
+    p.S = p.S + epsilon.S*
+      grad.log.posterior.S(q.S,mu.curr,sigma2.curr,param.post.curr)/2
+    p.S = -p.S
+    current_U = -lp.curr
+    current_K = sum(current_p.S^2) / 2
+    proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,
+                                 param.post.curr,theta3.curr)
+    proposed_K = sum(p.S^2) / 2
+    if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                                                         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                                                         2) less diffuse prior for the covariance parameters.")
+    if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
+      S.curr <- q.S  # accept
+      lp.curr <- -proposed_U
+    }
+
+    if(i > burnin & (i-burnin)%%thin==0) {
+      out$S[(i-burnin)/thin,] <- S.curr
+      if(fixed.nugget) {
+        out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                            phi.curr)
+      } else {
+        out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                            phi.curr,tau2.curr)
+      }
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
+  }
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$units.m <- units.m
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$ID.coords <- ID.coords
+  out$h1 <- h1
+  out$h2 <- h2
+  if(!fixed.nugget) out$h3 <- h3
+  return(out)
+  }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
 binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
-                                                       control.mcmc,control.prior,kappa,
-                                                       messages) {
-       knots <- as.matrix(knots)
-       coords <- as.matrix(model.frame(coords,data))
-       units.m <-  as.numeric(model.frame(units.m,data)[,1])
-       if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
-	   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-   	   mf <- model.frame(formula,data=data)
-	   y <- as.numeric(model.response(mf))
-	   n <- length(y)
-	   N <- nrow(knots)
-	   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   	   p <- ncol(D)
-   	   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   	   U.k <- as.matrix(pdist(coords,knots))
-   	   V.inv <- control.prior$V.inv
-   	   m <- control.prior$m
-   	   nu <- 2*kappa
+                                  control.mcmc,control.prior,kappa,
+                                  messages) {
+  knots <- as.matrix(knots)
+  coords <- as.matrix(model.frame(coords,data))
+  units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  if(is.numeric(units.m)==FALSE) stop("'units.m' must be numeric.")
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  N <- nrow(knots)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  U.k <- as.matrix(pdist(coords,knots))
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
 
-       log.prior.theta1_2 <- function(theta1,theta2) {
-         sigma2 <- exp(2*theta1)
-         phi <- (exp(2*theta1-theta2))^(1/nu)
-         log(phi/kappa)+control.prior$log.prior.sigma2(sigma2)+
-         control.prior$log.prior.phi(phi)
-       }
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi/kappa)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)
+  }
 
-        log.posterior <- function(theta1,theta2,beta,S,W) {
-	     sigma2 <- exp(2*theta1)
-	     mu <- as.numeric(D%*%beta)
-	     diff.beta <- beta-m
-	     eta <- as.numeric(mu+W)
-	     as.numeric(log.prior.theta1_2(theta1,theta2)+
-	     -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-	     -0.5*(N*log(sigma2)+sum(S^2)/sigma2)+
-         sum(y*eta-units.m*log(1+exp(eta))))
-       }
+  log.posterior <- function(theta1,theta2,beta,S,W) {
+    sigma2 <- exp(2*theta1)
+    mu <- as.numeric(D%*%beta)
+    diff.beta <- beta-m
+    eta <- as.numeric(mu+W)
+    as.numeric(log.prior.theta1_2(theta1,theta2)+
+                 -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+                 -0.5*(N*log(sigma2)+sum(S^2)/sigma2)+
+                 sum(y*eta-units.m*log(1+exp(eta))))
+  }
 
-       integrand <- function(beta,sigma2,W) {
-      	 diff.beta <- beta-m
-      	 eta <- as.numeric(D%*%beta+W)
-      	 -0.5*(t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-      	 sum(y*eta-units.m*log(1+exp(eta)))
-       }
+  integrand <- function(beta,sigma2,W) {
+    diff.beta <- beta-m
+    eta <- as.numeric(D%*%beta+W)
+    -0.5*(t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+      sum(y*eta-units.m*log(1+exp(eta)))
+  }
 
-       grad.integrand <- function(beta,sigma2,W) {
-       	 eta <- as.numeric(D%*%beta+W)
-       	 h <- units.m*exp(eta)/(1+exp(eta))
-       	 as.numeric(-V.inv%*%(beta-m)/sigma2+t(D)%*%(y-h))
-       }
+  grad.integrand <- function(beta,sigma2,W) {
+    eta <- as.numeric(D%*%beta+W)
+    h <- units.m*exp(eta)/(1+exp(eta))
+    as.numeric(-V.inv%*%(beta-m)/sigma2+t(D)%*%(y-h))
+  }
 
-       hessian.integrand <- function(beta,sigma2,W) {
-      	 eta <- as.numeric(D%*%beta+W)
-       	 h1 <- units.m*exp(eta)/((1+exp(eta))^2)
-       	 -V.inv/sigma2-t(D)%*%(D*h1)
-       }
+  hessian.integrand <- function(beta,sigma2,W) {
+    eta <- as.numeric(D%*%beta+W)
+    h1 <- units.m*exp(eta)/((1+exp(eta))^2)
+    -V.inv/sigma2-t(D)%*%(D*h1)
+  }
 
-       grad.log.posterior.S <- function(S,mu,sigma2,K) {
-        	  eta <- as.numeric(mu+K%*%S)
-	      h <- units.m*exp(eta)/(1+exp(eta))
-	      as.numeric(-S/sigma2+t(K)%*%(y-h))
-       }
+  grad.log.posterior.S <- function(S,mu,sigma2,K) {
+    eta <- as.numeric(mu+K%*%S)
+    h <- units.m*exp(eta)/(1+exp(eta))
+    as.numeric(-S/sigma2+t(K)%*%(y-h))
+  }
 
-       c1.h.theta1 <- control.mcmc$c1.h.theta1
-       c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
 
-       c2.h.theta1 <- control.mcmc$c2.h.theta1
-       c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
 
-       h.theta1 <- control.mcmc$h.theta1
-       h.theta2 <- control.mcmc$h.theta2
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
 
-       acc.theta1 <- 0
-       acc.theta2 <- 0
-       acc.S <- 0
-       n.sim <- control.mcmc$n.sim
-       burnin <- control.mcmc$burnin
-       thin <- control.mcmc$thin
-       L.S.lim <- control.mcmc$L.S.lim
-       epsilon.S.lim <-  control.mcmc$epsilon.S.lim
-       out <- list()
-       out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-       colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
-       theta3.curr <- NULL
-	   tau2.curr <- 0
+  acc.theta1 <- 0
+  acc.theta2 <- 0
+  acc.S <- 0
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  L.S.lim <- control.mcmc$L.S.lim
+  epsilon.S.lim <-  control.mcmc$epsilon.S.lim
+  out <- list()
+  out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+  colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+  theta3.curr <- NULL
+  tau2.curr <- 0
 
-       out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
-       out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
-       # Initialise all the parameters
-       sigma2.curr <- control.mcmc$start.sigma2
-	   phi.curr <- control.mcmc$start.phi
-	   rho.curr <- phi.curr*2*sqrt(kappa)
-	   theta1.curr <- 0.5*log(sigma2.curr)
-	   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
+  out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
+  # Initialise all the parameters
+  sigma2.curr <- control.mcmc$start.sigma2
+  phi.curr <- control.mcmc$start.phi
+  rho.curr <- phi.curr*2*sqrt(kappa)
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
 
-	   beta.curr <- control.mcmc$start.beta
-	   S.curr <- control.mcmc$start.S
+  beta.curr <- control.mcmc$start.beta
+  S.curr <- control.mcmc$start.S
 
-	   # Compute the log-posterior density
-	   K.curr <- matern.kernel(U.k,rho.curr,kappa)
-       W.curr <- as.numeric(K.curr%*%S.curr)
+  # Compute the log-posterior density
+  K.curr <- matern.kernel(U.k,rho.curr,kappa)
+  W.curr <- as.numeric(K.curr%*%S.curr)
 
-	   lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,W.curr)
-       mu.curr <- as.numeric(D%*%beta.curr	)
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,S.curr,W.curr)
+  mu.curr <- as.numeric(D%*%beta.curr	)
 
-       h1 <- rep(NA,n.sim)
-       h2 <- rep(NA,n.sim)
-       for(i in 1:n.sim) {
+  h1 <- rep(NA,n.sim)
+  h2 <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
 
-         # Update theta1
-    	 theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	 sigma2.prop <- exp(2*theta1.prop)
-	     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-	     rho.prop <- phi.prop*2*sqrt(kappa)
-    	 K.prop <- matern.kernel(U.k,rho.curr,kappa)
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    rho.prop <- phi.prop*2*sqrt(kappa)
+    K.prop <- matern.kernel(U.k,rho.curr,kappa)
 
-         W.prop <- as.numeric(K.prop%*%S.curr)
-	     lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,W.prop)
-	     if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta1.curr <- theta1.prop
-	        lp.curr <- lp.prop
-	        sigma2.curr <- sigma2.prop
-	        phi.curr <- phi.prop
-	        rho.curr <- rho.prop
-	        K.curr <- K.prop
-	        W.curr <- W.prop
-	        acc.theta1 <- acc.theta1+1
-	     }
-	     rm(theta1.prop,sigma2.prop,phi.prop,K.prop,W.prop,rho.prop)
-         h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,S.curr,W.prop)
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      K.curr <- K.prop
+      W.curr <- W.prop
+      acc.theta1 <- acc.theta1+1
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop,K.prop,W.prop,rho.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
 
-    	  # Update theta2
-    	  theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	      phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-	      rho.prop <- 2*phi.prop*sqrt(kappa)
-    	  K.prop <- matern.kernel(U.k,rho.prop,kappa)
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    rho.prop <- 2*phi.prop*sqrt(kappa)
+    K.prop <- matern.kernel(U.k,rho.prop,kappa)
 
-         W.prop <- as.numeric(K.prop%*%S.curr)
-	     lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,W.prop)
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,S.curr,W.prop)
 
-	     if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta2.curr <- theta2.prop
-	        lp.curr <- lp.prop
-	        phi.curr <- phi.prop
-	        rho.curr <- rho.prop
-	        K.curr <- K.prop
-	        W.curr <- W.prop
-	        acc.theta2 <- acc.theta2+1
-	     }
-	     rm(theta2.prop,phi.prop,rho.prop,K.prop,W.prop)
-         h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                       (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      K.curr <- K.prop
+      W.curr <- W.prop
+      acc.theta2 <- acc.theta2+1
+    }
+    rm(theta2.prop,phi.prop,rho.prop,K.prop,W.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
 
-         # Update beta
-         max.beta <- maxBFGS(function(x) integrand(x,sigma2.curr,W.curr),
-                                               function(x) grad.integrand(x,sigma2.curr,W.curr),
-                                               function(x) hessian.integrand(x,sigma2.curr,W.curr),
-                                               start=beta.curr)
-         Sigma.tilde <- solve(-max.beta$hessian)
-         Sigma.tilde.inv <- -max.beta$hessian
-         beta.prop <- as.numeric(max.beta$estimate+t(chol(Sigma.tilde))%*%rt(p,10))
-         diff.b.prop <- beta.curr-max.beta$estimate
-         diff.b.curr <- beta.prop-max.beta$estimate
-         q.prop <- as.numeric(-0.5*t(diff.b.prop)%*%Sigma.tilde.inv%*%(diff.b.prop))
-         q.curr <- as.numeric(-0.5*t(diff.b.curr)%*%Sigma.tilde.inv%*%(diff.b.curr))
+    # Update beta
+    max.beta <- maxBFGS(function(x) integrand(x,sigma2.curr,W.curr),
+                        function(x) grad.integrand(x,sigma2.curr,W.curr),
+                        function(x) hessian.integrand(x,sigma2.curr,W.curr),
+                        start=beta.curr)
+    Sigma.tilde <- solve(-max.beta$hessian)
+    Sigma.tilde.inv <- -max.beta$hessian
+    beta.prop <- as.numeric(max.beta$estimate+t(chol(Sigma.tilde))%*%rt(p,10))
+    diff.b.prop <- beta.curr-max.beta$estimate
+    diff.b.curr <- beta.prop-max.beta$estimate
+    q.prop <- as.numeric(-0.5*t(diff.b.prop)%*%Sigma.tilde.inv%*%(diff.b.prop))
+    q.curr <- as.numeric(-0.5*t(diff.b.curr)%*%Sigma.tilde.inv%*%(diff.b.curr))
 
-         lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.prop,S.curr,W.curr)
-         if(log(runif(1)) < lp.prop+q.prop-lp.curr-q.curr) {
-         	lp.curr <- lp.prop
-         	beta.curr <- beta.prop
-         	mu.curr <- D%*%beta.curr
-         }
+    lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.prop,S.curr,W.curr)
+    if(log(runif(1)) < lp.prop+q.prop-lp.curr-q.curr) {
+      lp.curr <- lp.prop
+      beta.curr <- beta.prop
+      mu.curr <- D%*%beta.curr
+    }
 
-         # Update S
-         if(length(epsilon.S.lim)==2) {
-            epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
-         } else {
-         	epsilon.S <- epsilon.S.lim
-         }
+    # Update S
+    if(length(epsilon.S.lim)==2) {
+      epsilon.S <- runif(1,epsilon.S.lim[1],epsilon.S.lim[2])
+    } else {
+      epsilon.S <- epsilon.S.lim
+    }
 
-         if(length(L.S.lim)==2) {
-            L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
-          } else {
-         	L.S <- L.S.lim
-          }
-	     q.S <- S.curr
-	     p.S = rnorm(N)
-         current_p.S = p.S
-         p.S = p.S + epsilon.S *
-                     grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)/ 2
-         for (j in 1:L.S) {
-             q.S = q.S + epsilon.S * p.S
-             if (j!=L.S) {p.S = p.S + epsilon.S *
-               grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)
-             }
-         }
-         if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-
-         p.S = p.S + epsilon.S*
-                  grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)/2
-         p.S = -p.S
-         current_U = -lp.curr
-         current_K = sum(current_p.S^2) / 2
-         W.prop <- K.curr%*%q.S
-         proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,W.prop)
-         proposed_K = sum(p.S^2) / 2
-         if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
-         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
-         2) less diffuse prior for the covariance parameters.")
-         if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
-            S.curr <- q.S  # accept
-            W.curr <- W.prop
-            lp.curr <- -proposed_U
-         }
-
-         if(i > burnin & (i-burnin)%%thin==0) {
-		    out$S[(i-burnin)/thin,] <- S.curr
-		    out$estimate[(i-burnin)/thin,]  <- c(beta.curr,sigma2.curr,phi.curr)
-		    out$const.sigma2[(i-burnin)/thin] <- mean(apply(
-		                                                   K.curr,1,function(r) sqrt(sum(r^2))))
-   	     }
-         if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-         flush.console()
+    if(length(L.S.lim)==2) {
+      L.S <- floor(runif(1,L.S.lim[1],L.S.lim[2]+1))
+    } else {
+      L.S <- L.S.lim
+    }
+    q.S <- S.curr
+    p.S = rnorm(N)
+    current_p.S = p.S
+    p.S = p.S + epsilon.S *
+      grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)/ 2
+    for (j in 1:L.S) {
+      q.S = q.S + epsilon.S * p.S
+      if (j!=L.S) {p.S = p.S + epsilon.S *
+        grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)
       }
-      class(out) <- "Bayes.PrevMap"
-      out$y <- y
-      out$units.m <- units.m
-      out$D <- D
-      out$coords <- coords
-      out$kappa <- kappa
-      out$knots <- knots
-      out$h1 <- h1
-      out$h2 <- h2
-      return(out)
+    }
+    if(any(is.nan(q.S))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                              1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                              2) less diffuse prior for the covariance parameters.")
+
+    p.S = p.S + epsilon.S*
+      grad.log.posterior.S(q.S,mu.curr,sigma2.curr,K.curr)/2
+    p.S = -p.S
+    current_U = -lp.curr
+    current_K = sum(current_p.S^2) / 2
+    W.prop <- K.curr%*%q.S
+    proposed_U =  -log.posterior(theta1.curr,theta2.curr,beta.curr,q.S,W.prop)
+    proposed_K = sum(p.S^2) / 2
+    if(any(is.na(proposed_U) |  is.na(proposed_K))) stop("extremely large value (in absolute value) proposed for the spatial random effect; try the following actions: \n
+                                                         1) smaller values for epsilon.S.lim and/or L.S.lim; \n
+                                                         2) less diffuse prior for the covariance parameters.")
+    if (log(runif(1)) < current_U-proposed_U+current_K-proposed_K) {
+      S.curr <- q.S  # accept
+      W.curr <- W.prop
+      lp.curr <- -proposed_U
+    }
+
+    if(i > burnin & (i-burnin)%%thin==0) {
+      out$S[(i-burnin)/thin,] <- S.curr
+      out$estimate[(i-burnin)/thin,]  <- c(beta.curr,sigma2.curr,phi.curr)
+      out$const.sigma2[(i-burnin)/thin] <- mean(apply(
+        K.curr,1,function(r) sqrt(sum(r^2))))
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$units.m <- units.m
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$knots <- knots
+  out$h1 <- h1
+  out$h2 <- h2
+  return(out)
 }
 
 ##' @title Bayesian estimation for the binomial logistic model
@@ -6419,6 +6514,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{call}: the matched call.
 ##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -6434,11 +6530,12 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##'                            h.theta1=0.05,h.theta2=0.05,
 ##'                            L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
 ##'                            start.beta=0,start.sigma2=1,start.phi=0.15,
+##'                            start.nugget=NULL,
 ##'                            start.S=rep(0,n.subset))
 ##'
 ##' cp <- control.prior(beta.mean=0,beta.covar=1,
-##'                              log.normal.phi=c(log(0.15),0.05),
-##'                              log.normal.sigma2=c(log(1),0.1))
+##'                     log.normal.phi=c(log(0.15),0.05),
+##'                     log.normal.sigma2=c(log(1),0.1))
 ##'
 ##' fit.Bayes <- binomial.logistic.Bayes(formula=y~1,coords=~x1+x2,units.m=~units.m,
 ##'                                      data=data_subset,control.prior=cp,
@@ -6458,32 +6555,32 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
                                     control.prior,control.mcmc,kappa,low.rank=FALSE,
                                     knots=NULL,messages=TRUE,mesh=NULL,SPDE=FALSE) {
-   if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-   if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
-   if(!SPDE & class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("'control.mcmc' must be of class 'mcmc.Bayes.PrevMap'")
-   if(SPDE & class(control.mcmc)!="mcmc.Bayes.SPDE.PrevMap") stop("if 'SPDE+=TRUE', then 'control.mcmc' must be of class 'mcmc.Bayes.SPDE.PrevMap'; see ?control.mcmc.Bayes.SPDE for more details.")
-   if(SPDE & length(mesh)==0) stop("'mesh' must be prvided if using the SPDE approximation.")
-   if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
-   if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
-   if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
-   if(kappa < 0) stop("kappa must be positive.")
-   if(SPDE & length(control.prior$log.pior.nugget)>0) stop("The inclusion of the nugget effect is not currently implemented when using the SPDE approximation.")
-   if(!low.rank & !SPDE) {
-      res <- binomial.geo.Bayes(formula=formula,units.m=units.m,coords=coords,
-	       data=data,ID.coords=ID.coords,control.prior=control.prior,
-		 control.mcmc=control.mcmc,
-		 kappa=kappa,messages=messages)
-   } else if(low.rank) {
-      res <- binomial.geo.Bayes.lr(formula=formula,units.m=units.m,coords=coords,
-	       data=data,knots=knots,control.mcmc=control.mcmc,
-	       control.prior=control.prior,kappa=kappa,messages=messages)
-   } else if(SPDE) {
-      res <- binomial.geo.Bayes.SPDE(formula=formula,units.m=units.m,
-             coords=coords,data=data,control.prior=control.prior,mesh=mesh,
-             control.mcmc=control.mcmc,kappa=kappa,messages=messages)
-   }
-   res$call <- match.call()
-   return(res)
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(low.rank & length(ID.coords) > 0) stop("the low-rank approximation is not available for a two-levels model with logistic link function; see instead ?binary.probit.Bayes")
+  if(!SPDE & class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("'control.mcmc' must be of class 'mcmc.Bayes.PrevMap'")
+  if(SPDE & class(control.mcmc)!="mcmc.Bayes.SPDE.PrevMap") stop("if 'SPDE+=TRUE', then 'control.mcmc' must be of class 'mcmc.Bayes.SPDE.PrevMap'; see ?control.mcmc.Bayes.SPDE for more details.")
+  if(SPDE & length(mesh)==0) stop("'mesh' must be prvided if using the SPDE approximation.")
+  if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+  if(class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the binomial denominators.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(SPDE & length(control.prior$log.pior.nugget)>0) stop("The inclusion of the nugget effect is not currently implemented when using the SPDE approximation.")
+  if(!low.rank & !SPDE) {
+    res <- binomial.geo.Bayes(formula=formula,units.m=units.m,coords=coords,
+                              data=data,ID.coords=ID.coords,control.prior=control.prior,
+                              control.mcmc=control.mcmc,
+                              kappa=kappa,messages=messages)
+  } else if(low.rank) {
+    res <- binomial.geo.Bayes.lr(formula=formula,units.m=units.m,coords=coords,
+                                 data=data,knots=knots,control.mcmc=control.mcmc,
+                                 control.prior=control.prior,kappa=kappa,messages=messages)
+  } else if(SPDE) {
+    res <- binomial.geo.Bayes.SPDE(formula=formula,units.m=units.m,
+                                   coords=coords,data=data,control.prior=control.prior,mesh=mesh,
+                                   control.mcmc=control.mcmc,kappa=kappa,messages=messages)
+  }
+  res$call <- match.call()
+  return(res)
 }
 
 
@@ -6511,315 +6608,315 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##' @importFrom geoR matern
 ##' @export
 spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
-                               type="marginal",
-                               scale.predictions="prevalence",
-                               quantiles=c(0.025,0.975),
-                               standard.errors=FALSE,thresholds=NULL,
-                               scale.thresholds=NULL,messages=TRUE) {
+                                        type="marginal",
+                                        scale.predictions="prevalence",
+                                        quantiles=c(0.025,0.975),
+                                        standard.errors=FALSE,thresholds=NULL,
+                                        scale.thresholds=NULL,messages=TRUE) {
 
-   check.probit <- substr(object$call[1],8,13)=="probit"
-   SPDE <- length(object$mesh)>0
-   if(length(scale.predictions) > 3) stop("too many values for scale.predictions")
+  check.probit <- substr(object$call[1],8,13)=="probit"
+  SPDE <- length(object$mesh)>0
+  if(length(scale.predictions) > 3) stop("too many values for scale.predictions")
 
-   if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-   if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-   if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 
-   if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
-   ck <- length(dim(object$knots)) > 0
-   if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
-   if(ck & type=="marginal") warning("only joint predictions are available for the low-rank approximation")
-   out <- list()
-   for(i in 1:length(scale.predictions)) {
-      if(any(c("logit","prevalence","odds","probit")==scale.predictions[i])==
-		   FALSE) stop("invalid scale.predictions")
-   }
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
+  ck <- length(dim(object$knots)) > 0
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
+  if(ck & type=="marginal") warning("only joint predictions are available for the low-rank approximation")
+  out <- list()
+  for(i in 1:length(scale.predictions)) {
+    if(any(c("logit","prevalence","odds","probit")==scale.predictions[i])==
+       FALSE) stop("invalid scale.predictions")
+  }
 
-   if(any(scale.predictions == "logit") & check.probit) {
-      warning("a binary probit model was fitted, hence spatial prediction will be carried out on the probit scale and not on the logit scale")
-   }
+  if(any(scale.predictions == "logit") & check.probit) {
+    warning("a binary probit model was fitted, hence spatial prediction will be carried out on the probit scale and not on the logit scale")
+  }
 
-   if(length(thresholds)>0) {
-      if(any(c("logit","prevalence","odds","probit")
-		   ==scale.thresholds)==FALSE) {
-	   stop("scale thresholds must be logit, prevalence or odds scale.")
-	}
-   }
+  if(length(thresholds)>0) {
+    if(any(c("logit","prevalence","odds","probit")
+           ==scale.thresholds)==FALSE) {
+      stop("scale thresholds must be logit, prevalence or odds scale.")
+    }
+  }
 
-   if(length(thresholds)==0 & length(scale.thresholds)>0 |
+  if(length(thresholds)==0 & length(scale.thresholds)>0 |
      length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds must be provided.")
-   p <- ncol(object$D)
-   kappa <- object$kappa
-   n.pred <- nrow(grid.pred)
-   D <- object$D
+  p <- ncol(object$D)
+  kappa <- object$kappa
+  n.pred <- nrow(grid.pred)
+  D <- object$D
 
 
-   if(p==1) {
-      predictors <- matrix(1,nrow=n.pred)
-   } else {
-      if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-      predictors <- as.matrix(model.matrix(
-                    delete.response(terms(formula(object$call))),data=predictors))
-      if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-      if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
-   }
+  if(p==1) {
+    predictors <- matrix(1,nrow=n.pred)
+  } else {
+    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+    predictors <- as.matrix(model.matrix(
+      delete.response(terms(formula(object$call))),data=predictors))
+    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+  }
 
-   n.samples <- nrow(object$estimate)
-   out <- list()
-   eta.sim <- matrix(NA,nrow=n.samples,ncol=n.pred)
-   fixed.nugget <- ncol(object$estimate) < p+3
-   if(ck) {
+  n.samples <- nrow(object$estimate)
+  out <- list()
+  eta.sim <- matrix(NA,nrow=n.samples,ncol=n.pred)
+  fixed.nugget <- ncol(object$estimate) < p+3
+  if(ck) {
 
-      U.k <- as.matrix(pdist(object$coords,object$knots))
-      U.k.pred <- as.matrix(pdist(grid.pred,object$knots))
-      if(messages) cat("Bayesian prediction (this might be time consuming) \n")
-      for(j in 1:n.samples) {
-	   rho <- 2*sqrt(kappa)*object$estimate[j,"phi"]
-	   mu.pred <- as.numeric(predictors%*%object$estimate[j,1:p])
-	   K.pred <- matern.kernel(U.k.pred,rho,object$kappa)
-	   eta.sim[j,] <- as.numeric(mu.pred+K.pred%*%object$S[j,])
-	   if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
-	}
-	if(messages) cat("\n")
-      if(any(scale.predictions=="logit") |
-         any(scale.predictions=="probit")) {
-         if(messages) {
-            if(check.probit) {
-       	   cat("Spatial prediction: probit \n")
-       	 } else {
-       	   cat("Spatial prediction: logit \n")
-       	}
-         }
-    	   if(check.probit) {
-    	      out$probit$predictions <- apply(eta.sim,2,mean)
-    	      if(length(quantiles)>0) out$probit$quantiles <-
-    	      t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-    	      if(standard.errors) out$probit$standard.errors <-
-    	      apply(eta.sim,2,sd)
-    	   } else {
-    	    	out$logit$predictions <- apply(eta.sim,2,mean)
-    	     	if(length(quantiles)>0) out$logit$quantiles <-
-    	        t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-    	        if(standard.errors) out$logit$standard.errors <-
-    	        apply(eta.sim,2,sd)
-    	   }
+    U.k <- as.matrix(pdist(object$coords,object$knots))
+    U.k.pred <- as.matrix(pdist(grid.pred,object$knots))
+    if(messages) cat("Bayesian prediction (this might be time consuming) \n")
+    for(j in 1:n.samples) {
+      rho <- 2*sqrt(kappa)*object$estimate[j,"phi"]
+      mu.pred <- as.numeric(predictors%*%object$estimate[j,1:p])
+      K.pred <- matern.kernel(U.k.pred,rho,object$kappa)
+      eta.sim[j,] <- as.numeric(mu.pred+K.pred%*%object$S[j,])
+      if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
+    }
+    if(messages) cat("\n")
+    if(any(scale.predictions=="logit") |
+       any(scale.predictions=="probit")) {
+      if(messages) {
+        if(check.probit) {
+          cat("Spatial prediction: probit \n")
+        } else {
+          cat("Spatial prediction: logit \n")
+        }
+      }
+      if(check.probit) {
+        out$probit$predictions <- apply(eta.sim,2,mean)
+        if(length(quantiles)>0) out$probit$quantiles <-
+            t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+        if(standard.errors) out$probit$standard.errors <-
+            apply(eta.sim,2,sd)
+      } else {
+        out$logit$predictions <- apply(eta.sim,2,mean)
+        if(length(quantiles)>0) out$logit$quantiles <-
+            t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+        if(standard.errors) out$logit$standard.errors <-
+            apply(eta.sim,2,sd)
+      }
+    }
+
+    if(any(scale.predictions=="odds")) {
+      if(messages) cat("Spatial prediction: odds \n")
+      odds <- exp(eta.sim)
+      out$odds$predictions <- apply(odds,2,mean)
+
+      if(length(quantiles)>0) out$odds$quantiles <-
+        t(apply(odds,2,function(c) quantile(c,quantiles)))
+
+      if(standard.errors) out$odds$standard.errors <-
+        apply(odds,2,sd)
+    }
+
+    if(any(scale.predictions=="prevalence")) {
+      if(messages) cat("Spatial prediction: prevalence \n")
+      if(check.probit) {
+        prev <- exp(eta.sim)/(1+exp(eta.sim))
+      } else {
+        prev <- pnorm(eta.sim)
+      }
+      out$prevalence$predictions <- apply(prev,2,mean)
+      if(length(quantiles)>0) out$prevalence$quantiles <-
+        t(apply(prev,2,function(c) quantile(c,quantiles)))
+
+      if(standard.errors) out$prevalence$standard.errors <-
+        apply(prev,2,sd)
+    }
+
+    if(length(scale.thresholds) > 0) {
+      if(messages) cat("Spatial prediction: exceedance probabilities \n")
+      if(scale.thresholds=="prevalence") {
+        thresholds <- log(thresholds/(1-thresholds))
+      } else if(scale.thresholds=="odds") {
+        thresholds <- log(thresholds)
+      } else if(scale.thresholds=="probit") {
+        thresholds <- qnorm(thresholds)
+      }
+      out$exceedance.prob <- sapply(thresholds, function(x)
+        apply(eta.sim,2,function(c) mean(c > x)))
+    }
+  } else if(SPDE) {
+    A.pred <- INLA::inla.spde.make.A(object$mesh,loc=as.matrix(grid.pred))
+    for(j in 1:n.samples) {
+      eta.sim[j,] <- as.numeric(predictors%*%object$estimate[j,1:p]+A.pred%*%object$S[j,])
+    }
+
+    if(type=="marginal") warning("'type' is switched to 'joint', as only joint predictions are available for the SPDE models.")
+    if(any(scale.predictions=="logit")) {
+      if(messages) cat("Spatial predictions: logit \n")
+      out$logit$predictions <- apply(eta.sim,2,mean)
+
+      if(length(quantiles)>0) out$logit$quantiles <-
+        t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+
+      if(standard.errors) out$logit$standard.errors <-
+        apply(eta.sim,2,sd)
+    }
+
+    if(any(scale.predictions=="odds")) {
+      if(messages) cat("Spatial predictions: odds \n")
+      odds.sim <- exp(eta.sim)
+      out$odds$predictions <- apply(odds.sim,2,mean)
+
+      if(length(quantiles)>0) out$odds$quantiles <-
+        t(apply(odds.sim,2,function(c) quantile(c,quantiles)))
+
+      if(standard.errors) out$odds$standard.errors <-
+        apply(odds.sim,2,sd)
+    }
+
+    if(any(scale.predictions=="prevalence")) {
+      if(messages) cat("Spatial predictions: prevalence \n")
+      prev.sim <- exp(eta.sim)/(1+exp(eta.sim))
+      out$prevalence$predictions <- apply(prev.sim,2,mean)
+
+      if(length(quantiles)>0) out$prevalence$quantiles <-
+        t(apply(prev.sim,2,function(c) quantile(c,quantiles)))
+
+      if(standard.errors) out$prevalence$standard.errors <-
+        apply(prev.sim,2,sd)
+    }
+
+    if(length(scale.thresholds) > 0) {
+      if(messages) cat("Spatial predictions: exceedance probabilities \n")
+      if(scale.thresholds=="prevalence") {
+        thresholds <- log(thresholds/(1-thresholds))
+      } else if(scale.thresholds=="odds") {
+        thresholds <- log(thresholds)
+      }
+      out$exceedance.prob <- sapply(thresholds, function(x) apply(eta.sim,2,function(c) mean(c > x)))
+    }
+
+  } else {
+    U <- dist(object$coords)
+    mu.cond <- matrix(NA,nrow=n.samples,ncol=n.pred)
+    sd.cond <- matrix(NA,nrow=n.samples,ncol=n.pred)
+    U.pred.coords <- as.matrix(pdist(grid.pred,object$coords))
+    if(type=="joint") {
+      if(messages) cat("Type of predictions: joint \n")
+      U.grid.pred <- dist(grid.pred)
+    } else {
+      if(messages) cat("Type of predictions: marginal \n")
+    }
+
+    for(j in 1:n.samples)  {
+      sigma2 <- object$estimate[j,"sigma^2"]
+      phi <-object$estimate[j,"phi"]
+      if(!fixed.nugget) {
+        tau2 <- object$estimate[j,"tau^2"]
+      } else {
+        tau2 <- 0
+      }
+      mu <- D%*%object$estimate[j,1:p]
+      Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                              cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
+      Sigma.inv <- solve(Sigma)
+      C <- sigma2*matern(U.pred.coords,phi,kappa)
+      A <- C%*%Sigma.inv
+      mu.pred <- as.numeric(predictors%*%object$estimate[j,1:p])
+      if(length(object$ID.coords)>0) {
+        mu.cond[j,] <- mu.pred+A%*%object$S[j,]
+      } else {
+        mu.cond[j,] <- mu.pred+A%*%(object$S[j,]-mu)
       }
 
-      if(any(scale.predictions=="odds")) {
-         if(messages) cat("Spatial prediction: odds \n")
-    	   odds <- exp(eta.sim)
-    	   out$odds$predictions <- apply(odds,2,mean)
-
-    	   if(length(quantiles)>0) out$odds$quantiles <-
-    	   t(apply(odds,2,function(c) quantile(c,quantiles)))
-
-    	   if(standard.errors) out$odds$standard.errors <-
-    	   apply(odds,2,sd)
+      if(type=="marginal") {
+        sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
+        eta.sim[j,] <-  rnorm(n.pred,mu.cond[j,],sd.cond[j,])
+      } else if (type=="joint") {
+        Sigma.pred <-  varcov.spatial(dists.lowertri=U.grid.pred,cov.model="matern",
+                                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
+        Sigma.cond <- Sigma.pred - A%*%t(C)
+        Sigma.cond.sroot <- t(chol(Sigma.cond))
+        sd.cond <- sqrt(diag(Sigma.cond))
+        eta.sim[j,] <- mu.cond[j,]+Sigma.cond.sroot%*%rnorm(n.pred)
       }
 
-      if(any(scale.predictions=="prevalence")) {
-         if(messages) cat("Spatial prediction: prevalence \n")
-    	   if(check.probit) {
-    	      prev <- exp(eta.sim)/(1+exp(eta.sim))
-    	   } else {
-    	     	prev <- pnorm(eta.sim)
-    	   }
-    	   out$prevalence$predictions <- apply(prev,2,mean)
-    	   if(length(quantiles)>0) out$prevalence$quantiles <-
-    	   t(apply(prev,2,function(c) quantile(c,quantiles)))
-
-    	   if(standard.errors) out$prevalence$standard.errors <-
-    	   apply(prev,2,sd)
+      if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
+    }
+    if(messages) cat("\n")
+    if(any(scale.predictions=="logit") |
+       any(scale.predictions=="probit")) {
+      if(messages) {
+        if(check.probit) {
+          if(messages) cat("Spatial prediction: probit \n")
+        } else {
+          if(messages) cat("Spatial prediction: logit \n")
+        }
       }
 
-      if(length(scale.thresholds) > 0) {
-         if(messages) cat("Spatial prediction: exceedance probabilities \n")
-         if(scale.thresholds=="prevalence") {
-            thresholds <- log(thresholds/(1-thresholds))
-         } else if(scale.thresholds=="odds") {
-          	thresholds <- log(thresholds)
-         } else if(scale.thresholds=="probit") {
-          	thresholds <- qnorm(thresholds)
-         }
-         out$exceedance.prob <- sapply(thresholds, function(x)
-         apply(eta.sim,2,function(c) mean(c > x)))
+      if(check.probit) {
+        out$probit$predictions <- apply(mu.cond,2,mean)
+
+        if(length(quantiles)>0) out$probit$quantiles <-
+            t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+
+        if(standard.errors) out$probit$standard.errors <-
+            apply(eta.sim,2,sd)
+      } else {
+        out$logit$predictions <- apply(mu.cond,2,mean)
+
+        if(length(quantiles)>0) out$logit$quantiles <-
+            t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+
+        if(standard.errors) out$logit$standard.errors <-
+            apply(eta.sim,2,sd)
       }
-   } else if(SPDE) {
-      A.pred <- INLA::inla.spde.make.A(object$mesh,loc=as.matrix(grid.pred))
-      for(j in 1:n.samples) {
-         eta.sim[j,] <- as.numeric(predictors%*%object$estimate[j,1:p]+A.pred%*%object$S[j,])
-      }
+    }
 
-      if(type=="marginal") warning("'type' is switched to 'joint', as only joint predictions are available for the SPDE models.")
-      if(any(scale.predictions=="logit")) {
-         if(messages) cat("Spatial predictions: logit \n")
-         out$logit$predictions <- apply(eta.sim,2,mean)
+    if(any(scale.predictions=="odds")) {
+      if(messages) cat("Spatial prediction: odds \n")
+      odds <- exp(eta.sim)
+      out$odds$predictions <-
+        apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
 
-    	   if(length(quantiles)>0) out$logit$quantiles <-
-    	   t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
+      if(length(quantiles)>0) out$odds$quantiles <-
+        t(apply(odds,2,function(c) quantile(c,quantiles)))
 
-    	   if(standard.errors) out$logit$standard.errors <-
-    	   apply(eta.sim,2,sd)
-      }
+      if(standard.errors) out$odds$standard.errors <-
+        apply(odds,2,sd)
+    }
 
-      if(any(scale.predictions=="odds")) {
-         if(messages) cat("Spatial predictions: odds \n")
-         odds.sim <- exp(eta.sim)
-         out$odds$predictions <- apply(odds.sim,2,mean)
-
-    	   if(length(quantiles)>0) out$odds$quantiles <-
-    	   t(apply(odds.sim,2,function(c) quantile(c,quantiles)))
-
-    	   if(standard.errors) out$odds$standard.errors <-
-    	   apply(odds.sim,2,sd)
+    if(any(scale.predictions=="prevalence")) {
+      if(messages) cat("Spatial prediction: prevalence \n")
+      if(check.probit) {
+        prev <- pnorm(eta.sim)
+      } else {
+        prev <- exp(eta.sim)/(1+exp(eta.sim))
       }
 
-      if(any(scale.predictions=="prevalence")) {
-         if(messages) cat("Spatial predictions: prevalence \n")
-         prev.sim <- exp(eta.sim)/(1+exp(eta.sim))
-         out$prevalence$predictions <- apply(prev.sim,2,mean)
+      out$prevalence$predictions <- apply(prev,2,mean)
 
-    	   if(length(quantiles)>0) out$prevalence$quantiles <-
-    	   t(apply(prev.sim,2,function(c) quantile(c,quantiles)))
+      if(length(quantiles)>0) out$prevalence$quantiles <-
+        t(apply(prev,2,function(c) quantile(c,quantiles)))
 
-    	   if(standard.errors) out$prevalence$standard.errors <-
-    	   apply(prev.sim,2,sd)
+      if(standard.errors) out$prevalence$standard.errors <-
+        apply(prev,2,sd)
+    }
+
+    if(length(scale.thresholds) > 0) {
+      if(messages) cat("Spatial prediction: exceedance probabilities \n")
+      if(scale.thresholds=="prevalence") {
+        thresholds <- log(thresholds/(1-thresholds))
+      } else if(scale.thresholds=="odds") {
+        thresholds <- log(thresholds)
+      } else if(scale.thresholds=="probit") {
+        thresholds <- qnorm(thresholds)
       }
-
-      if(length(scale.thresholds) > 0) {
-         if(messages) cat("Spatial predictions: exceedance probabilities \n")
-         if(scale.thresholds=="prevalence") {
-            thresholds <- log(thresholds/(1-thresholds))
-         } else if(scale.thresholds=="odds") {
-            thresholds <- log(thresholds)
-         }
-         out$exceedance.prob <- sapply(thresholds, function(x) apply(eta.sim,2,function(c) mean(c > x)))
-      }
-
-   } else {
-      U <- dist(object$coords)
-      mu.cond <- matrix(NA,nrow=n.samples,ncol=n.pred)
-      sd.cond <- matrix(NA,nrow=n.samples,ncol=n.pred)
-      U.pred.coords <- as.matrix(pdist(grid.pred,object$coords))
-	if(type=="joint") {
-	   if(messages) cat("Type of predictions: joint \n")
-	   U.grid.pred <- dist(grid.pred)
-	} else {
-	   if(messages) cat("Type of predictions: marginal \n")
-	}
-
-      for(j in 1:n.samples)  {
-         sigma2 <- object$estimate[j,"sigma^2"]
-         phi <-object$estimate[j,"phi"]
-         if(!fixed.nugget) {
-            tau2 <- object$estimate[j,"tau^2"]
-         } else {
-            tau2 <- 0
-         }
-         mu <- D%*%object$estimate[j,1:p]
-   	   Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	            cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
-	   Sigma.inv <- solve(Sigma)
-         C <- sigma2*matern(U.pred.coords,phi,kappa)
-         A <- C%*%Sigma.inv
-	   mu.pred <- as.numeric(predictors%*%object$estimate[j,1:p])
-         if(length(object$ID.coords)>0) {
-	      mu.cond[j,] <- mu.pred+A%*%object$S[j,]
-         } else {
-            mu.cond[j,] <- mu.pred+A%*%(object$S[j,]-mu)
-         }
-
-         if(type=="marginal") {
-            sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
-    	      eta.sim[j,] <-  rnorm(n.pred,mu.cond[j,],sd.cond[j,])
-         } else if (type=="joint") {
-    	      Sigma.pred <-  varcov.spatial(dists.lowertri=U.grid.pred,cov.model="matern",
-	                                  cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-	      Sigma.cond <- Sigma.pred - A%*%t(C)
-	      Sigma.cond.sroot <- t(chol(Sigma.cond))
-	      sd.cond <- sqrt(diag(Sigma.cond))
-	      eta.sim[j,] <- mu.cond[j,]+Sigma.cond.sroot%*%rnorm(n.pred)
-         }
-
-         if(messages) cat("Iteration ",j," out of ",n.samples,"\r")
-      }
-      if(messages) cat("\n")
-      if(any(scale.predictions=="logit") |
-         any(scale.predictions=="probit")) {
-         if(messages) {
-            if(check.probit) {
-               if(messages) cat("Spatial prediction: probit \n")
-       	} else {
-       	   if(messages) cat("Spatial prediction: logit \n")
-       	}
-         }
-
-    	   if(check.probit) {
-    	      out$probit$predictions <- apply(mu.cond,2,mean)
-
-    	      if(length(quantiles)>0) out$probit$quantiles <-
-    	      t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-
-      	if(standard.errors) out$probit$standard.errors <-
-      	apply(eta.sim,2,sd)
-    	   } else {
-            out$logit$predictions <- apply(mu.cond,2,mean)
-
-    	      if(length(quantiles)>0) out$logit$quantiles <-
-    	      t(apply(eta.sim,2,function(c) quantile(c,quantiles)))
-
-    	      if(standard.errors) out$logit$standard.errors <-
-    	      apply(eta.sim,2,sd)
-    	   }
-      }
-
-      if(any(scale.predictions=="odds")) {
-         if(messages) cat("Spatial prediction: odds \n")
-    	   odds <- exp(eta.sim)
-    	   out$odds$predictions <-
-    	   apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
-
-    	   if(length(quantiles)>0) out$odds$quantiles <-
-    	   t(apply(odds,2,function(c) quantile(c,quantiles)))
-
-    	   if(standard.errors) out$odds$standard.errors <-
-    	   apply(odds,2,sd)
-      }
-
-      if(any(scale.predictions=="prevalence")) {
-         if(messages) cat("Spatial prediction: prevalence \n")
-    	   if(check.probit) {
-    	      prev <- pnorm(eta.sim)
-    	   } else {
-    	      prev <- exp(eta.sim)/(1+exp(eta.sim))
-    	   }
-
-    	   out$prevalence$predictions <- apply(prev,2,mean)
-
-    	   if(length(quantiles)>0) out$prevalence$quantiles <-
-    	   t(apply(prev,2,function(c) quantile(c,quantiles)))
-
-    	   if(standard.errors) out$prevalence$standard.errors <-
-    	   apply(prev,2,sd)
-      }
-
-      if(length(scale.thresholds) > 0) {
-         if(messages) cat("Spatial prediction: exceedance probabilities \n")
-         if(scale.thresholds=="prevalence") {
-            thresholds <- log(thresholds/(1-thresholds))
-         } else if(scale.thresholds=="odds") {
-            thresholds <- log(thresholds)
-         } else if(scale.thresholds=="probit") {
-            thresholds <- qnorm(thresholds)
-         }
-         out$exceedance.prob <- sapply(thresholds, function(x)
-         apply(eta.sim,2,function(c) mean(c > x)))
-      }
-   }
-   out$grid.pred <- grid.pred
-   out$samples <- eta.sim
-   class(out) <- "pred.PrevMap"
-   out
+      out$exceedance.prob <- sapply(thresholds, function(x)
+        apply(eta.sim,2,function(c) mean(c > x)))
+    }
+  }
+  out$grid.pred <- grid.pred
+  out$samples <- eta.sim
+  class(out) <- "pred.PrevMap"
+  out
 }
 
 ##' @title Auxliary function for controlling profile log-likelihood in the linear Gaussian model
@@ -6836,54 +6933,54 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 control.profile <- function(phi=NULL,rel.nugget=NULL,
-                                         fixed.beta=NULL,fixed.sigma2=NULL,
-                                         fixed.phi=NULL,
-                                         fixed.rel.nugget=NULL) {
+                            fixed.beta=NULL,fixed.sigma2=NULL,
+                            fixed.phi=NULL,
+                            fixed.rel.nugget=NULL) {
 
-   if(length(phi)==0 & length(rel.nugget)==0) stop("either phi or rel.nugget must be provided.")
-   if(length(phi) > 0) {
-     if(any(phi < 0)) stop("phi must be positive.")
-   }
+  if(length(phi)==0 & length(rel.nugget)==0) stop("either phi or rel.nugget must be provided.")
+  if(length(phi) > 0) {
+    if(any(phi < 0)) stop("phi must be positive.")
+  }
 
-   if(length(rel.nugget) > 0) {
-     if(any(rel.nugget < 0)) stop("rel.nugget must be positive.")
-   }
+  if(length(rel.nugget) > 0) {
+    if(any(rel.nugget < 0)) stop("rel.nugget must be positive.")
+  }
 
-   if(length(fixed.beta)!=0) {
-   	  if(length(fixed.rel.nugget)==0 & length(fixed.phi)==0 & length(rel.nugget)==0 & length(phi)==0) stop("missing fixed value for phi or rel.nugget.")
-   }
+  if(length(fixed.beta)!=0) {
+    if(length(fixed.rel.nugget)==0 & length(fixed.phi)==0 & length(rel.nugget)==0 & length(phi)==0) stop("missing fixed value for phi or rel.nugget.")
+  }
 
-   if(length(fixed.sigma2)==1) {
-     if(fixed.sigma2 < 0) stop("fixed.sigma2 must be positive")
-     if(length(fixed.rel.nugget)==0 & length(fixed.phi)==0 & length(rel.nugget)==0 & length(phi)==0) stop("missing fixed value for phi or rel.nugget.")
-   }
+  if(length(fixed.sigma2)==1) {
+    if(fixed.sigma2 < 0) stop("fixed.sigma2 must be positive")
+    if(length(fixed.rel.nugget)==0 & length(fixed.phi)==0 & length(rel.nugget)==0 & length(phi)==0) stop("missing fixed value for phi or rel.nugget.")
+  }
 
-   fixed.par.phi <- FALSE
-   fixed.par.rel.nugget <- FALSE
+  fixed.par.phi <- FALSE
+  fixed.par.rel.nugget <- FALSE
 
-   if((length(fixed.beta)>0&length(fixed.sigma2)>0)) {
-     if(length(fixed.phi) > 0 && fixed.phi < 0) stop("fixed.phi must be positive")
-     if(length(fixed.phi)>0 & length(fixed.rel.nugget)==0) fixed.par.rel.nugget <- TRUE
-     if(any(c(length(fixed.beta),length(fixed.sigma2))==0)) stop("fixed.beta and fixed.sigma2 must be provided for evaluation of the likelihood with fixed paramaters.")
-     if(length(fixed.rel.nugget) > 0 && fixed.rel.nugget < 0) stop("fixed.rel.nugget must be positive")
-     if(length(fixed.phi)==0 & length(fixed.rel.nugget)>0) fixed.par.phi <- TRUE
-     if(any(c(length(fixed.beta),length(fixed.sigma2))==0)) stop("fixed.beta and fixed.sigma2 must be provided for evaluation of the likelihood with fixed paramaters.")
-   }
+  if((length(fixed.beta)>0&length(fixed.sigma2)>0)) {
+    if(length(fixed.phi) > 0 && fixed.phi < 0) stop("fixed.phi must be positive")
+    if(length(fixed.phi)>0 & length(fixed.rel.nugget)==0) fixed.par.rel.nugget <- TRUE
+    if(any(c(length(fixed.beta),length(fixed.sigma2))==0)) stop("fixed.beta and fixed.sigma2 must be provided for evaluation of the likelihood with fixed paramaters.")
+    if(length(fixed.rel.nugget) > 0 && fixed.rel.nugget < 0) stop("fixed.rel.nugget must be positive")
+    if(length(fixed.phi)==0 & length(fixed.rel.nugget)>0) fixed.par.phi <- TRUE
+    if(any(c(length(fixed.beta),length(fixed.sigma2))==0)) stop("fixed.beta and fixed.sigma2 must be provided for evaluation of the likelihood with fixed paramaters.")
+  }
 
 
-   if(length(rel.nugget) > 0 & length(fixed.rel.nugget) > 0) stop("rel.nugget and fixed.rel.nugget cannot be both provided.")
-      if(length(phi) > 0 & length(fixed.phi) > 0) stop("phi and fixed.phi cannot be both provided.")
-   if(fixed.par.phi | fixed.par.rel.nugget) {
-      cat("Control profile: parameters have been set for likelihood evaluation with fixed parameters. \n")
-   } else if(fixed.par.phi==FALSE & fixed.par.rel.nugget==FALSE) {
-      cat("Control profile: parameters have been set for evaluation of the profile log-likelihood. \n")
-   }
-   out <- list(phi=phi,rel.nugget=rel.nugget,
-                   fixed.phi=fixed.phi,fixed.rel.nugget=fixed.rel.nugget,
-                   fixed.beta=fixed.beta,fixed.sigma2=fixed.sigma2,
-                   fixed.par.phi=fixed.par.phi,
-                   fixed.par.rel.nugget=fixed.par.rel.nugget)
-   return(out)
+  if(length(rel.nugget) > 0 & length(fixed.rel.nugget) > 0) stop("rel.nugget and fixed.rel.nugget cannot be both provided.")
+  if(length(phi) > 0 & length(fixed.phi) > 0) stop("phi and fixed.phi cannot be both provided.")
+  if(fixed.par.phi | fixed.par.rel.nugget) {
+    cat("Control profile: parameters have been set for likelihood evaluation with fixed parameters. \n")
+  } else if(fixed.par.phi==FALSE & fixed.par.rel.nugget==FALSE) {
+    cat("Control profile: parameters have been set for evaluation of the profile log-likelihood. \n")
+  }
+  out <- list(phi=phi,rel.nugget=rel.nugget,
+              fixed.phi=fixed.phi,fixed.rel.nugget=fixed.rel.nugget,
+              fixed.beta=fixed.beta,fixed.sigma2=fixed.sigma2,
+              fixed.par.phi=fixed.par.phi,
+              fixed.par.rel.nugget=fixed.par.rel.nugget)
+  return(out)
 }
 
 ##' @title Profile log-likelihood or fixed parameters likelihood evaluation for the covariance parameters in the geostatistical linear model
@@ -6904,162 +7001,162 @@ control.profile <- function(phi=NULL,rel.nugget=NULL,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
-                                  messages=TRUE) {
-    if(class(object)!="PrevMap") stop("object must be of class PrevMap.")
-	y <- object$y
-	n <- length(y)
-	D <- object$D
-	kappa <- object$kappa
-	if(length(control.profile$fixed.beta)>0 && length(control.profile$fixed.beta)!=ncol(D)) stop("invalid value for fixed.beta")
-	U <- dist(object$coords)
-	if(length(object$fixed.nugget)>0) stop("the nugget effect must not be fixed when using geo.linear.MLE")
-	if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget==FALSE
-	   & length(control.profile$phi) > 0) {
-	   	start.par <- object$estimate["log(nu^2)"]
-	   } else if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget==FALSE
-	   & length(control.profile$rel.nugget) > 0) {
-	   	start.par <- object$estimate["log(phi)"]
-	}
-
-	if(control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget) {
-	log.lik <- function(beta,sigma2,phi,kappa,nu2) {
-	      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
-	              nugget=nu2)$varcov
-	      V.inv <- solve(V)
-	      diff.beta <- y-D%*%beta
-	      q.f <- as.numeric(t(diff.beta)%*%V.inv%*%diff.beta)
-	      ldet.V <- determinant(V)$modulus
-	      as.numeric(-0.5*(n*log(sigma2)+ldet.V+q.f/sigma2))
+                                messages=TRUE) {
+  if(class(object)!="PrevMap") stop("object must be of class PrevMap.")
+  y <- object$y
+  n <- length(y)
+  D <- object$D
+  kappa <- object$kappa
+  if(length(control.profile$fixed.beta)>0 && length(control.profile$fixed.beta)!=ncol(D)) stop("invalid value for fixed.beta")
+  U <- dist(object$coords)
+  if(length(object$fixed.nugget)>0) stop("the nugget effect must not be fixed when using geo.linear.MLE")
+  if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget==FALSE
+     & length(control.profile$phi) > 0) {
+    start.par <- object$estimate["log(nu^2)"]
+  } else if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget==FALSE
+            & length(control.profile$rel.nugget) > 0) {
+    start.par <- object$estimate["log(phi)"]
+  }
+  
+  if(control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget) {
+    log.lik <- function(beta,sigma2,phi,kappa,nu2) {
+      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+                          nugget=nu2)$varcov
+      V.inv <- solve(V)
+      diff.beta <- y-D%*%beta
+      q.f <- as.numeric(t(diff.beta)%*%V.inv%*%diff.beta)
+      ldet.V <- determinant(V)$modulus
+      as.numeric(-0.5*(n*log(sigma2)+ldet.V+q.f/sigma2))
     }
     out <- list()
     if(control.profile$fixed.par.phi & control.profile$fixed.par.rel.nugget==FALSE) {
-       	out$eval.points.phi <- control.profile$phi
-       	out$profile.phi <- rep(NA,length(control.profile$phi))
-      	for(i in 1:length(control.profile$phi)) {
-    		   	flush.console()
-    		   	cat("Evaluation for phi=",control.profile$phi[i],"\r",sep="")
-    		    out$profile.phi[i] <- log.lik(control.profile$fixed.beta,
-    	                                       control.profile$fixed.sigma2,control.profile$phi[i],
-    	                                       kappa,control.profile$fixed.rel.nugget)
-        }
+      out$eval.points.phi <- control.profile$phi
+      out$profile.phi <- rep(NA,length(control.profile$phi))
+      for(i in 1:length(control.profile$phi)) {
         flush.console()
-        if(plot.profile) {
-            plot(out$eval.points.phi,out$profile.phi,type="l",
-            main=expression("Log-likelihood for"~phi~"and remaining parameters fixed", ),
-            xlab=expression(phi),ylab="log-likelihood")
-
-        }
+        if(messages) cat("Evaluation for phi=",control.profile$phi[i],"\r",sep="")
+        out$profile.phi[i] <- log.lik(control.profile$fixed.beta,
+                                      control.profile$fixed.sigma2,control.profile$phi[i],
+                                      kappa,control.profile$fixed.rel.nugget)
+      }
+      flush.console()
+      if(plot.profile) {
+        plot(out$eval.points.phi,out$profile.phi,type="l",
+             main=expression("Log-likelihood for"~phi~"and remaining parameters fixed", ),
+             xlab=expression(phi),ylab="log-likelihood")
+        
+      }
     } else if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget) {
-       	out$eval.points.rel.nugget <- control.profile$rel.nugget
-       	out$profile.rel.nugget <- rep(NA,length(control.profile$rel.nugget))
-      	for(i in 1:length(control.profile$rel.nugget)) {
-    		   flush.console()
-    		   cat("Evaluation for rel.nugget=",control.profile$rel.nugget[i],"\r",sep="")
-    		   out$profile.rel.nugget[i] <- log.lik(control.profile$fixed.beta,
-    			                                  control.profile$fixed.sigma2,control.profile$fixed.phi,
-    			                                  kappa,control.profile$rel.nugget[i])
-        }
+      out$eval.points.rel.nugget <- control.profile$rel.nugget
+      out$profile.rel.nugget <- rep(NA,length(control.profile$rel.nugget))
+      for(i in 1:length(control.profile$rel.nugget)) {
         flush.console()
-        if(plot.profile) {
-              plot(out$eval.points.rel.nugget,out$profile.rel.nugget,type="l",
-              main=expression("Log-likelihood for"~nu^2~"and remaining parameters fixed", ),
-              xlab=expression(nu^2),ylab="log-likelihood")
-        }
+        if(messages) cat("Evaluation for rel.nugget=",control.profile$rel.nugget[i],"\r",sep="")
+        out$profile.rel.nugget[i] <- log.lik(control.profile$fixed.beta,
+                                             control.profile$fixed.sigma2,control.profile$fixed.phi,
+                                             kappa,control.profile$rel.nugget[i])
+      }
+      flush.console()
+      if(plot.profile) {
+        plot(out$eval.points.rel.nugget,out$profile.rel.nugget,type="l",
+             main=expression("Log-likelihood for"~nu^2~"and remaining parameters fixed", ),
+             xlab=expression(nu^2),ylab="log-likelihood")
+      }
     } else if(control.profile$fixed.par.phi &
-                 control.profile$fixed.par.rel.nugget) {
-       	out$eval.points.phi <- control.profile$phi
-       	out$eval.points.rel.nugget <- control.profile$rel.nugget
-       	out$profile.phi.rel.nugget <- matrix(NA,length(control.profile$phi),length(control.profile$rel.nugget))
-      	for(i in 1:length(control.profile$phi)) {
-      		for(j in 1:length(control.profile$rel.nugget)) {
-    		   	 flush.console()
-    		   	 cat("Evaluation for phi=",control.profile$phi[i],
-    		             " and rel.nugget=",control.profile$rel.nugget[j],"\r",sep="")
-    			 out$profile.phi.rel.nugget[i,j] <- log.lik(control.profile$fixed.beta,
-    			                                  control.profile$fixed.sigma2,control.profile$phi[i],
-    			                                  kappa,control.profile$rel.nugget[j])
-    	  	}
-        }
-        flush.console()
-        if(plot.profile) {
-               contour(out$eval.points.phi,out$eval.points.rel.nugget,
-               out$profile.phi.rel.nugget,
-               main=expression("Log-likelihood for"~phi~"and"~nu^2~
-                            "and remaining parameters fixed"),
-               xlab=expression(phi),ylab=expression(nu^2))
-        }
-    }
-    } else  {
-    log.lik.profile <- function(phi,kappa,nu2) {
-	      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
-	              nugget=nu2)$varcov
-	      V.inv <- solve(V)
-	      beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
-	      diff.beta.hat <- y-D%*%beta.hat
-	      sigma2.hat <- as.numeric(t(diff.beta.hat)%*%V.inv%*%diff.beta.hat/n)
-	      ldet.V <- determinant(V)$modulus
-	      as.numeric(-0.5*(n*log(sigma2.hat)+ldet.V))
-    }
-    out <- list()
-
-    if(length(control.profile$phi) > 0 & length(control.profile$rel.nugget)==0) {
-       	out$eval.points.phi <- control.profile$phi
-       	out$profile.phi <- rep(NA,length(control.profile$phi))
-      	for(i in 1:length(control.profile$phi)) {
-    		   	flush.console()
-    		   	cat("Evaluation for phi=",control.profile$phi[i],"\r",sep="")
-    			out$profile.phi[i] <- -nlminb(start.par,function(x) -log.lik.profile(control.profile$phi[i],
-    			                        kappa,exp(x)))$objective
-        }
-        flush.console()
-        if(plot.profile) {
-           plot(out$eval.points.phi,out$profile.phi,type="l",
-                  main=expression("Profile log-likelihood for"~phi),
-                  xlab=expression(log(phi)),ylab="log-likelihood")
-        }
-    } else if(length(control.profile$phi) == 0 &
-       length(control.profile$rel.nugget) > 0) {
-       	out$eval.points.rel.nugget <- control.profile$rel.nugget
-       	out$profile.rel.nugget <- rep(NA,length(control.profile$rel.nugget))
-      	for(i in 1:length(control.profile$rel.nugget)) {
-    		   	flush.console()
-    		   	cat("Evaluation for rel.nugget=",control.profile$rel.nugget[i],"\r",sep="")
-    			out$profile.rel.nugget[i] <- -nlminb(start.par,
-    	                       function(x) -log.lik.profile(exp(x),kappa,
-                              control.profile$rel.nugget[i]))$objective
-        }
-        flush.console()
-        if(plot.profile) {
-               plot(out$eval.points.rel.nugget,out$profile.rel.nugget,type="l",
-               main=expression("Profile log-likelihood for"~nu^2),
-               xlab=expression(nu^2),ylab="log-likelihood")
-        }
-    } else if(length(control.profile$phi) > 0 &
-       length(control.profile$rel.nugget) > 0) {
-       	out$eval.points.phi <- control.profile$phi
-       	out$eval.points.rel.nugget <- control.profile$rel.nugget
-       	out$profile.phi.rel.nugget <- matrix(NA,length(control.profile$phi),length(control.profile$rel.nugget))
-      	for(i in 1:length(control.profile$phi)) {
-      		for(j in 1:length(control.profile$rel.nugget)) {
-    		   	flush.console()
-    		   	cat("Evaluation for phi=",control.profile$phi[i],
-    		             " and rel.nugget=",control.profile$rel.nugget[j],"\r",sep="")
-    			out$profile.phi.rel.nugget[i,j] <- log.lik.profile(control.profile$phi[i],
-    		                                            kappa,
-    			                                        control.profile$rel.nugget[j])
-    	  	}
-        }
-        if(plot.profile) {
-               contour(out$eval.points.phi,out$eval.points.rel.nugget,
-               out$profile.phi.rel.nugget,
-               main=expression("Profile log-likelihood for"~phi~"and"~nu^2),
-               xlab=expression(phi),ylab=expression(nu^2))
+              control.profile$fixed.par.rel.nugget) {
+      out$eval.points.phi <- control.profile$phi
+      out$eval.points.rel.nugget <- control.profile$rel.nugget
+      out$profile.phi.rel.nugget <- matrix(NA,length(control.profile$phi),length(control.profile$rel.nugget))
+      for(i in 1:length(control.profile$phi)) {
+        for(j in 1:length(control.profile$rel.nugget)) {
+          flush.console()
+          if(messages) cat("Evaluation for phi=",control.profile$phi[i],
+                           " and rel.nugget=",control.profile$rel.nugget[j],"\r",sep="")
+          out$profile.phi.rel.nugget[i,j] <- log.lik(control.profile$fixed.beta,
+                                                     control.profile$fixed.sigma2,control.profile$phi[i],
+                                                     kappa,control.profile$rel.nugget[j])
         }
       }
+      flush.console()
+      if(plot.profile) {
+        contour(out$eval.points.phi,out$eval.points.rel.nugget,
+                out$profile.phi.rel.nugget,
+                main=expression("Log-likelihood for"~phi~"and"~nu^2~
+                                  "and remaining parameters fixed"),
+                xlab=expression(phi),ylab=expression(nu^2))
+      }
     }
-    out$fixed.par <- control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget
-    class(out) <- "profile.PrevMap"
-    return(out)
+  } else  {
+    log.lik.profile <- function(phi,kappa,nu2) {
+      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+                          nugget=nu2)$varcov
+      V.inv <- solve(V)
+      beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
+      diff.beta.hat <- y-D%*%beta.hat
+      sigma2.hat <- as.numeric(t(diff.beta.hat)%*%V.inv%*%diff.beta.hat/n)
+      ldet.V <- determinant(V)$modulus
+      as.numeric(-0.5*(n*log(sigma2.hat)+ldet.V))
+    }
+    out <- list()
+    
+    if(length(control.profile$phi) > 0 & length(control.profile$rel.nugget)==0) {
+      out$eval.points.phi <- control.profile$phi
+      out$profile.phi <- rep(NA,length(control.profile$phi))
+      for(i in 1:length(control.profile$phi)) {
+        flush.console()
+        if(messages) cat("Evaluation for phi=",control.profile$phi[i],"\r",sep="")
+        out$profile.phi[i] <- -nlminb(start.par,function(x) -log.lik.profile(control.profile$phi[i],
+                                                                             kappa,exp(x)))$objective
+      }
+      flush.console()
+      if(plot.profile) {
+        plot(out$eval.points.phi,out$profile.phi,type="l",
+             main=expression("Profile log-likelihood for"~phi),
+             xlab=expression(log(phi)),ylab="log-likelihood")
+      }
+    } else if(length(control.profile$phi) == 0 &
+              length(control.profile$rel.nugget) > 0) {
+      out$eval.points.rel.nugget <- control.profile$rel.nugget
+      out$profile.rel.nugget <- rep(NA,length(control.profile$rel.nugget))
+      for(i in 1:length(control.profile$rel.nugget)) {
+        flush.console()
+        if(messages) cat("Evaluation for rel.nugget=",control.profile$rel.nugget[i],"\r",sep="")
+        out$profile.rel.nugget[i] <- -nlminb(start.par,
+                                             function(x) -log.lik.profile(exp(x),kappa,
+                                                                          control.profile$rel.nugget[i]))$objective
+      }
+      flush.console()
+      if(plot.profile) {
+        plot(out$eval.points.rel.nugget,out$profile.rel.nugget,type="l",
+             main=expression("Profile log-likelihood for"~nu^2),
+             xlab=expression(nu^2),ylab="log-likelihood")
+      }
+    } else if(length(control.profile$phi) > 0 &
+              length(control.profile$rel.nugget) > 0) {
+      out$eval.points.phi <- control.profile$phi
+      out$eval.points.rel.nugget <- control.profile$rel.nugget
+      out$profile.phi.rel.nugget <- matrix(NA,length(control.profile$phi),length(control.profile$rel.nugget))
+      for(i in 1:length(control.profile$phi)) {
+        for(j in 1:length(control.profile$rel.nugget)) {
+          flush.console()
+          if(messages) cat("Evaluation for phi=",control.profile$phi[i],
+                           " and rel.nugget=",control.profile$rel.nugget[j],"\r",sep="")
+          out$profile.phi.rel.nugget[i,j] <- log.lik.profile(control.profile$phi[i],
+                                                             kappa,
+                                                             control.profile$rel.nugget[j])
+        }
+      }
+      if(plot.profile) {
+        contour(out$eval.points.phi,out$eval.points.rel.nugget,
+                out$profile.phi.rel.nugget,
+                main=expression("Profile log-likelihood for"~phi~"and"~nu^2),
+                xlab=expression(phi),ylab=expression(nu^2))
+      }
+    }
+  }
+  out$fixed.par <- control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget
+  class(out) <- "profile.PrevMap"
+  return(out)
 }
 
 ##' @title Plot of the profile log-likelihood for the covariance parameters of the Matern function
@@ -7074,36 +7171,36 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
 ##' @method plot profile.PrevMap
 ##' @export
 plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...) {
-	if(class(x) != "profile.PrevMap") stop("x must be of class profile.PrevMap")
-    if(class(x$profile)=="matrix" & plot.spline.profile==TRUE) warning("spline interpolation is available only for univariate profile-likelihood")
-	if(class(x$profile)=="numeric") {
-		plot.list <- list(...)
-		if(length(plot.list$type)==0) plot.list$type <- "l"
-		if(length(plot.list$xlab)==0) plot.list$xlab <- ""
-		if(length(plot.list$ylab)==0) plot.list$ylab <- ""
-        plot.list$x <- x[[1]]
-        plot.list$y <- x[[2]]
-		if(log.scale) {
-		   plot.list$x <- log(plot.list$x)
-		   do.call(plot,plot.list)
-		   if(plot.spline.profile) {
-		      f <- splinefun(log(x[[1]]),x[[2]])
-			  lines(log(x[[1]]),f,col=2)
-		   }
-		} else {
-		   do.call(plot,plot.list)
-		   if(plot.spline.profile) {
-		      f <- splinefun(x[[1]],x[[2]])
-			  lines(x[[1]],f,col=2)
-		   }
-		}
-   	} else if(class(x$profile)=="matrix") {
-   	  	if(log.scale) {
-   	  	    contour(log(x[[1]]),log(x[[2]]),x[[3]],...)
-  	  	} else {
-            contour(x[[1]],x[[2]],x[[3]],...)
-   	  	}
-	 }
+  if(class(x) != "profile.PrevMap") stop("x must be of class profile.PrevMap")
+  if(class(x$profile)=="matrix" & plot.spline.profile==TRUE) warning("spline interpolation is available only for univariate profile-likelihood")
+  if(class(x$profile)=="numeric") {
+    plot.list <- list(...)
+    if(length(plot.list$type)==0) plot.list$type <- "l"
+    if(length(plot.list$xlab)==0) plot.list$xlab <- ""
+    if(length(plot.list$ylab)==0) plot.list$ylab <- ""
+    plot.list$x <- x[[1]]
+    plot.list$y <- x[[2]]
+    if(log.scale) {
+      plot.list$x <- log(plot.list$x)
+      do.call(plot,plot.list)
+      if(plot.spline.profile) {
+        f <- splinefun(log(x[[1]]),x[[2]])
+        lines(log(x[[1]]),f,col=2)
+      }
+    } else {
+      do.call(plot,plot.list)
+      if(plot.spline.profile) {
+        f <- splinefun(x[[1]],x[[2]])
+        lines(x[[1]],f,col=2)
+      }
+    }
+  } else if(class(x$profile)=="matrix") {
+    if(log.scale) {
+      contour(log(x[[1]]),log(x[[2]]),x[[3]],...)
+    } else {
+      contour(x[[1]],x[[2]],x[[3]],...)
+    }
+  }
 }
 
 ##' @title Profile likelihood confidence intervals
@@ -7117,57 +7214,57 @@ plot.profile.PrevMap <- function(x,log.scale=FALSE,plot.spline.profile=FALSE,...
 ##' @export
 
 loglik.ci <- function(object,coverage=0.95,plot.spline.profile=TRUE) {
-	if(class(object) != "profile.PrevMap") stop("object must be of class profile.PrevMap")
-	if(coverage <= 0 | coverage >=1) stop("'coverage' must be between 0 and 1.")
-	if(object$fixed.par | class(object$profile)=="matrix") {
-		stop("profile likelihood must be computed and only for a single paramater.")
-	} else {
-		f <- splinefun(object[[1]],object[[2]])
-        max.log.lik <- -optimize(function(x)-f(x),
-                                lower=min(object[[1]]),upper=max(object[[1]]))$objective
-        par.set <- seq(min(object[[1]]),max(object[[1]]),length=20)
-        k <- qchisq(coverage,df=1)
-        par.val <- 2*(max.log.lik-f(par.set))-k
-        done <- FALSE
-        if(par.val[1] < 0 & par.val[length(par.val)] > 0) {
-        	   stop("smaller value of the parameter should be included when computing the profile likelihood")
-        } else if(par.val[1] > 0 & par.val[length(par.val)] < 0) {
-        	   stop("larger value of the parameter should be included when computing the profile likelihood")
-        } else if(par.val[1] < 0 & par.val[length(par.val)] < 0) {
-           stop("both smaller and larger value of the parameter should be included when computing the profile likelihood")
-        }
+  if(class(object) != "profile.PrevMap") stop("object must be of class profile.PrevMap")
+  if(coverage <= 0 | coverage >=1) stop("'coverage' must be between 0 and 1.")
+  if(object$fixed.par | class(object$profile)=="matrix") {
+    stop("profile likelihood must be computed and only for a single paramater.")
+  } else {
+    f <- splinefun(object[[1]],object[[2]])
+    max.log.lik <- -optimize(function(x)-f(x),
+                             lower=min(object[[1]]),upper=max(object[[1]]))$objective
+    par.set <- seq(min(object[[1]]),max(object[[1]]),length=20)
+    k <- qchisq(coverage,df=1)
+    par.val <- 2*(max.log.lik-f(par.set))-k
+    done <- FALSE
+    if(par.val[1] < 0 & par.val[length(par.val)] > 0) {
+      stop("smaller value of the parameter should be included when computing the profile likelihood")
+    } else if(par.val[1] > 0 & par.val[length(par.val)] < 0) {
+      stop("larger value of the parameter should be included when computing the profile likelihood")
+    } else if(par.val[1] < 0 & par.val[length(par.val)] < 0) {
+      stop("both smaller and larger value of the parameter should be included when computing the profile likelihood")
+    }
 
-        i <- 1
-        lower.int <- c(NA,NA)
-        upper.int <- c(NA,NA)
-        out <- list()
-        while(!done) {
-        	    i <- i+1
-           	if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==1) {
-           		lower.int[1] <- par.set[i-1]
-           		lower.int[2] <- par.set[i+1]
-           	}
-           	if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==-1) {
-           		upper.int[1] <- par.set[i-1]
-           		upper.int[2] <- par.set[i+1]
-           		done <- TRUE
-           	}
-        }
-        out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=lower.int[1],upper=lower.int[2])$root
-        out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=upper.int[1],upper=upper.int[2])$root
-        if(plot.spline.profile) {
-           a <- seq(min(par.set),max(par.set),length=1000)
-           b <- sapply(a, function(x) -2*(max.log.lik-f(x)))
-           plot(a,b,type="l",ylab="2*(profile log-likelihood - max log-likelihood)",
+    i <- 1
+    lower.int <- c(NA,NA)
+    upper.int <- c(NA,NA)
+    out <- list()
+    while(!done) {
+      i <- i+1
+      if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==1) {
+        lower.int[1] <- par.set[i-1]
+        lower.int[2] <- par.set[i+1]
+      }
+      if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==-1) {
+        upper.int[1] <- par.set[i-1]
+        upper.int[2] <- par.set[i+1]
+        done <- TRUE
+      }
+    }
+    out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=lower.int[1],upper=lower.int[2])$root
+    out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,lower=upper.int[1],upper=upper.int[2])$root
+    if(plot.spline.profile) {
+      a <- seq(min(par.set),max(par.set),length=1000)
+      b <- sapply(a, function(x) -2*(max.log.lik-f(x)))
+      plot(a,b,type="l",ylab="2*(profile log-likelihood - max log-likelihood)",
            xlab="parameter values",
            main="")
-           abline(h=-k,lty="dashed")
-           abline(v=out$lower,lty="dashed")
-           abline(v=out$upper,lty="dashed")
-        }
-        cat("Likelihood-based ",100*coverage,"% confidence interval: (",out$lower,", ",out$upper,") \n",sep="")
-	}
-	out
+      abline(h=-k,lty="dashed")
+      abline(v=out$lower,lty="dashed")
+      abline(v=out$upper,lty="dashed")
+    }
+    cat("Likelihood-based ",100*coverage,"% confidence interval: (",out$lower,", ",out$upper,") \n",sep="")
+  }
+  out
 }
 
 
@@ -7175,216 +7272,244 @@ loglik.ci <- function(object,coverage=0.95,plot.spline.profile=TRUE) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom geoR varcov.spatial
 geo.linear.Bayes <- function(formula,coords,data,
-                                              control.prior,
-                                              control.mcmc,
-                                              kappa,messages) {
-    if(any(is.na(data))) stop("missing values are not accepted")
-   	coords <- as.matrix(model.frame(coords,data))
-	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-   kappa <- as.numeric(kappa)
-   if(length(control.prior$log.prior.nugget)!=length(control.mcmc$start.nugget)) {
-      stop("missing prior or missing starting value for the nugget effect")
-   }
+                             control.prior,
+                             control.mcmc,
+                             kappa,messages) {
+  if(any(is.na(data))) stop("missing values are not accepted")
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  kappa <- as.numeric(kappa)
+  if(length(control.prior$log.prior.nugget)!=length(control.mcmc$start.nugget)) {
+    stop("missing prior or missing starting value for the nugget effect")
+  }
 
-   out <- list()
+  out <- list()
 
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   n <- length(y)
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   p <- ncol(D)
-   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   U <- dist(coords)
-   V.inv <- control.prior$V.inv
-   m <- control.prior$m
-   nu <- 2*kappa
-   log.prior.theta1_2 <- function(theta1,theta2) {
-         sigma2 <- exp(2*theta1)
-         phi <- (exp(2*theta1-theta2))^(1/nu)
-         log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
-         control.prior$log.prior.phi(phi)
-   }
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(is.numeric(control.mcmc$start.beta) &&
+     length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  U <- dist(coords)
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)
+  }
 
-   log.prior.theta3 <- function(theta3) {
-      	 tau2 <- exp(theta3)
-      	 theta3+control.prior$log.prior.nugget(tau2)
-   }
+  log.prior.theta3 <- function(theta3) {
+    tau2 <- exp(theta3)
+    theta3+control.prior$log.prior.nugget(tau2)
+  }
 
-   fixed.nugget <- length(control.mcmc$start.nugget)==0
+  fixed.nugget <- length(control.mcmc$start.nugget)==0
 
-   log.posterior <- function(theta1,theta2,beta,param.post,theta3=NULL) {
-	     sigma2 <- exp(2*theta1)
-	     mu <- D%*%beta
-	     diff.beta <- beta-m
-	     if(length(theta3)==1) {
-	     	lp.theta3 <- log.prior.theta3(theta3)
-	     } else {
-	     	lp.theta3 <- 0
-	     }
-	     diff.y <- as.numeric(y-mu)
-	     out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
-	     -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
-	     -0.5*(n*log(sigma2)+param.post$ldetR+
-	     t(diff.y)%*%param.post$R.inv%*%(diff.y)/sigma2)
-	     as.numeric(out)
-   }
-
-   acc.theta1 <- 0
-   acc.theta2 <- 0
-   if(fixed.nugget==FALSE) acc.theta3 <- 0
-   n.sim <- control.mcmc$n.sim
-   burnin <- control.mcmc$burnin
-   thin <- control.mcmc$thin
-   h.theta1 <- control.mcmc$h.theta1
-   h.theta2 <- control.mcmc$h.theta2
-   h.theta3 <- control.mcmc$h.theta3
-
-   c1.h.theta1 <- control.mcmc$c1.h.theta1
-   c2.h.theta1 <- control.mcmc$c2.h.theta1
-   c1.h.theta2 <- control.mcmc$c1.h.theta2
-   c2.h.theta2 <- control.mcmc$c2.h.theta2
-   c1.h.theta3 <- control.mcmc$c1.h.theta3
-   c2.h.theta3 <- control.mcmc$c2.h.theta3
-   if(!fixed.nugget) {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
-         tau2.curr <- control.mcmc$start.nugget
-         theta3.curr <- log(tau2.curr)
+  log.posterior <- function(theta1,theta2,beta,param.post,theta3=NULL) {
+    sigma2 <- exp(2*theta1)
+    mu <- D%*%beta
+    diff.beta <- beta-m
+    if(length(theta3)==1) {
+      lp.theta3 <- log.prior.theta3(theta3)
     } else {
-      	 out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-         colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
-         theta3.curr <- NULL
-	  	 tau2.curr <- 0
+      lp.theta3 <- 0
+    }
+    diff.y <- as.numeric(y-mu)
+    out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
+      -0.5*(p*log(sigma2)+t(diff.beta)%*%V.inv%*%diff.beta/sigma2)+
+      -0.5*(n*log(sigma2)+param.post$ldetR+
+              t(diff.y)%*%param.post$R.inv%*%(diff.y)/sigma2)
+    as.numeric(out)
+  }
+
+  acc.theta1 <- 0
+  acc.theta2 <- 0
+  if(fixed.nugget==FALSE) acc.theta3 <- 0
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
+  h.theta3 <- control.mcmc$h.theta3
+
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c1.h.theta3 <- control.mcmc$c1.h.theta3
+  c2.h.theta3 <- control.mcmc$c2.h.theta3
+  if(!fixed.nugget) {
+    out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
+    colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
+    if(control.mcmc$start.nugget=="prior mean") {
+      tau2.curr <- integrate(function(x) x*exp(control.prior$log.prior.nugget(x)),
+                               lower=-Inf,upper=Inf,rel.tol=1e-10)$value
+    } else if(is.numeric(control.mcmc$start.nugget)) {
+      tau2.curr <- control.mcmc$start.nugget
+    } else {
+      stop("Starting value for tau^2 is not valid")
+    }
+    theta3.curr <- log(tau2.curr)
+  } else {
+    out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+    colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+    theta3.curr <- NULL
+    tau2.curr <- 0
+  }
+
+  # Initialise all the parameters
+  if(control.mcmc$start.sigma2=="prior mean") {
+    sigma2.curr <- integrate(function(x) x*exp(control.prior$log.prior.sigma2(x)),
+                             lower=-Inf,upper=Inf,rel.tol=1e-10)$value
+  } else if(is.numeric(control.mcmc$start.sigma2)) {
+    sigma2.curr <- control.mcmc$start.sigma2
+  } else {
+    stop("Starting value for sigma^2 is not valid")
+  }
+  if(control.mcmc$start.phi=="prior mean") {
+    phi.curr <- integrate(function(x) x*exp(control.prior$log.prior.phi(x)),
+                             lower=-Inf,upper=Inf,rel.tol=1e-10)$value
+  } else if(is.numeric(control.mcmc$start.phi)) {
+    phi.curr <- control.mcmc$start.phi
+  } else {
+    stop("Starting value for phi is not valid")
+  }
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  if(control.mcmc$start.beta=="prior mean") {
+    beta.curr <- control.prior$m
+  } else if(is.numeric(control.mcmc$start.beta)) {
+    beta.curr <- control.mcmc$start.beta
+  } else {
+    stop("Starting value for beta is not valid")
+  }
+
+  # Compute the log-posterior density
+  R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                           cov.pars=c(1,phi.curr),
+                           kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
+
+  param.post.curr <- list()
+  param.post.curr$R.inv <- solve(R.curr)
+  param.post.curr$ldetR <- determinant(R.curr)$modulus
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                           param.post.curr,theta3.curr)
+
+  h1 <- rep(NA,n.sim)
+  h2 <- rep(NA,n.sim)
+  if(!fixed.nugget) h3 <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
+
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
+
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,
+                             param.post.prop,theta3.curr)
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      acc.theta1 <- acc.theta1+1
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
+
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,
+                             param.post.prop,theta3.curr)
+
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      acc.theta2 <- acc.theta2+1
+    }
+    rm(theta2.prop,phi.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+
+    # Update theta3
+    if(!fixed.nugget) {
+      theta3.prop <- theta3.curr+h.theta3*rnorm(1)
+      tau2.prop <- exp(theta3.prop)
+      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                               cov.pars=c(1,phi.curr),
+                               kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
+
+      param.post.prop <- list()
+      param.post.prop$R.inv <- solve(R.prop)
+      param.post.prop$ldetR <- determinant(R.prop)$modulus
+      lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                               param.post.prop,theta3.prop)
+
+      if(log(runif(1)) < lp.prop-lp.curr) {
+        theta3.curr <- theta3.prop
+        param.post.curr <- param.post.prop
+        lp.curr <- lp.prop
+        tau2.curr <- tau2.prop
+        acc.theta3 <- acc.theta3+1
+      }
+      rm(theta3.prop,tau2.prop)
+      h3[i] <- h.theta3 <- max(0,h.theta3 +
+                                 (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
     }
 
-    # Initialise all the parameters
-    sigma2.curr <- control.mcmc$start.sigma2
-    phi.curr <- control.mcmc$start.phi
-    theta1.curr <- 0.5*log(sigma2.curr)
-    theta2.curr <- log(sigma2.curr/(phi.curr^nu))
-    beta.curr <- control.mcmc$start.beta
+    # Update beta
+    A <- t(D)%*%param.post.curr$R.inv
+    cov.beta <- solve(V.inv+A%*%D)
+    mean.beta <- as.numeric(cov.beta%*%(V.inv%*%m+A%*%y))
+    beta.curr <- as.numeric(mean.beta+sqrt(sigma2.curr)*
+                              t(chol(cov.beta))%*%rnorm(p))
+    lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                             param.post.curr,theta3.curr)
 
-    # Compute the log-posterior density
-	R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-                                          cov.pars=c(1,phi.curr),
-                                          kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
-
-	param.post.curr <- list()
-	param.post.curr$R.inv <- solve(R.curr)
-	param.post.curr$ldetR <- determinant(R.curr)$modulus
-	lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                    param.post.curr,theta3.curr)
-
-    h1 <- rep(NA,n.sim)
-    h2 <- rep(NA,n.sim)
-    if(!fixed.nugget) h3 <- rep(NA,n.sim)
-    for(i in 1:n.sim) {
-
-        # Update theta1
-    	theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	sigma2.prop <- exp(2*theta1.prop)
-	    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    	R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
-
-        param.post.prop <- list()
-	    param.post.prop$R.inv <- solve(R.prop)
-	    param.post.prop$ldetR <- determinant(R.prop)$modulus
-	    lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,
-	                                          param.post.prop,theta3.curr)
-	    if(log(runif(1)) < lp.prop-lp.curr) {
-	       theta1.curr <- theta1.prop
-	       param.post.curr <- param.post.prop
-	       lp.curr <- lp.prop
-	       sigma2.curr <- sigma2.prop
-	       phi.curr <- phi.prop
-	       acc.theta1 <- acc.theta1+1
-	    }
-	    rm(theta1.prop,sigma2.prop,phi.prop)
-        h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
-
-    	# Update theta2
-    	theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    	R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                         cov.pars=c(1,phi.prop),
-	                                         kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
-
-        param.post.prop <- list()
-	    param.post.prop$R.inv <- solve(R.prop)
-	    param.post.prop$ldetR <- determinant(R.prop)$modulus
-	    lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,
-	                                          param.post.prop,theta3.curr)
-
-	    if(log(runif(1)) < lp.prop-lp.curr) {
-	        theta2.curr <- theta2.prop
-	        param.post.curr <- param.post.prop
-	        lp.curr <- lp.prop
-	        phi.curr <- phi.prop
-	        acc.theta2 <- acc.theta2+1
-	    }
-	    rm(theta2.prop,phi.prop)
-        h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                       (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
-
-        # Update theta3
-        if(!fixed.nugget) {
-            theta3.prop <- theta3.curr+h.theta3*rnorm(1)
-	        tau2.prop <- exp(theta3.prop)
-    	    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                                        cov.pars=c(1,phi.curr),
-	                                        kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
-
-            param.post.prop <- list()
-	        param.post.prop$R.inv <- solve(R.prop)
-	        param.post.prop$ldetR <- determinant(R.prop)$modulus
-	        lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                          param.post.prop,theta3.prop)
-
-	        if(log(runif(1)) < lp.prop-lp.curr) {
-	           theta3.curr <- theta3.prop
-	           param.post.curr <- param.post.prop
-	           lp.curr <- lp.prop
-	           tau2.curr <- tau2.prop
-	           acc.theta3 <- acc.theta3+1
-	        }
-	        rm(theta3.prop,tau2.prop)
-            h3[i] <- h.theta3 <- max(0,h.theta3 +
-	                       (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
-	     }
-
-         # Update beta
-         A <- t(D)%*%param.post.curr$R.inv
-         cov.beta <- solve(V.inv+A%*%D)
-         mean.beta <- as.numeric(cov.beta%*%(V.inv%*%m+A%*%y))
-         beta.curr <- as.numeric(mean.beta+sqrt(sigma2.curr)*
-                            t(chol(cov.beta))%*%rnorm(p))
-         lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                                 param.post.curr,theta3.curr)
-
-         if(i > burnin & (i-burnin)%%thin==0) {
-		    if(fixed.nugget) {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr)
-		    	} else {
-		    	   out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		    	                                                        phi.curr,tau2.curr)
-		    }
-   	    }
-        if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-        flush.console()
-   }
-   class(out) <- "Bayes.PrevMap"
-   out$y <- y
-   out$D <- D
-   out$coords <- coords
-   out$kappa <- kappa
-   out$h1 <- h1
-   out$h2 <- h2
-   if(!fixed.nugget) out$h3 <- h3
-   return(out)
+    if(i > burnin & (i-burnin)%%thin==0) {
+      if(fixed.nugget) {
+        out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                            phi.curr)
+      } else {
+        out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                            phi.curr,tau2.curr)
+      }
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$h1 <- h1
+  out$h2 <- h2
+  if(!fixed.nugget) out$h3 <- h3
+  return(out)
 }
 
 
@@ -7392,204 +7517,204 @@ geo.linear.Bayes <- function(formula,coords,data,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
 geo.linear.Bayes.lr <- function(formula,coords,knots,data,
-                                              control.prior,
-                                              control.mcmc,
-                                              kappa,messages) {
-      knots <- as.matrix(knots)
-      if(any(is.na(data))) stop("missing values are not accepted")
-      coords <- as.matrix(model.frame(coords,data))
-	  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-      kappa <- as.numeric(kappa)
-      if(length(control.prior$log.prior.nugget)!=
-         length(control.mcmc$start.nugget)) {
-         stop("missing prior or missing starting value for the nugget effect")
-      }
+                                control.prior,
+                                control.mcmc,
+                                kappa,messages) {
+  knots <- as.matrix(knots)
+  if(any(is.na(data))) stop("missing values are not accepted")
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  kappa <- as.numeric(kappa)
+  if(length(control.prior$log.prior.nugget)!=
+     length(control.mcmc$start.nugget)) {
+    stop("missing prior or missing starting value for the nugget effect")
+  }
 
-      out <- list()
-      if(length(control.prior$log.prior.nugget)==0) stop("nugget effect must be included in the model.")
-      mf <- model.frame(formula,data=data)
-      y <- as.numeric(model.response(mf))
-      n <- length(y)
-      N <- nrow(knots)
-      D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-      p <- ncol(D)
-      if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-      U.k <- as.matrix(pdist(coords,knots))
+  out <- list()
+  if(length(control.prior$log.prior.nugget)==0) stop("nugget effect must be included in the model.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  N <- nrow(knots)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(is.numeric(control.mcmc$start.beta) && length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  U.k <- as.matrix(pdist(coords,knots))
 
-      V.inv <- control.prior$V.inv
-      m <- control.prior$m
-      nu <- 2*kappa
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
 
-      log.prior.theta1_2 <- function(theta1,theta2) {
-           sigma2 <- exp(2*theta1)
-           phi <- (exp(2*theta1-theta2))^(1/nu)
-           log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
-           control.prior$log.prior.phi(phi)
-       }
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+      control.prior$log.prior.phi(phi)
+  }
 
-       log.prior.theta3 <- function(theta3) {
-      	   tau2 <- exp(theta3)
-      	   theta3+control.prior$log.prior.nugget(tau2)
-       }
+  log.prior.theta3 <- function(theta3) {
+    tau2 <- exp(theta3)
+    theta3+control.prior$log.prior.nugget(tau2)
+  }
 
-       log.posterior <- function(theta1,theta2,beta,S,W,theta3) {
-	       sigma2 <- exp(2*theta1)
-	       tau2 <- exp(theta3)
-	       mu <- D%*%beta
-	       mean.y <- mu+W
-	       diff.beta <- beta-m
-	       lp.theta3 <- log.prior.theta3(theta3)
-	       diff.y <- as.numeric(y-mean.y)
-	       out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
-	                 -0.5*(t(diff.beta)%*%V.inv%*%diff.beta)+
-	                 -0.5*(N*log(sigma2)+sum(S^2)/sigma2)
-	                 -0.5*(n*log(tau2)+sum(diff.y^2)/tau2)
-	       return(as.numeric(out))
-       }
+  log.posterior <- function(theta1,theta2,beta,S,W,theta3) {
+    sigma2 <- exp(2*theta1)
+    tau2 <- exp(theta3)
+    mu <- D%*%beta
+    mean.y <- mu+W
+    diff.beta <- beta-m
+    lp.theta3 <- log.prior.theta3(theta3)
+    diff.y <- as.numeric(y-mean.y)
+    out <- log.prior.theta1_2(theta1,theta2)+lp.theta3+
+      -0.5*(t(diff.beta)%*%V.inv%*%diff.beta)+
+      -0.5*(N*log(sigma2)+sum(S^2)/sigma2)
+    -0.5*(n*log(tau2)+sum(diff.y^2)/tau2)
+    return(as.numeric(out))
+  }
 
-       acc.theta1 <- 0
-       acc.theta2 <- 0
-       acc.theta3 <- 0
-       n.sim <- control.mcmc$n.sim
-       burnin <- control.mcmc$burnin
-       thin <- control.mcmc$thin
-       h.theta1 <- control.mcmc$h.theta1
-       h.theta2 <- control.mcmc$h.theta2
-       h.theta3 <- control.mcmc$h.theta3
+  acc.theta1 <- 0
+  acc.theta2 <- 0
+  acc.theta3 <- 0
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
+  h.theta3 <- control.mcmc$h.theta3
 
-       c1.h.theta1 <- control.mcmc$c1.h.theta1
-       c2.h.theta1 <- control.mcmc$c2.h.theta1
-       c1.h.theta2 <- control.mcmc$c1.h.theta2
-       c2.h.theta2 <- control.mcmc$c2.h.theta2
-       c1.h.theta3 <- control.mcmc$c1.h.theta3
-       c2.h.theta3 <- control.mcmc$c2.h.theta3
-       out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
-       colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
-       out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
-       out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c1.h.theta3 <- control.mcmc$c1.h.theta3
+  c2.h.theta3 <- control.mcmc$c2.h.theta3
+  out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+3)
+  colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
+  out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
 
-       # Initialise all the parameters
-       beta.curr <- control.mcmc$start.beta
-       sigma2.curr <- control.mcmc$start.sigma2
-	   phi.curr <- control.mcmc$start.phi
-	   rho.curr <- phi.curr*2*sqrt(kappa)
-       tau2.curr <- control.mcmc$start.nugget
-       theta3.curr <- log(tau2.curr)
-	   nu2.curr <- tau2.curr/sigma2.curr
-	   theta1.curr <- 0.5*log(sigma2.curr)
-	   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
-	   S.curr <- rep(0,N)
-	   W.curr <- rep(0,n)
+  # Initialise all the parameters
+  beta.curr <- control.mcmc$start.beta
+  sigma2.curr <- control.mcmc$start.sigma2
+  phi.curr <- control.mcmc$start.phi
+  rho.curr <- phi.curr*2*sqrt(kappa)
+  tau2.curr <- control.mcmc$start.nugget
+  theta3.curr <- log(tau2.curr)
+  nu2.curr <- tau2.curr/sigma2.curr
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  S.curr <- rep(0,N)
+  W.curr <- rep(0,n)
 
-       # Compute the log-posterior density
-  	   K.curr <- matern.kernel(U.k,rho.curr,kappa)
-	   lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                       S.curr,W.curr,theta3.curr)
-       h1 <- rep(NA,n.sim)
-       h2 <- rep(NA,n.sim)
-       h3 <- rep(NA,n.sim)
-       for(i in 1:n.sim) {
+  # Compute the log-posterior density
+  K.curr <- matern.kernel(U.k,rho.curr,kappa)
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                           S.curr,W.curr,theta3.curr)
+  h1 <- rep(NA,n.sim)
+  h2 <- rep(NA,n.sim)
+  h3 <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
 
-           # Update theta1
-    	   theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-    	   sigma2.prop <- exp(2*theta1.prop)
-	       phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-           rho.prop <- phi.prop*2*sqrt(kappa)
-           K.prop <- matern.kernel(U.k,rho.prop,kappa)
-           W.prop <- as.numeric(K.prop%*%S.curr)
-	       lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,
-	                                            S.curr,W.prop,theta3.curr)
-	       if(log(runif(1)) < lp.prop-lp.curr) {
-	          theta1.curr <- theta1.prop
-	          W.curr <- W.prop
-	          lp.curr <- lp.prop
-	          sigma2.curr <- sigma2.prop
-	          phi.curr <- phi.prop
-	          rho.curr <- rho.prop
-	          acc.theta1 <- acc.theta1+1
-	          K.curr <- K.prop
-	       }
-	       rm(theta1.prop,sigma2.prop,phi.prop,rho.prop,K.prop)
-           h1[i] <- h.theta1 <- max(0,h.theta1 +
-	                       (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    rho.prop <- phi.prop*2*sqrt(kappa)
+    K.prop <- matern.kernel(U.k,rho.prop,kappa)
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,beta.curr,
+                             S.curr,W.prop,theta3.curr)
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      W.curr <- W.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      acc.theta1 <- acc.theta1+1
+      K.curr <- K.prop
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop,rho.prop,K.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
 
-       	   # Update theta2
-    	   theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	       phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-           rho.prop <- phi.prop*2*sqrt(kappa)
-           param.post.prop <- list()
-           K.prop <- matern.kernel(U.k,rho.prop,kappa)
-           W.prop <- as.numeric(K.prop%*%S.curr)
-	       lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,
-	                                            S.curr,W.prop,theta3.curr)
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    rho.prop <- phi.prop*2*sqrt(kappa)
+    param.post.prop <- list()
+    K.prop <- matern.kernel(U.k,rho.prop,kappa)
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,beta.curr,
+                             S.curr,W.prop,theta3.curr)
 
-	       if(log(runif(1)) < lp.prop-lp.curr) {
-	           theta2.curr <- theta2.prop
-	           W.curr <- W.prop
-	           lp.curr <- lp.prop
-	           phi.curr <- phi.prop
-	           rho.curr <- rho.prop
-	           acc.theta2 <- acc.theta2+1
-	           K.curr <- K.prop
-	       }
-	       rm(theta2.prop,phi.prop,rho.prop)
-           h2[i] <- h.theta2 <- max(0,h.theta2 +
-	                       (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      W.curr <- W.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      acc.theta2 <- acc.theta2+1
+      K.curr <- K.prop
+    }
+    rm(theta2.prop,phi.prop,rho.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
 
-           # Update theta3
-           theta3.prop <- theta3.curr+h.theta3*rnorm(1)
-	       tau2.prop <- exp(theta3.prop)
-	       lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                            S.curr,W.curr,theta3.prop)
+    # Update theta3
+    theta3.prop <- theta3.curr+h.theta3*rnorm(1)
+    tau2.prop <- exp(theta3.prop)
+    lp.prop <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                             S.curr,W.curr,theta3.prop)
 
-	       if(log(runif(1)) < lp.prop-lp.curr) {
-	           theta3.curr <- theta3.prop
-	           lp.curr <- lp.prop
-	           tau2.curr <- tau2.prop
-	           acc.theta3 <- acc.theta3+1
-	       }
-	       rm(theta3.prop,tau2.prop)
-           h3[i] <- h.theta3 <- max(0,h.theta3 +
-	                       (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta3.curr <- theta3.prop
+      lp.curr <- lp.prop
+      tau2.curr <- tau2.prop
+      acc.theta3 <- acc.theta3+1
+    }
+    rm(theta3.prop,tau2.prop)
+    h3[i] <- h.theta3 <- max(0,h.theta3 +
+                               (c1.h.theta3*i^(-c2.h.theta3))*(acc.theta3/i-0.45))
 
 
-           # Update beta
-           cov.beta <- solve(V.inv+t(D)%*%D/tau2.curr)
-           mean.beta <- as.numeric(cov.beta%*%
-                                 (V.inv%*%m+t(D)%*%(y-W.curr)/tau2.curr))
-           beta.curr <- as.numeric(mean.beta+
-                            t(chol(cov.beta))%*%rnorm(p))
-           lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
-	                                           S.curr,W.curr,theta3.curr)
+    # Update beta
+    cov.beta <- solve(V.inv+t(D)%*%D/tau2.curr)
+    mean.beta <- as.numeric(cov.beta%*%
+                              (V.inv%*%m+t(D)%*%(y-W.curr)/tau2.curr))
+    beta.curr <- as.numeric(mean.beta+
+                              t(chol(cov.beta))%*%rnorm(p))
+    lp.curr <- log.posterior(theta1.curr,theta2.curr,beta.curr,
+                             S.curr,W.curr,theta3.curr)
 
-           # Update S
-           cov.S <- t(K.curr)%*%K.curr/tau2.curr
-           diag(cov.S) <- diag(cov.S)+1/sigma2.curr
-           cov.S <- solve(cov.S)
-           mean.S <- as.numeric(cov.S%*%t(K.curr)%*%
-                             (y-D%*%beta.curr)/tau2.curr)
-           S.curr <- as.numeric(mean.S+t(chol(cov.S))%*%rnorm(N))
-           W.curr <- as.numeric(K.curr%*%S.curr)
+    # Update S
+    cov.S <- t(K.curr)%*%K.curr/tau2.curr
+    diag(cov.S) <- diag(cov.S)+1/sigma2.curr
+    cov.S <- solve(cov.S)
+    mean.S <- as.numeric(cov.S%*%t(K.curr)%*%
+                           (y-D%*%beta.curr)/tau2.curr)
+    S.curr <- as.numeric(mean.S+t(chol(cov.S))%*%rnorm(N))
+    W.curr <- as.numeric(K.curr%*%S.curr)
 
-           if(i > burnin & (i-burnin)%%thin==0) {
-		    out$estimate[(i-burnin)/thin,]  <- c(beta.curr,sigma2.curr,phi.curr,tau2.curr)
-		    out$S[(i-burnin)/thin,] <- S.curr
-		    out$const.sigma2[(i-burnin)/thin] <- mean(apply(
-		                                                   K.curr,1,function(r) sqrt(sum(r^2))))
-   	       }
-           if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-           flush.console()
-   }
-   class(out) <- "Bayes.PrevMap"
-   out$y <- y
-   out$D <- D
-   out$coords <- coords
-   out$kappa <- kappa
-   out$knots <- knots
-   out$h1 <- h1
-   out$h2 <- h2
-   out$h3 <- h3
-   return(out)
+    if(i > burnin & (i-burnin)%%thin==0) {
+      out$estimate[(i-burnin)/thin,]  <- c(beta.curr,sigma2.curr,phi.curr,tau2.curr)
+      out$S[(i-burnin)/thin,] <- S.curr
+      out$const.sigma2[(i-burnin)/thin] <- mean(apply(
+        K.curr,1,function(r) sqrt(sum(r^2))))
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$knots <- knots
+  out$h1 <- h1
+  out$h2 <- h2
+  out$h3 <- h3
+  return(out)
 }
 
 ##' @title Bayesian spatial predictions for the geostatistical Linear Gaussian model
@@ -7616,153 +7741,153 @@ geo.linear.Bayes.lr <- function(formula,coords,knots,data,
 ##' @importFrom geoR matern
 ##' @export
 spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
-                                                    type="marginal",
-                                                    scale.predictions=c("logit",
-                                                    "prevalence","odds"),
-                                                    quantiles=c(0.025,0.975),
-                                                    standard.errors=FALSE,
-                                                    thresholds=NULL,scale.thresholds=NULL,
-                                                    messages=TRUE) {
-    if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+                                      type="marginal",
+                                      scale.predictions=c("logit",
+                                                          "prevalence","odds"),
+                                      quantiles=c(0.025,0.975),
+                                      standard.errors=FALSE,
+                                      thresholds=NULL,scale.thresholds=NULL,
+                                      messages=TRUE) {
+  if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
 
-	object$p <- ncol(object$D)
-	object$fixed.nugget <- ncol(object$estimate) < object$p+3
-	kappa <- object$kappa
-	n.pred <- nrow(grid.pred)
-	coords <- object$coords
-	ck <- length(dim(object$knots)) > 0
-	if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
-	if(ck & type=="marginal") warning("only joint predictions are available for the low-rank approximation")
-    out <- list()
-	for(i in 1:length(scale.predictions)) {
-		if(any(c("logit","prevalence","odds")==scale.predictions[i])==
-		          FALSE) stop("invalid scale.predictions")
-	}
+  object$p <- ncol(object$D)
+  object$fixed.nugget <- ncol(object$estimate) < object$p+3
+  kappa <- object$kappa
+  n.pred <- nrow(grid.pred)
+  coords <- object$coords
+  ck <- length(dim(object$knots)) > 0
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions must be marginal or joint.")
+  if(ck & type=="marginal") warning("only joint predictions are available for the low-rank approximation")
+  out <- list()
+  for(i in 1:length(scale.predictions)) {
+    if(any(c("logit","prevalence","odds")==scale.predictions[i])==
+       FALSE) stop("invalid scale.predictions")
+  }
 
-	if(length(thresholds)>0) {
-		if(any(c("logit","prevalence","odds")==scale.thresholds)==FALSE) {
-			stop("scale thresholds must be logit, prevalence or odds scale.")
-		}
-	}
-
-    if(length(thresholds)==0 & length(scale.thresholds)>0 |
-       length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds must be provided.")
-	if(object$p==1) {
-	   predictors <- matrix(1,nrow=n.pred)
-	} else {
-	   if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-	   predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
-	   if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-	   if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
-	}
-
-   	n.samples <- nrow(object$estimate)
-	n.pred <- nrow(grid.pred)
-
-	if(ck) {
-	  knots <- object$knots
-      U.k.pred.coords <- as.matrix(pdist(grid.pred,knots))
-	} else {
-	  U <- dist(coords)
-	  U.pred.coords <- as.matrix(pdist(grid.pred,coords))
+  if(length(thresholds)>0) {
+    if(any(c("logit","prevalence","odds")==scale.thresholds)==FALSE) {
+      stop("scale thresholds must be logit, prevalence or odds scale.")
     }
+  }
 
-	predictions <- matrix(NA,n.samples,ncol=n.pred)
-	mu.cond <- matrix(NA,n.samples,ncol=n.pred)
-    sd.cond <- matrix(NA,n.samples,ncol=n.pred)
+  if(length(thresholds)==0 & length(scale.thresholds)>0 |
+     length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds must be provided.")
+  if(object$p==1) {
+    predictors <- matrix(1,nrow=n.pred)
+  } else {
+    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+  }
 
-	for(j in 1:n.samples) {
-	   beta <- object$estimate[j,1:object$p]
-	   sigma2 <- object$estimate[j,"sigma^2"]
-	   phi <- object$estimate[j,"phi"]
-	   if(object$fixed.nugget){
-	        tau2 <- 0
-   	    } else {
-	        tau2 <- object$estimate[j,"tau^2"]
-	   }
-	   mu.pred <- as.numeric(predictors%*%beta)
-	   if(ck) {
-	   	  mu <- as.numeric(object$D%*%beta)
-	   	  rho <- 2*sqrt(kappa)*phi
-	   	  K.pred <- matern.kernel(U.k.pred.coords,rho,kappa)
-	   	  predictions[j,] <- mu.pred+K.pred%*%object$S[j,]
-	   	  flush.console()
-          if(messages) cat("Iteration ",j," out of ",n.samples," \r",sep="")
-	   } else {
-          Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                   cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
-	      Sigma.inv <- solve(Sigma)
-	      C <- sigma2*matern(U.pred.coords,phi,kappa)
-          A <- C%*%Sigma.inv
-	      mu <- object$D%*%beta
+  n.samples <- nrow(object$estimate)
+  n.pred <- nrow(grid.pred)
 
-          mu.cond[j,] <- as.numeric(mu.pred+A%*%(object$y-mu))
-          if(type=="marginal") {
-               sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
-               predictions[j,] <- rnorm(n.pred,mu.cond[j,],sd.cond[j,])
-	      } else if(type=="joint" & any(scale.predictions!="logit")) {
-	   	       Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
-	           cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-	           Sigma.cond <- Sigma.pred - A%*%t(C)
-	           Sigma.cond.sroot <- t(chol(Sigma.cond))
-	           sd.cond[j,] <- sqrt(diag(Sigma.cond))
-	           predictions[j,] <- mu.cond[j,]+Sigma.cond.sroot%*%rnorm(n.pred)
-          }
-          flush.console()
-          if(messages) cat("Iteration ",j," out of ",n.samples," \r",sep="")
-         }
-       }
-       if(messages) cat("\n")
-       if(any(scale.predictions=="logit")) {
-       	     if(messages) cat("Spatial prediction: logit \n")
-       	     if(ck) {
-       	     	out$logit$predictions <- apply(predictions,2,mean)
-       	     } else {
-       	        out$logit$predictions <- apply(mu.cond,2,mean)
-       	     }
-    	     if(length(quantiles)>0) out$logit$quantiles <-
-    	                                  t(apply(predictions,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$logit$standard.errors <-  apply(predictions,2,sd)
-       }
+  if(ck) {
+    knots <- object$knots
+    U.k.pred.coords <- as.matrix(pdist(grid.pred,knots))
+  } else {
+    U <- dist(coords)
+    U.pred.coords <- as.matrix(pdist(grid.pred,coords))
+  }
 
-       if(any(scale.predictions=="odds")) {
-       	     if(messages) cat("Spatial prediction: odds \n")
-    	     odds <- exp(predictions)
-    	     if(ck) {
-    	        out$odds$predictions <- apply(odds,2,mean)
-    	     } else {
-                out$odds$predictions <- apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
-    	     }
-    	     if(length(quantiles)>0) out$odds$quantiles <-
-    	                                    t(apply(odds,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$odds$standard.errors <-  apply(odds,2,sd)
-       }
+  predictions <- matrix(NA,n.samples,ncol=n.pred)
+  mu.cond <- matrix(NA,n.samples,ncol=n.pred)
+  sd.cond <- matrix(NA,n.samples,ncol=n.pred)
 
-       if(any(scale.predictions=="prevalence")) {
-       	     if(messages) cat("Spatial prediction: prevalence \n")
-    	     prev <- exp(predictions)/(1+exp(predictions))
-    	     out$prevalence$predictions <- apply(prev,2,mean)
-    	     if(length(quantiles)>0) out$prevalence$quantiles <-
-    	                                    t(apply(prev,2,function(c) quantile(c,quantiles)))
-    	     if(standard.errors) out$prevalence$standard.errors <-  apply(prev,2,sd)
-        }
+  for(j in 1:n.samples) {
+    beta <- object$estimate[j,1:object$p]
+    sigma2 <- object$estimate[j,"sigma^2"]
+    phi <- object$estimate[j,"phi"]
+    if(object$fixed.nugget){
+      tau2 <- 0
+    } else {
+      tau2 <- object$estimate[j,"tau^2"]
+    }
+    mu.pred <- as.numeric(predictors%*%beta)
+    if(ck) {
+      mu <- as.numeric(object$D%*%beta)
+      rho <- 2*sqrt(kappa)*phi
+      K.pred <- matern.kernel(U.k.pred.coords,rho,kappa)
+      predictions[j,] <- mu.pred+K.pred%*%object$S[j,]
+      flush.console()
+      if(messages) cat("Iteration ",j," out of ",n.samples," \r",sep="")
+    } else {
+      Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                              cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
+      Sigma.inv <- solve(Sigma)
+      C <- sigma2*matern(U.pred.coords,phi,kappa)
+      A <- C%*%Sigma.inv
+      mu <- object$D%*%beta
 
-        if(length(scale.thresholds) > 0) {
-        	 if(messages) cat("Spatial prediction: exceedance probabilities \n")
-             if(scale.thresholds=="prevalence") {
-                thresholds <- log(thresholds/(1-thresholds))
-             } else if(scale.thresholds=="odds") {
-             	thresholds <- log(thresholds)
-             }
-             out$exceedance.prob <- sapply(thresholds, function(x)
-                                                             apply(predictions,2,function(c) mean(c > x)))
-       }
-       out$grid.pred <- grid.pred
-       out$samples <- predictions
-       class(out) <- "pred.PrevMap"
-       out
+      mu.cond[j,] <- as.numeric(mu.pred+A%*%(object$y-mu))
+      if(type=="marginal") {
+        sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
+        predictions[j,] <- rnorm(n.pred,mu.cond[j,],sd.cond[j,])
+      } else if(type=="joint" & any(scale.predictions!="logit")) {
+        Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+                                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
+        Sigma.cond <- Sigma.pred - A%*%t(C)
+        Sigma.cond.sroot <- t(chol(Sigma.cond))
+        sd.cond[j,] <- sqrt(diag(Sigma.cond))
+        predictions[j,] <- mu.cond[j,]+Sigma.cond.sroot%*%rnorm(n.pred)
+      }
+      flush.console()
+      if(messages) cat("Iteration ",j," out of ",n.samples," \r",sep="")
+    }
+  }
+  if(messages) cat("\n")
+  if(any(scale.predictions=="logit")) {
+    if(messages) cat("Spatial prediction: logit \n")
+    if(ck) {
+      out$logit$predictions <- apply(predictions,2,mean)
+    } else {
+      out$logit$predictions <- apply(mu.cond,2,mean)
+    }
+    if(length(quantiles)>0) out$logit$quantiles <-
+        t(apply(predictions,2,function(c) quantile(c,quantiles)))
+    if(standard.errors) out$logit$standard.errors <-  apply(predictions,2,sd)
+  }
+
+  if(any(scale.predictions=="odds")) {
+    if(messages) cat("Spatial prediction: odds \n")
+    odds <- exp(predictions)
+    if(ck) {
+      out$odds$predictions <- apply(odds,2,mean)
+    } else {
+      out$odds$predictions <- apply(exp(mu.cond+0.5*(sd.cond^2)),2,mean)
+    }
+    if(length(quantiles)>0) out$odds$quantiles <-
+      t(apply(odds,2,function(c) quantile(c,quantiles)))
+    if(standard.errors) out$odds$standard.errors <-  apply(odds,2,sd)
+  }
+
+  if(any(scale.predictions=="prevalence")) {
+    if(messages) cat("Spatial prediction: prevalence \n")
+    prev <- exp(predictions)/(1+exp(predictions))
+    out$prevalence$predictions <- apply(prev,2,mean)
+    if(length(quantiles)>0) out$prevalence$quantiles <-
+      t(apply(prev,2,function(c) quantile(c,quantiles)))
+    if(standard.errors) out$prevalence$standard.errors <-  apply(prev,2,sd)
+  }
+
+  if(length(scale.thresholds) > 0) {
+    if(messages) cat("Spatial prediction: exceedance probabilities \n")
+    if(scale.thresholds=="prevalence") {
+      thresholds <- log(thresholds/(1-thresholds))
+    } else if(scale.thresholds=="odds") {
+      thresholds <- log(thresholds)
+    }
+    out$exceedance.prob <- sapply(thresholds, function(x)
+      apply(predictions,2,function(c) mean(c > x)))
+  }
+  out$grid.pred <- grid.pred
+  out$samples <- predictions
+  class(out) <- "pred.PrevMap"
+  out
 }
 
 
@@ -7775,42 +7900,42 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 coef.PrevMap <- function(object,...) {
-   if(class(object)!="PrevMap") stop("object must be of class PrevMap.")
-   object$p <- ncol(object$D)
-   out <- object$estimate
-   if(length(dim(object$knots)) > 0 & length(object$units.m) > 0) {
-      object$fixed.rel.nugget <- 0
-   }
+  if(class(object)!="PrevMap") stop("object must be of class PrevMap.")
+  object$p <- ncol(object$D)
+  out <- object$estimate
+  if(length(dim(object$knots)) > 0 & length(object$units.m) > 0) {
+    object$fixed.rel.nugget <- 0
+  }
 
-   sst <- length(object$times) > 0
+  sst <- length(object$times) > 0
 
-   out[-(1:object$p)] <- exp(out[-(1:object$p)])
-   names(out)[object$p+1] <- "sigma^2"
-   names(out)[object$p+2] <- "phi"
+  out[-(1:object$p)] <- exp(out[-(1:object$p)])
+  names(out)[object$p+1] <- "sigma^2"
+  names(out)[object$p+2] <- "phi"
 
-   linear.ID.coords <- length(object$ID.coords) > 0 &
-                       substr(object$call[1],1,6)=="linear"
+  linear.ID.coords <- length(object$ID.coords) > 0 &
+    substr(object$call[1],1,6)=="linear"
 
-   if(linear.ID.coords & length(object$fixed.rel.nugget)==1) {
+  if(linear.ID.coords & length(object$fixed.rel.nugget)==1) {
+    out[object$p+3] <- out[object$p+1]*out[object$p+3]
+    names(out)[object$p+3] <- "omega^2"
+  }
+
+  if(length(object$fixed.rel.nugget)==0) {
+    if(linear.ID.coords) {
       out[object$p+3] <- out[object$p+1]*out[object$p+3]
-      names(out)[object$p+3] <- "omega^2"
-   }
-
-   if(length(object$fixed.rel.nugget)==0) {
-      if(linear.ID.coords) {
-         out[object$p+3] <- out[object$p+1]*out[object$p+3]
-         names(out)[object$p+3] <- "tau^2"
-         out[object$p+4] <- out[object$p+1]*out[object$p+4]
-         names(out)[object$p+4] <- "omega^2"
-      } else {
-         out[object$p+3] <- out[object$p+1]*out[object$p+3]
-         names(out)[object$p+3] <- "tau^2"
-         if(sst) names(out)[object$p+4] <- "psi"
-      }
-   } else {
-      if(sst) names(out)[object$p+3] <- "psi"
-   }
-   return(out)
+      names(out)[object$p+3] <- "tau^2"
+      out[object$p+4] <- out[object$p+1]*out[object$p+4]
+      names(out)[object$p+4] <- "omega^2"
+    } else {
+      out[object$p+3] <- out[object$p+1]*out[object$p+3]
+      names(out)[object$p+3] <- "tau^2"
+      if(sst) names(out)[object$p+4] <- "psi"
+    }
+  } else {
+    if(sst) names(out)[object$p+3] <- "psi"
+  }
+  return(out)
 }
 
 ##' @title Plot of a predicted surface
@@ -7826,33 +7951,33 @@ coef.PrevMap <- function(object,...) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 plot.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
-	if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
-	if(length(type)>0 &&
-	   any(type==c("prevalence","odds","logit","probit","log","exponential"))==FALSE) {
-	   stop("type must be 'prevalence','odds', 'logit' or 'probit' for the binomial modl, and 'log' or 'exponential' for the Poisson model.")
-	}
+  if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
+  if(length(type)>0 &&
+     any(type==c("prevalence","odds","logit","probit","log","exponential"))==FALSE) {
+    stop("type must be 'prevalence','odds', 'logit' or 'probit' for the binomial modl, and 'log' or 'exponential' for the Poisson model.")
+  }
 
-	if(length(type)>0 & summary=="exceedance.prob") {
-		   warning("the argument 'type' is ignored when summary='exceedance.prob'")
+  if(length(type)>0 & summary=="exceedance.prob") {
+    warning("the argument 'type' is ignored when summary='exceedance.prob'")
+  }
+
+  if(length(type)==0 && summary!="exceedance.prob") {
+    stop("type must be specified")
+  }
+
+  if(summary !="exceedance.prob") {
+
+    if(any(summary==c("predictions",
+                      "quantiles","standard.errors","exceedance.prob"))==FALSE) {
+      stop("summary must be 'predictions','quantiles',
+           'standard.errors' or 'exceedance.prob'")
     }
 
-	if(length(type)==0 && summary!="exceedance.prob") {
-	   stop("type must be specified")
-	}
-
-	if(summary !="exceedance.prob") {
-
-   	   if(any(summary==c("predictions",
-   	     "quantiles","standard.errors","exceedance.prob"))==FALSE) {
-		   stop("summary must be 'predictions','quantiles',
-		        'standard.errors' or 'exceedance.prob'")
-   	   }
-
-   	   r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
-	} else {
-	   r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
-	}
-	getMethod('plot',signature=signature(x='Raster', y='ANY'))(r,...)
+    r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
+    } else {
+      r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
+    }
+  getMethod('plot',signature=signature(x='Raster', y='ANY'))(r,...)
 }
 
 ##' @title Contour plot of a predicted surface
@@ -7869,34 +7994,34 @@ plot.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 ##' @export
 contour.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 
-   if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
+  if(class(x)!="pred.PrevMap") stop("x must be of class pred.PrevMap")
 
-   if(length(type)>0 &&
-	   any(type==c("prevalence","odds","logit","probit"))==FALSE) {
-	   stop("type must be 'prevalence','odds', 'logit' or 'probit'")
-   }
+  if(length(type)>0 &&
+     any(type==c("prevalence","odds","logit","probit"))==FALSE) {
+    stop("type must be 'prevalence','odds', 'logit' or 'probit'")
+  }
 
-   if(length(type)>0 & summary=="exceedance.prob") {
-		warning("the argument 'type' is ignored when
-		         summary='exceedance.prob'")
-   }
+  if(length(type)>0 & summary=="exceedance.prob") {
+    warning("the argument 'type' is ignored when
+            summary='exceedance.prob'")
+  }
 
-   if(length(type)==0 && summary!="exceedance.prob") {
-	   stop("type must be specified")
-   }
+  if(length(type)==0 && summary!="exceedance.prob") {
+    stop("type must be specified")
+  }
 
-   if(summary !="exceedance.prob") {
-      if(any(summary==c("predictions","quantiles",
-   	        	            "standard.errors"))==FALSE) {
-		   stop("summary must be 'predictions','quantiles',
-		         'standard.errors' or 'exceedance.prob'")
-   	  }
-   	  r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
-   } else {
-	  r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
-   }
-   getMethod('contour',signature=signature(x='RasterLayer'))(r,...)
-}
+  if(summary !="exceedance.prob") {
+    if(any(summary==c("predictions","quantiles",
+                      "standard.errors"))==FALSE) {
+      stop("summary must be 'predictions','quantiles',
+           'standard.errors' or 'exceedance.prob'")
+    }
+    r <- rasterFromXYZ(cbind(x$grid,x[[type]][[summary]]))
+    } else {
+      r <- rasterFromXYZ(cbind(x$grid,x[[summary]]))
+    }
+  getMethod('contour',signature=signature(x='RasterLayer'))(r,...)
+  }
 
 ##' @title Summarizing Bayesian model fits
 ##' @description \code{summary} method for the class "Bayes.PrevMap" that computes the posterior mean, median, mode and high posterior density intervals using samples from Bayesian fits.
@@ -7919,79 +8044,79 @@ contour.pred.PrevMap <- function(x,type=NULL,summary="predictions",...) {
 ##' @method summary Bayes.PrevMap
 ##' @export
 summary.Bayes.PrevMap <- function(object,hpd.coverage=0.95,...) {
-	hpd <- function(x, conf){
-	   conf <- min(conf, 1-conf)
-	   n <- length(x)
-	   nn <- round( n*conf )
-	   x <- sort(x)
-	   xx <- x[ (n-nn+1):n ] - x[1:nn]
-   	   m <- min(xx)
-	   nnn <- which(xx==m)[1]
-	   return( c( x[ nnn ], x[ n-nn+nnn ] ) )
+  hpd <- function(x, conf){
+    conf <- min(conf, 1-conf)
+    n <- length(x)
+    nn <- round( n*conf )
+    x <- sort(x)
+    xx <- x[ (n-nn+1):n ] - x[1:nn]
+    m <- min(xx)
+    nnn <- which(xx==m)[1]
+    return( c( x[ nnn ], x[ n-nn+nnn ] ) )
+  }
+  post.mode <- function(x) {
+    d <- density(x)
+    d$x[which.max(d$y)]
+  }
+  if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
+  res <- list()
+
+  check.binary <- all(object$y==0 | object$y==1)
+
+  res$linear <- FALSE
+  res$binary <- FALSE
+  res$probit <- FALSE
+
+  if (check.binary){
+    res$binary <- TRUE
+    if(substr(object$call[1],8,13)=="probit") {
+      res$probit <- TRUE
     }
-    post.mode <- function(x) {
-    	   d <- density(x)
-    	   d$x[which.max(d$y)]
-    }
-	if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
-	res <- list()
-
-	check.binary <- all(object$y==0 | object$y==1)
-
-	res$linear <- FALSE
-	res$binary <- FALSE
-	res$probit <- FALSE
-
-	if (check.binary){
-		res$binary <- TRUE
-		if(substr(object$call[1],8,13)=="probit") {
-		   res$probit <- TRUE
-		}
-    } else if (length(object$units.m)==0 & !check.binary) {
-		res$linear <- TRUE
-	}
+  } else if (length(object$units.m)==0 & !check.binary) {
+    res$linear <- TRUE
+  }
 
 
-	if(length(object$knots)>0) {
-		res$ck <- TRUE
-	} else {
-		res$ck <- FALSE
-	}
-	p <- ncol(object$D)
-	res$beta <- matrix(NA,nrow=p,ncol=6)
-	for(i in 1:p) {
-		res$beta[i,] <- c(mean(as.matrix(object$estimate[,1:p])[,i]),
-		                          median(as.matrix(object$estimate[,1:p])[,i]),
-		                          post.mode(as.matrix(object$estimate[,1:p])[,i]),
-	                              sd(as.matrix(object$estimate[,1:p])[,i]),
-	                              hpd(as.matrix(object$estimate[,1:p])[,i],hpd.coverage))
-	}
-	names.summaries <- c("Mean","Median","Mode","StdErr", paste("HPD",(1-hpd.coverage)/2),
-	                                      paste("HPD",1-(1-hpd.coverage)/2))
-	rownames(res$beta) <- colnames(object$D)
-	colnames(res$beta) <- names.summaries
-    res$sigma2 <- 	  c(mean(object$estimate[,"sigma^2"]),median(object$estimate[,"sigma^2"]),
-                                 post.mode(object$estimate[,"sigma^2"]),
-	                             sd(object$estimate[,"sigma^2"]),
-	                             hpd(object$estimate[,"sigma^2"],hpd.coverage))
-	names(res$sigma2) <- names.summaries
-    res$phi <- 	  c(mean(object$estimate[,"phi"]),median(object$estimate[,"phi"]),
-                                 post.mode(object$estimate[,"phi"]),
-	                             sd(object$estimate[,"phi"]),
-	                             hpd(object$estimate[,"phi"],hpd.coverage))
-    names(res$phi) <- names.summaries
-    if(ncol(object$estimate)==p+3) {
-    	res$tau2 <- 	  c(mean(object$estimate[,"tau^2"]),
-    	                         median(object$estimate[,"tau^2"]),
-                             post.mode(object$estimate[,"tau^2"]),
-	                             sd(object$estimate[,"tau^2"]),
-	                             hpd(object$estimate[,"tau^2"],hpd.coverage))
-	    names(res$tau2) <- names.summaries
-    }
-    res$call <- object$call
-    res$kappa <- object$kappa
-    class(res) <- "summary.Bayes.PrevMap"
-    return(res)
+  if(length(object$knots)>0) {
+    res$ck <- TRUE
+  } else {
+    res$ck <- FALSE
+  }
+  p <- ncol(object$D)
+  res$beta <- matrix(NA,nrow=p,ncol=6)
+  for(i in 1:p) {
+    res$beta[i,] <- c(mean(as.matrix(object$estimate[,1:p])[,i]),
+                      median(as.matrix(object$estimate[,1:p])[,i]),
+                      post.mode(as.matrix(object$estimate[,1:p])[,i]),
+                      sd(as.matrix(object$estimate[,1:p])[,i]),
+                      hpd(as.matrix(object$estimate[,1:p])[,i],hpd.coverage))
+  }
+  names.summaries <- c("Mean","Median","Mode","StdErr", paste("HPD",(1-hpd.coverage)/2),
+                       paste("HPD",1-(1-hpd.coverage)/2))
+  rownames(res$beta) <- colnames(object$D)
+  colnames(res$beta) <- names.summaries
+  res$sigma2 <- 	  c(mean(object$estimate[,"sigma^2"]),median(object$estimate[,"sigma^2"]),
+                     post.mode(object$estimate[,"sigma^2"]),
+                     sd(object$estimate[,"sigma^2"]),
+                     hpd(object$estimate[,"sigma^2"],hpd.coverage))
+  names(res$sigma2) <- names.summaries
+  res$phi <- 	  c(mean(object$estimate[,"phi"]),median(object$estimate[,"phi"]),
+                  post.mode(object$estimate[,"phi"]),
+                  sd(object$estimate[,"phi"]),
+                  hpd(object$estimate[,"phi"],hpd.coverage))
+  names(res$phi) <- names.summaries
+  if(ncol(object$estimate)==p+3) {
+    res$tau2 <- 	  c(mean(object$estimate[,"tau^2"]),
+                     median(object$estimate[,"tau^2"]),
+                     post.mode(object$estimate[,"tau^2"]),
+                     sd(object$estimate[,"tau^2"]),
+                     hpd(object$estimate[,"tau^2"],hpd.coverage))
+    names(res$tau2) <- names.summaries
+  }
+  res$call <- object$call
+  res$kappa <- object$kappa
+  class(res) <- "summary.Bayes.PrevMap"
+  return(res)
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -7999,46 +8124,46 @@ summary.Bayes.PrevMap <- function(object,hpd.coverage=0.95,...) {
 ##' @method print summary.Bayes.PrevMap
 ##' @export
 print.summary.Bayes.PrevMap <- function(x,...) {
-	if(x$linear) {
-       cat("Bayesian geostatistical linear model \n")
-    } else if(x$probit) {
-       cat("Bayesian binary geostatistical probit model \n")
-    } else {
-       cat("Bayesian binomial geostatistical logistic model \n")
-    }
-	if(x$ck) {
-	  cat("(low-rank approximation) \n")
-	}
-	cat("Call: \n")
-	print(x$call)
-	cat("\n")
-	print(x$beta)
-	cat("\n")
-	if(x$ck) {
-	   cat("Matern kernel parameters (kappa=",
-	      x$kappa,") \n \n",sep="")
-	} else{
-       cat("Covariance parameters Matern function (kappa=",
-	      x$kappa,") \n \n",sep="")
-	}
-	if(length(x$tau2) > 0) {
-	   tab <- rbind(x$sigma2,x$phi,x$tau2)
-	   rownames(tab) <- c("sigma^2","phi","tau^2")
-	   print(tab)
-	} else {
-	   tab <- rbind(x$sigma2,x$phi)
-	   rownames(tab) <- c("sigma^2","phi")
-	   print(tab)
-	}
-	cat("\n")
-    cat("Legend: \n")
-    if(x$ck) {
-        cat("sigma^2 = variance of the iid zero-mean Gaussian variables \n")
-    } else {
-    	cat("sigma^2 = variance of the Gaussian process \n")
-    }
-    cat("phi = scale of the spatial correlation \n")
-    if(length(x$tau2) > 0) cat("tau^2 = variance of the nugget effect \n")
+  if(x$linear) {
+    cat("Bayesian geostatistical linear model \n")
+  } else if(x$probit) {
+    cat("Bayesian binary geostatistical probit model \n")
+  } else {
+    cat("Bayesian binomial geostatistical logistic model \n")
+  }
+  if(x$ck) {
+    cat("(low-rank approximation) \n")
+  }
+  cat("Call: \n")
+  print(x$call)
+  cat("\n")
+  print(x$beta)
+  cat("\n")
+  if(x$ck) {
+    cat("Matern kernel parameters (kappa=",
+        x$kappa,") \n \n",sep="")
+  } else{
+    cat("Covariance parameters Matern function (kappa=",
+        x$kappa,") \n \n",sep="")
+  }
+  if(length(x$tau2) > 0) {
+    tab <- rbind(x$sigma2,x$phi,x$tau2)
+    rownames(tab) <- c("sigma^2","phi","tau^2")
+    print(tab)
+  } else {
+    tab <- rbind(x$sigma2,x$phi)
+    rownames(tab) <- c("sigma^2","phi")
+    print(tab)
+  }
+  cat("\n")
+  cat("Legend: \n")
+  if(x$ck) {
+    cat("sigma^2 = variance of the iid zero-mean Gaussian variables \n")
+  } else {
+    cat("sigma^2 = variance of the Gaussian process \n")
+  }
+  cat("phi = scale of the spatial correlation \n")
+  if(length(x$tau2) > 0) cat("tau^2 = variance of the nugget effect \n")
 }
 
 ##' @title Plot of the autocorrelgram for posterior samples
@@ -8051,37 +8176,37 @@ print.summary.Bayes.PrevMap <- function(x,...) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 autocor.plot <- function(object,param,component.beta=NULL,component.S=NULL) {
-    p <- ncol(object$D)
-	if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
-	if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
-	if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
-	if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
-	if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
-	if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model.")
-	if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
-	if(is.character(component.S) && component.S !="all") stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
-	if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
-	if(length(component.S) > 0 && is.character(component.S)==FALSE && is.numeric(component.S)==FALSE) stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
-    if(param=="S" && is.character(component.S) && component.S=="all")  {
-    	   acf.plot <- acf(object$S[,1],plot=FALSE)
-       plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
-                 ylim=c(-1,1))
-       for(i in 2:ncol(object$S)) {
-          acf.plot <- acf(object$S[,i],plot=FALSE)
-          lines(acf.plot$lag,acf.plot$acf)
-       }
-    	   abline(h=0,lty="dashed",col=2)
-    } else if(param=="S" && is.numeric(component.S)) {
-    	   acf(object$S[,component.S],main=paste("Spatial random effect: comp. n.",component.S,sep=""))
-    } else if(param=="beta") {
-    	   acf(as.matrix(object$estimate[,1:p])[,component.beta],main=paste(colnames(object$D)[component.beta]))
-    } else if(param=="sigma2") {
-    	   acf(object$estimate[,"sigma^2"],main=expression(sigma^2))
-    } else if(param=="phi") {
-       acf(object$estimate[,"phi"],main=expression(phi))
-    } else if(param=="tau2") {
-       acf(object$estimate[,"tau^2"],main=expression(tau^2))
+  p <- ncol(object$D)
+  if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
+  if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
+  if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
+  if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
+  if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
+  if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model.")
+  if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
+  if(is.character(component.S) && component.S !="all") stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
+  if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
+  if(length(component.S) > 0 && is.character(component.S)==FALSE && is.numeric(component.S)==FALSE) stop("component.S must be positive, or equal to 'all' if the autocorrelogram plot is required for all the components of the spatial random effect.")
+  if(param=="S" && is.character(component.S) && component.S=="all")  {
+    acf.plot <- acf(object$S[,1],plot=FALSE)
+    plot(acf.plot$lag,acf.plot$acf,type="l",xlab="lag",ylab="autocorrelation",
+         ylim=c(-1,1))
+    for(i in 2:ncol(object$S)) {
+      acf.plot <- acf(object$S[,i],plot=FALSE)
+      lines(acf.plot$lag,acf.plot$acf)
     }
+    abline(h=0,lty="dashed",col=2)
+  } else if(param=="S" && is.numeric(component.S)) {
+    acf(object$S[,component.S],main=paste("Spatial random effect: comp. n.",component.S,sep=""))
+  } else if(param=="beta") {
+    acf(as.matrix(object$estimate[,1:p])[,component.beta],main=paste(colnames(object$D)[component.beta]))
+  } else if(param=="sigma2") {
+    acf(object$estimate[,"sigma^2"],main=expression(sigma^2))
+  } else if(param=="phi") {
+    acf(object$estimate[,"phi"],main=expression(phi))
+  } else if(param=="tau2") {
+    acf(object$estimate[,"tau^2"],main=expression(tau^2))
+  }
 }
 
 ##' @title Trace-plots for posterior samples
@@ -8095,29 +8220,29 @@ autocor.plot <- function(object,param,component.beta=NULL,component.S=NULL) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 trace.plot <- function(object,param,component.beta=NULL,component.S=NULL) {
-	    p <- ncol(object$D)
-	if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
-	if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
-	if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
-	if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
-	if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
-	if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model")
-    if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
-	if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive integer.")
-    if(param=="S") {
-       plot(object$S[,component.S],type="l",xlab="Iteration",
-    	   main=paste("Spatial random effect: comp. n.",component.S,sep=""),
-    	   ylab="")
-    } else if(param=="beta") {
-       plot(as.matrix(object$estimate[,1:p])[,component.beta],main=paste(colnames(object$D)[component.beta]),
-    	   type="l",xlab="Iteration",ylab="")
-    } else if(param=="sigma2") {
-       plot(object$estimate[,"sigma^2"],main=expression(sigma^2),type="l",xlab="Iteration",ylab="")
-    } else if(param=="phi") {
-       plot(object$estimate[,"phi"],main=expression(phi),xlab="Iteration",type="l",ylab="")
-    } else if(param=="tau2") {
-       plot(object$estimate[,"tau^2"],main=expression(tau^2),xlab="Iteration",type="l",ylab="")
-    }
+  p <- ncol(object$D)
+  if(class(object)!="Bayes.PrevMap") stop("object must be of class 'PrevMap'.")
+  if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
+  if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
+  if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
+  if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
+  if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model")
+  if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
+  if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive integer.")
+  if(param=="S") {
+    plot(object$S[,component.S],type="l",xlab="Iteration",
+         main=paste("Spatial random effect: comp. n.",component.S,sep=""),
+         ylab="")
+  } else if(param=="beta") {
+    plot(as.matrix(object$estimate[,1:p])[,component.beta],main=paste(colnames(object$D)[component.beta]),
+         type="l",xlab="Iteration",ylab="")
+  } else if(param=="sigma2") {
+    plot(object$estimate[,"sigma^2"],main=expression(sigma^2),type="l",xlab="Iteration",ylab="")
+  } else if(param=="phi") {
+    plot(object$estimate[,"phi"],main=expression(phi),xlab="Iteration",type="l",ylab="")
+  } else if(param=="tau2") {
+    plot(object$estimate[,"tau^2"],main=expression(tau^2),xlab="Iteration",type="l",ylab="")
+  }
 }
 
 ##' @title Density plot for posterior samples
@@ -8132,72 +8257,72 @@ trace.plot <- function(object,param,component.beta=NULL,component.S=NULL) {
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 dens.plot <- function(object,param,component.beta=NULL,
-                                          component.S=NULL,hist=TRUE,...) {
-    p <- ncol(object$D)
-	if(class(object)!="Bayes.PrevMap") stop("object must be of class 'Bayes.PrevMap'.")
-	if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
-	if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
-	if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
-	if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
-	if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model.")
-	if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
-	if(is.character(component.S) && component.S !="all") stop("component.S must be a positive integer.")
-	if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive integer.")
-    if(param=="S") {
-    	    if(hist) {
-        	    dens <- density(object$S[,component.S],...)
-            hist(object$S[,component.S],
-                  main=paste("Spatial random effect: comp. n.",component.S,sep=""),
-                  prob=TRUE,xlab="",ylim=c(0,max(dens$y)))
-            lines(dens,lwd=2)
-        } else {
-        	    dens <- density(object$S[,component.S],...)
-            plot(dens,
-            main=paste("Spatial random effect: comp. n.",component.S,sep=""),
-            lwd=2,xlab="")
-        }
-    } else if(param=="beta") {
-        if(hist) {
-        	   dens <- density(as.matrix(object$estimate[,1:p])[,component.beta],...)
-           hist(as.matrix(object$estimate[,1:p])[,component.beta],
+                      component.S=NULL,hist=TRUE,...) {
+  p <- ncol(object$D)
+  if(class(object)!="Bayes.PrevMap") stop("object must be of class 'Bayes.PrevMap'.")
+  if(any(param==c("beta","sigma2","phi","tau2","S"))==FALSE) stop("param must be equal to 'beta', 'sigma2','phi' or 'S'.")
+  if(param=="beta" && length(component.beta)==0) stop("if param='beta', component.beta must be provided.")
+  if(param=="beta" && component.beta > p) stop("wrong value for component.beta")
+  if(param=="beta" && component.beta <= 0) stop("component.beta must be positive")
+  if(param=="tau2" && ncol(object$estimate)!=p+3) stop("the nugget effect was not included in the model.")
+  if(param=="S" && length(component.S)==0) stop("if param='S', component.S must be provided.")
+  if(is.character(component.S) && component.S !="all") stop("component.S must be a positive integer.")
+  if(is.numeric(component.S) && component.S <= 0) stop("component.S must be positive integer.")
+  if(param=="S") {
+    if(hist) {
+      dens <- density(object$S[,component.S],...)
+      hist(object$S[,component.S],
+           main=paste("Spatial random effect: comp. n.",component.S,sep=""),
+           prob=TRUE,xlab="",ylim=c(0,max(dens$y)))
+      lines(dens,lwd=2)
+    } else {
+      dens <- density(object$S[,component.S],...)
+      plot(dens,
+           main=paste("Spatial random effect: comp. n.",component.S,sep=""),
+           lwd=2,xlab="")
+    }
+  } else if(param=="beta") {
+    if(hist) {
+      dens <- density(as.matrix(object$estimate[,1:p])[,component.beta],...)
+      hist(as.matrix(object$estimate[,1:p])[,component.beta],
            main=paste(colnames(object$D)[component.beta]),
            prob=TRUE,xlab="",ylim=c(0,max(dens$y)))
-           lines(dens,lwd=2)
-        } else {
-        	   dens <- density(as.matrix(object$estimate[,1:p])[,component.beta],...)
-           plot(dens,main=paste(colnames(object$D)[component.beta]),lwd=2,xlab="")
-        }
-    } else if(param=="sigma2") {
-        if(hist) {
-           dens <- density(object$estimate[,"sigma^2"],...)
-           hist(object$estimate[,"sigma^2"],main=expression(sigma^2),prob=TRUE,
-           xlab="",ylim=c(0,max(dens$y)))
-           lines(dens,lwd=2)
-        } else {
-           dens <- density(object$estimate[,"sigma^2"],...)
-           plot(dens,main=expression(sigma^2),lwd=2,xlab="")
-        }
-    } else if(param=="phi") {
-        if(hist) {
-           dens <- density(object$estimate[,"phi"],...)
-           hist(object$estimate[,"phi"],main=expression(phi),prob=TRUE,
-           xlab="",ylim=c(0,max(dens$y)))
-           lines(dens,lwd=2)
-        } else {
-           dens <- density(object$estimate[,"phi"],...)
-           plot(dens,main=expression(phi),lwd=2,xlab="")
-        }
-    } else if(param=="tau2") {
-        if(hist) {
-           dens <- density(object$estimate[,"tau^2"],...)
-           hist(object$estimate[,"tau^2"],main=expression(tau^2),prob=TRUE,
-           xlab="",ylim=c(0,max(dens$y)))
-           lines(dens,lwd=2)
-        } else {
-           dens <- density(object$estimate[,"tau^2"],...)
-           plot(dens,main=expression(tau^2),lwd=2,xlab="")
-        }
+      lines(dens,lwd=2)
+    } else {
+      dens <- density(as.matrix(object$estimate[,1:p])[,component.beta],...)
+      plot(dens,main=paste(colnames(object$D)[component.beta]),lwd=2,xlab="")
     }
+  } else if(param=="sigma2") {
+    if(hist) {
+      dens <- density(object$estimate[,"sigma^2"],...)
+      hist(object$estimate[,"sigma^2"],main=expression(sigma^2),prob=TRUE,
+           xlab="",ylim=c(0,max(dens$y)))
+      lines(dens,lwd=2)
+    } else {
+      dens <- density(object$estimate[,"sigma^2"],...)
+      plot(dens,main=expression(sigma^2),lwd=2,xlab="")
+    }
+  } else if(param=="phi") {
+    if(hist) {
+      dens <- density(object$estimate[,"phi"],...)
+      hist(object$estimate[,"phi"],main=expression(phi),prob=TRUE,
+           xlab="",ylim=c(0,max(dens$y)))
+      lines(dens,lwd=2)
+    } else {
+      dens <- density(object$estimate[,"phi"],...)
+      plot(dens,main=expression(phi),lwd=2,xlab="")
+    }
+  } else if(param=="tau2") {
+    if(hist) {
+      dens <- density(object$estimate[,"tau^2"],...)
+      hist(object$estimate[,"tau^2"],main=expression(tau^2),prob=TRUE,
+           xlab="",ylim=c(0,max(dens$y)))
+      lines(dens,lwd=2)
+    } else {
+      dens <- density(object$estimate[,"tau^2"],...)
+      plot(dens,main=expression(tau^2),lwd=2,xlab="")
+    }
+  }
 }
 
 ##' @title Profile likelihood for the shape parameter of the Matern covariance function
@@ -8220,102 +8345,102 @@ dens.plot <- function(object,param,component.beta=NULL,
 ##' @importFrom geoR varcov.spatial
 ##' @export
 shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,start.par,
-              coverage=NULL,plot.profile=TRUE,messages=TRUE) {
-	start.par <- as.numeric(start.par)
-	if(length(coverage)>0 && (coverage <= 0 | coverage >=1)) stop("'coverage' must be between 0 and 1.")
-	mf <- model.frame(formula,data=data)
-	if(any(is.na(data))) stop("missing data are not accepted.")
-	y <- as.numeric(model.response(mf))
-	n <- length(y)
-	D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-	coords <- as.matrix(model.frame(coords,data))
-	if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
-	U <- dist(coords)
-	p <- ncol(D)
-	if((length(start.par)!= 2 & length(fixed.rel.nugget)==0) |
-	   (length(start.par)!= 1 & length(fixed.rel.nugget)>0)) stop("wrong length of start.cov.pars")
-	if(any(set.kappa < 0)) stop("if log.kappa=FALSE, then set.kappa must have positive components.")
-	log.lik.profile <- function(phi,kappa,nu2) {
-	      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
-	              nugget=nu2)$varcov
-	      V.inv <- solve(V)
-	      beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
-	      diff.beta.hat <- y-D%*%beta.hat
-	      sigma2.hat <- as.numeric(t(diff.beta.hat)%*%V.inv%*%diff.beta.hat/n)
-	      ldet.V <- determinant(V)$modulus
-	      as.numeric(-0.5*(n*log(sigma2.hat)+ldet.V))
+                         coverage=NULL,plot.profile=TRUE,messages=TRUE) {
+  start.par <- as.numeric(start.par)
+  if(length(coverage)>0 && (coverage <= 0 | coverage >=1)) stop("'coverage' must be between 0 and 1.")
+  mf <- model.frame(formula,data=data)
+  if(any(is.na(data))) stop("missing data are not accepted.")
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  coords <- as.matrix(model.frame(coords,data))
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
+  U <- dist(coords)
+  p <- ncol(D)
+  if((length(start.par)!= 2 & length(fixed.rel.nugget)==0) |
+     (length(start.par)!= 1 & length(fixed.rel.nugget)>0)) stop("wrong length of start.cov.pars")
+  if(any(set.kappa < 0)) stop("if log.kappa=FALSE, then set.kappa must have positive components.")
+  log.lik.profile <- function(phi,kappa,nu2) {
+    V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+                        nugget=nu2)$varcov
+    V.inv <- solve(V)
+    beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
+    diff.beta.hat <- y-D%*%beta.hat
+    sigma2.hat <- as.numeric(t(diff.beta.hat)%*%V.inv%*%diff.beta.hat/n)
+    ldet.V <- determinant(V)$modulus
+    as.numeric(-0.5*(n*log(sigma2.hat)+ldet.V))
+  }
+  start.par <- log(start.par)
+  val.kappa <- rep(NA,length(set.kappa))
+  if(length(fixed.rel.nugget) == 0) {
+    for(i in 1:length(set.kappa)) {
+      val.kappa[i] <- -nlminb(start.par,function(x)
+        -log.lik.profile(exp(x[1]),set.kappa[i],exp(x[2])))$objective
+      if(messages) cat("Evalutation for kappa=",set.kappa[i],"\r",sep="")
+      flush.console()
     }
-    start.par <- log(start.par)
-    val.kappa <- rep(NA,length(set.kappa))
-    if(length(fixed.rel.nugget) == 0) {
-       for(i in 1:length(set.kappa)) {
-          val.kappa[i] <- -nlminb(start.par,function(x)
-       	                         -log.lik.profile(exp(x[1]),set.kappa[i],exp(x[2])))$objective
-       	  if(messages) cat("Evalutation for kappa=",set.kappa[i],"\r",sep="")
-          flush.console()
-       }
-    } else {
-        for(i in 1:length(set.kappa)) {
-          val.kappa[i] <- -nlminb(start.par,function(x)
-       	                         -log.lik.profile(exp(x),set.kappa[i],fixed.rel.nugget))$objective
-       	  if(messages) cat("Evalutation for kappa=",set.kappa[i],"\r",sep="")
-          flush.console()
-       }
+  } else {
+    for(i in 1:length(set.kappa)) {
+      val.kappa[i] <- -nlminb(start.par,function(x)
+        -log.lik.profile(exp(x),set.kappa[i],fixed.rel.nugget))$objective
+      if(messages) cat("Evalutation for kappa=",set.kappa[i],"\r",sep="")
+      flush.console()
     }
-    out <- list()
-    out$set.kappa <- set.kappa
-    out$val.kappa <- val.kappa
-    if(length(coverage) > 0) {
-      	f <- splinefun(set.kappa,val.kappa)
-    	    estim.kappa <- optimize(function(x)-f(x),
-                                lower=min(set.kappa),upper=max(set.kappa))
-        max.log.lik <- -estim.kappa$objective
-        par.set <- seq(min(set.kappa),max(set.kappa),length=20)
-        k <- qchisq(coverage,df=1)
-        par.val <- 2*(max.log.lik-f(par.set))-k
-        done <- FALSE
-        if(par.val[1] < 0 & par.val[length(par.val)] > 0) {
-        	   stop("smaller value of the shape parameter should be included when computing the profile likelihood")
-        } else if(par.val[1] > 0 & par.val[length(par.val)] < 0) {
-        	   stop("larger value of the shape parameter should be included when computing the profile likelihood")
-        } else if(par.val[1] < 0 & par.val[length(par.val)] < 0) {
-           stop("both smaller and larger value of the parameter should be included when computing the profile likelihood")
-        }
-        i <- 1
-        lower.int <- c(NA,NA)
-        upper.int <- c(NA,NA)
-        while(!done) {
-        	    i <- i+1
-           	if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==1) {
-           		lower.int[1] <- par.set[i-1]
-           		lower.int[2] <- par.set[i+1]
-           	}
-           	if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==-1) {
-           		upper.int[1] <- par.set[i-1]
-           		upper.int[2] <- par.set[i+1]
-           		done <- TRUE
-           	}
-        }
-        out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
-        lower=lower.int[1],upper=lower.int[2])$root
-        out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
-        lower=upper.int[1],upper=upper.int[2])$root
-        out$kappa.hat <- estim.kappa$minimum
+  }
+  out <- list()
+  out$set.kappa <- set.kappa
+  out$val.kappa <- val.kappa
+  if(length(coverage) > 0) {
+    f <- splinefun(set.kappa,val.kappa)
+    estim.kappa <- optimize(function(x)-f(x),
+                            lower=min(set.kappa),upper=max(set.kappa))
+    max.log.lik <- -estim.kappa$objective
+    par.set <- seq(min(set.kappa),max(set.kappa),length=20)
+    k <- qchisq(coverage,df=1)
+    par.val <- 2*(max.log.lik-f(par.set))-k
+    done <- FALSE
+    if(par.val[1] < 0 & par.val[length(par.val)] > 0) {
+      stop("smaller value of the shape parameter should be included when computing the profile likelihood")
+    } else if(par.val[1] > 0 & par.val[length(par.val)] < 0) {
+      stop("larger value of the shape parameter should be included when computing the profile likelihood")
+    } else if(par.val[1] < 0 & par.val[length(par.val)] < 0) {
+      stop("both smaller and larger value of the parameter should be included when computing the profile likelihood")
+    }
+    i <- 1
+    lower.int <- c(NA,NA)
+    upper.int <- c(NA,NA)
+    while(!done) {
+      i <- i+1
+      if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==1) {
+        lower.int[1] <- par.set[i-1]
+        lower.int[2] <- par.set[i+1]
       }
-      if(plot.profile) {
-    	  plot(set.kappa,val.kappa,type="l",xlab=expression(kappa),ylab="log-likelihood",
-                    main=expression("Profile likelihood for"~kappa))
-          if(length(coverage) > 0) {
-             a <- seq(min(par.set),max(par.set),length=1000)
-             b <- sapply(a, function(x) f(x))
-             lines(a,b,type="l",col=2)
-             abline(h=-(k/2-max.log.lik),lty="dashed")
-             abline(v=out$lower,lty="dashed")
-             abline(v=out$upper,lty="dashed")
-       }
+      if(sign(par.val[i-1]) != sign(par.val[i]) & sign(par.val[i-1])==-1) {
+        upper.int[1] <- par.set[i-1]
+        upper.int[2] <- par.set[i+1]
+        done <- TRUE
+      }
     }
-    class(out) <- "shape.matern"
-    return(out)
+    out$lower <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
+                         lower=lower.int[1],upper=lower.int[2])$root
+    out$upper <- uniroot(function(x) 2*(max.log.lik-f(x))-k,
+                         lower=upper.int[1],upper=upper.int[2])$root
+    out$kappa.hat <- estim.kappa$minimum
+  }
+  if(plot.profile) {
+    plot(set.kappa,val.kappa,type="l",xlab=expression(kappa),ylab="log-likelihood",
+         main=expression("Profile likelihood for"~kappa))
+    if(length(coverage) > 0) {
+      a <- seq(min(par.set),max(par.set),length=1000)
+      b <- sapply(a, function(x) f(x))
+      lines(a,b,type="l",col=2)
+      abline(h=-(k/2-max.log.lik),lty="dashed")
+      abline(v=out$lower,lty="dashed")
+      abline(v=out$upper,lty="dashed")
+    }
+  }
+  class(out) <- "shape.matern"
+  return(out)
 }
 
 ##' @title Plot of the profile likelihood for the shape parameter of the Matern covariance function
@@ -8330,22 +8455,22 @@ shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,sta
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 plot.shape.matern <- function(x,plot.spline=TRUE,...) {
-	if(class(x)!="shape.matern")  stop("x must be of class 'shape.matern'")
+  if(class(x)!="shape.matern")  stop("x must be of class 'shape.matern'")
 
-	plot.list <- list(...)
-	plot.list$x <- x$set.kappa
-	plot.list$y <- x$val.kappa
-	if(length(plot.list$main)==0) plot.list$main <- expression("Profile likelihood for"~kappa)
-	if(length(plot.list$xlab)==0) plot.list$xlab <- expression(kappa)
-	if(length(plot.list$ylab)==0) plot.list$ylab <- "log-likelihood"
-	if(length(plot.list$type)==0) plot.list$type <- "l"
-	do.call(plot,plot.list)
-	if(plot.spline) {
-	   f <- splinefun(x$set.kappa,x$val.kappa)
-       par.set <- seq(min(x$set.kappa),max(x$set.kappa),length=100)
-       par.val <- f(par.set)
-       lines(par.set,par.val,col=2)
-	}
+  plot.list <- list(...)
+  plot.list$x <- x$set.kappa
+  plot.list$y <- x$val.kappa
+  if(length(plot.list$main)==0) plot.list$main <- expression("Profile likelihood for"~kappa)
+  if(length(plot.list$xlab)==0) plot.list$xlab <- expression(kappa)
+  if(length(plot.list$ylab)==0) plot.list$ylab <- "log-likelihood"
+  if(length(plot.list$type)==0) plot.list$type <- "l"
+  do.call(plot,plot.list)
+  if(plot.spline) {
+    f <- splinefun(x$set.kappa,x$val.kappa)
+    par.set <- seq(min(x$set.kappa),max(x$set.kappa),length=100)
+    par.val <- f(par.set)
+    lines(par.set,par.val,col=2)
+  }
 }
 
 ##' @title Adjustment factor for the variance of the convolution of Gaussian noise
@@ -8377,9 +8502,9 @@ plot.shape.matern <- function(x,plot.spline=TRUE,...) {
 ##' @export
 
 adjust.sigma2 <- function(knots.dist,phi,kappa) {
-	K <- matern.kernel(knots.dist,2*sqrt(kappa)*phi,kappa)
-	out <- mean(apply(K,1,function(r) sum(r^2)))
-	return(out)
+  K <- matern.kernel(knots.dist,2*sqrt(kappa)*phi,kappa)
+  out <- mean(apply(K,1,function(r) sum(r^2)))
+  return(out)
 }
 
 ##' @title Spatially discrete sampling
@@ -8438,32 +8563,32 @@ adjust.sigma2 <- function(knots.dist,phi,kappa) {
 ##' @export
 
 discrete.sample<-function(xy.all,n,delta,k=0) {
-   deltasq<-delta*delta
-   N<-dim(xy.all)[1]
-   index<-1:N
-   index.sample<-sample(index,n,replace=FALSE)
-   xy.sample<-xy.all[index.sample,]
-   for (i in 2:n) {
-      dmin<-0
-      while (dmin<deltasq) {
-         take<-sample(index,1)
-         dvec<-(xy.all[take,1]-xy.sample[,1])^2+(xy.all[take,2]-xy.sample[,2])^2
-         dmin<-min(dvec)
-         }
-      xy.sample[i,]<-xy.all[take,]
-      }
-   if (k>0) {
-   	  if(k > n/2) stop("k must be between 0 and n/2.")
-      take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
-      for (j in 1:k) {
-         take1<-take[j,1]; take2<-take[j,2]
-         xy1<-c(xy.sample[take1,])
-         dvec<-(xy.all[,1]-xy1[1])^2+(xy.all[,2]-xy1[2])^2
-         neighbour<-order(dvec)[2]
-         xy.sample[take2,]<-xy.all[neighbour,]
-         }
-      }
-   return(xy.sample)
+  deltasq<-delta*delta
+  N<-dim(xy.all)[1]
+  index<-1:N
+  index.sample<-sample(index,n,replace=FALSE)
+  xy.sample<-xy.all[index.sample,]
+  for (i in 2:n) {
+    dmin<-0
+    while (dmin<deltasq) {
+      take<-sample(index,1)
+      dvec<-(xy.all[take,1]-xy.sample[,1])^2+(xy.all[take,2]-xy.sample[,2])^2
+      dmin<-min(dvec)
+    }
+    xy.sample[i,]<-xy.all[take,]
+  }
+  if (k>0) {
+    if(k > n/2) stop("k must be between 0 and n/2.")
+    take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
+    for (j in 1:k) {
+      take1<-take[j,1]; take2<-take[j,2]
+      xy1<-c(xy.sample[take1,])
+      dvec<-(xy.all[,1]-xy1[1])^2+(xy.all[,2]-xy1[2])^2
+      neighbour<-order(dvec)[2]
+      xy.sample[take2,]<-xy.all[neighbour,]
+    }
+  }
+  return(xy.sample)
 }
 
 ##' @title Spatially continuous sampling
@@ -8508,28 +8633,28 @@ discrete.sample<-function(xy.all,n,delta,k=0) {
 ##' @importFrom splancs csr
 ##' @export
 continuous.sample<-function(poly,n,delta,k=0,rho=NULL) {
-   xy<-matrix(csr(poly,1),1,2)
-   delsq<-delta*delta
-   while (dim(xy)[1]<n) {
-      dsq<-0
-      while (dsq<delsq) {
-         xy.try<-c(csr(poly,1))
-         dsq<-min((xy[,1]-xy.try[1])^2+(xy[,2]-xy.try[2])^2)
-         }
-      xy<-rbind(xy,xy.try)
-      }
-   if (k>0) {
-   	  if(k > n/2) stop("k must be between 0 and n/2.")
-      take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
-      for (j in 1:k) {
-         take1<-take[j,1]; take2<-take[j,2]
-         xy1<-c(xy[take1,])
-         angle<-2*pi*runif(1)
-         radius<-rho*sqrt(runif(1))
-         xy[take2,]<-xy1+radius*c(cos(angle),sin(angle))
-         }
-      }
-    xy
+  xy<-matrix(csr(poly,1),1,2)
+  delsq<-delta*delta
+  while (dim(xy)[1]<n) {
+    dsq<-0
+    while (dsq<delsq) {
+      xy.try<-c(csr(poly,1))
+      dsq<-min((xy[,1]-xy.try[1])^2+(xy[,2]-xy.try[2])^2)
+    }
+    xy<-rbind(xy,xy.try)
+  }
+  if (k>0) {
+    if(k > n/2) stop("k must be between 0 and n/2.")
+    take<-matrix(sample(1:n,2*k,replace=FALSE),k,2)
+    for (j in 1:k) {
+      take1<-take[j,1]; take2<-take[j,2]
+      xy1<-c(xy[take1,])
+      angle<-2*pi*runif(1)
+      radius<-rho*sqrt(runif(1))
+      xy[take2,]<-xy1+radius*c(cos(angle),sin(angle))
+    }
+  }
+  xy
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -8537,127 +8662,127 @@ continuous.sample<-function(poly,n,delta,k=0,rho=NULL) {
 ##' @importFrom truncnorm rtruncnorm
 ##' @importFrom geoR varcov.spatial
 binary.geo.Bayes <- function(formula,coords,data,
-                               ID.coords,
-                               control.prior,
-                               control.mcmc,
-                               kappa,messages) {
-   kappa <- as.numeric(kappa)
-   if(length(control.prior$log.prior.nugget)!=0 |
-      length(control.mcmc$start.nugget) != 0) {
-      stop("inclusion of the nugget effect is not available for binary data.")
-   }
+                             ID.coords,
+                             control.prior,
+                             control.mcmc,
+                             kappa,messages) {
+  kappa <- as.numeric(kappa)
+  if(length(control.prior$log.prior.nugget)!=0 |
+     length(control.mcmc$start.nugget) != 0) {
+    stop("inclusion of the nugget effect is not available for binary data.")
+  }
 
-   coords <- as.matrix(model.frame(coords,data,na.action=na.fail))
+  coords <- as.matrix(model.frame(coords,data,na.action=na.fail))
 
-   out <- list()
+  out <- list()
 
-   coords <- as.matrix(unique(coords))
+  coords <- as.matrix(unique(coords))
 
-   if(nrow(coords)!=nrow(unique(coords))) {
-      warning("coincident locations may cause numerical issues in the computation: see ?jitterDupCoords")
-   }
+  if(nrow(coords)!=nrow(unique(coords))) {
+    warning("coincident locations may cause numerical issues in the computation: see ?jitterDupCoords")
+  }
 
-   mf <- model.frame(formula,data=data,na.action=na.fail)
-   y <- as.numeric(model.response(mf))
-   if(any(y > 1)) stop("the response variable must be binary")
-   n <- length(y)
-   n.x <- nrow(coords)
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  mf <- model.frame(formula,data=data,na.action=na.fail)
+  y <- as.numeric(model.response(mf))
+  if(any(y > 1)) stop("the response variable must be binary")
+  n <- length(y)
+  n.x <- nrow(coords)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
 
-   p <- ncol(D)
+  p <- ncol(D)
 
-   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
 
-   U <- dist(coords)
-   V.inv <- control.prior$V.inv
-   m <- control.prior$m
-   nu <- 2*kappa
-   n.S <- as.numeric(tapply(ID.coords,ID.coords,length))
+  U <- dist(coords)
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
+  n.S <- as.numeric(tapply(ID.coords,ID.coords,length))
 
-   ind0 <- which(y==0)
-   lim.y <- matrix(NA,ncol=2,nrow=n)
-   lim.y[ind0,1] <- -Inf
-   lim.y[ind0,2] <- 0
-   lim.y[-ind0,1] <- 0
-   lim.y[-ind0,2] <- Inf
+  ind0 <- which(y==0)
+  lim.y <- matrix(NA,ncol=2,nrow=n)
+  lim.y[ind0,1] <- -Inf
+  lim.y[ind0,2] <- 0
+  lim.y[-ind0,1] <- 0
+  lim.y[-ind0,2] <- Inf
 
-   ind.beta <- 1:p
-   ind.S <- (p+1):(n.x+p)
-   cond.cov.inv <- matrix(NA,nrow=n.x+p,ncol=n.x+p)
-   cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
-   cond.cov.inv[ind.S,ind.beta] <- sapply(1:p,
-                                   function(i)
-                                   tapply(D[,i],ID.coords,sum))
-   cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
-   beta.aux <- as.numeric(V.inv%*%m)
+  ind.beta <- 1:p
+  ind.S <- (p+1):(n.x+p)
+  cond.cov.inv <- matrix(NA,nrow=n.x+p,ncol=n.x+p)
+  cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
+  cond.cov.inv[ind.S,ind.beta] <- sapply(1:p,
+                                         function(i)
+                                           tapply(D[,i],ID.coords,sum))
+  cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
+  beta.aux <- as.numeric(V.inv%*%m)
 
-   full.cond.sim <- function(W,sigma2,R.inv) {
-      cond.cov.inv[ind.S,ind.S] <- R.inv/sigma2
-      diag(cond.cov.inv[ind.S,ind.S]) <-
+  full.cond.sim <- function(W,sigma2,R.inv) {
+    cond.cov.inv[ind.S,ind.S] <- R.inv/sigma2
+    diag(cond.cov.inv[ind.S,ind.S]) <-
       diag(cond.cov.inv[ind.S,ind.S])+n.S
 
-      out.param.sim <- list()
-      cond.cov <- solve(cond.cov.inv)
-      b <- c(beta.aux+t(D)%*%W,tapply(W,ID.coords,sum))
-      cond.mean <- as.numeric(cond.cov%*%b)
-      out.sim <- list()
-      sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(n.x+p)
-      out.sim$beta <- sim.par[ind.beta]
-      out.sim$S <- sim.par[ind.S]
-      return(out.sim)
-   }
+    out.param.sim <- list()
+    cond.cov <- solve(cond.cov.inv)
+    b <- c(beta.aux+t(D)%*%W,tapply(W,ID.coords,sum))
+    cond.mean <- as.numeric(cond.cov%*%b)
+    out.sim <- list()
+    sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(n.x+p)
+    out.sim$beta <- sim.par[ind.beta]
+    out.sim$S <- sim.par[ind.S]
+    return(out.sim)
+  }
 
-   log.prior.theta1_2 <- function(theta1,theta2) {
-      sigma2 <- exp(2*theta1)
-      phi <- (exp(2*theta1-theta2))^(1/nu)
-      log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi)+log(sigma2)+control.prior$log.prior.sigma2(sigma2)+
       control.prior$log.prior.phi(phi)
-   }
+  }
 
-   log.posterior <- function(theta1,theta2,S,param.post) {
-	  sigma2 <- exp(2*theta1)
-	  as.numeric(log.prior.theta1_2(theta1,theta2)+
-	  -0.5*(n.x*log(sigma2)+param.post$ldetR+
-	  t(S)%*%param.post$R.inv%*%(S)/sigma2))
-   }
+  log.posterior <- function(theta1,theta2,S,param.post) {
+    sigma2 <- exp(2*theta1)
+    as.numeric(log.prior.theta1_2(theta1,theta2)+
+                 -0.5*(n.x*log(sigma2)+param.post$ldetR+
+                         t(S)%*%param.post$R.inv%*%(S)/sigma2))
+  }
 
-   acc.theta1 <- 0
-   acc.theta2 <- 0
+  acc.theta1 <- 0
+  acc.theta2 <- 0
 
-   n.sim <- control.mcmc$n.sim
-   burnin <- control.mcmc$burnin
-   thin <- control.mcmc$thin
-   h.theta1 <- control.mcmc$h.theta1
-   h.theta2 <- control.mcmc$h.theta2
-
-
-   c1.h.theta1 <- control.mcmc$c1.h.theta1
-   c2.h.theta1 <- control.mcmc$c2.h.theta1
-   c1.h.theta2 <- control.mcmc$c1.h.theta2
-   c2.h.theta2 <- control.mcmc$c2.h.theta2
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
 
 
-   out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-   colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
 
-   out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
 
-   # Initialise all the parameters
-   sigma2.curr <- control.mcmc$start.sigma2
-   phi.curr <- control.mcmc$start.phi
+  out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+  colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
 
-   theta1.curr <- 0.5*log(sigma2.curr)
-   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=n.x)
 
-   beta.curr <- control.mcmc$start.beta
-   mu.curr <- as.numeric(D%*%beta.curr)
-   S.curr <- rep(0,n.x)
-   W.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
-             mean=S.curr[ID.coords]+mu.curr)
+  # Initialise all the parameters
+  sigma2.curr <- control.mcmc$start.sigma2
+  phi.curr <- control.mcmc$start.phi
 
-   R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	         cov.pars=c(1,phi.curr),kappa=kappa,
-	         nugget=0)$varcov
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+
+  beta.curr <- control.mcmc$start.beta
+  mu.curr <- as.numeric(D%*%beta.curr)
+  S.curr <- rep(0,n.x)
+  W.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+                       mean=S.curr[ID.coords]+mu.curr)
+
+  R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                           cov.pars=c(1,phi.curr),kappa=kappa,
+                           nugget=0)$varcov
 
   param.post.curr <- list()
   param.post.curr$R.inv <- solve(R.curr)
@@ -8670,86 +8795,86 @@ binary.geo.Bayes <- function(formula,coords,data,
 
   for(i in 1:n.sim) {
 
-     # Update theta1
-     theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-     sigma2.prop <- exp(2*theta1.prop)
-	 phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-     R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                          cov.pars=c(1,phi.prop),
-	                          kappa=kappa,nugget=0)$varcov
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=0)$varcov
 
-     param.post.prop <- list()
-	 param.post.prop$R.inv <- solve(R.prop)
-	 param.post.prop$ldetR <- determinant(R.prop)$modulus
-	 lp.prop <- log.posterior(theta1.prop,theta2.curr,S.curr,param.post.prop)
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,S.curr,param.post.prop)
 
-	 if(log(runif(1)) < lp.prop-lp.curr) {
-	    theta1.curr <- theta1.prop
-	    param.post.curr <- param.post.prop
-	    lp.curr <- lp.prop
-	    sigma2.curr <- sigma2.prop
-	    phi.curr <- phi.prop
-	    acc.theta1 <- acc.theta1+1
-	 }
-	 rm(theta1.prop,sigma2.prop,phi.prop)
-     h1[i] <- h.theta1 <- max(0,h.theta1 +
-	          (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      acc.theta1 <- acc.theta1+1
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
 
-     # Update theta2
-     theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	 phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-     R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	                          cov.pars=c(1,phi.prop),
-	                          kappa=kappa,nugget=0)$varcov
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                             cov.pars=c(1,phi.prop),
+                             kappa=kappa,nugget=0)$varcov
 
-     param.post.prop <- list()
-	 param.post.prop$R.inv <- solve(R.prop)
-	 param.post.prop$ldetR <- determinant(R.prop)$modulus
-	 lp.prop <- log.posterior(theta1.curr,theta2.prop,S.curr,
-	                          param.post.prop)
+    param.post.prop <- list()
+    param.post.prop$R.inv <- solve(R.prop)
+    param.post.prop$ldetR <- determinant(R.prop)$modulus
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,S.curr,
+                             param.post.prop)
 
-	 if(log(runif(1)) < lp.prop-lp.curr) {
-	    theta2.curr <- theta2.prop
-	    param.post.curr <- param.post.prop
-	    lp.curr <- lp.prop
-	    phi.curr <- phi.prop
-	    acc.theta2 <- acc.theta2+1
-	 }
-	 rm(theta2.prop,phi.prop)
-     h2[i] <- h.theta2 <- max(0,h.theta2 +
-	          (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      param.post.curr <- param.post.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      acc.theta2 <- acc.theta2+1
+    }
+    rm(theta2.prop,phi.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
 
 
-     # Update beta, S and W
-     sim.curr <- full.cond.sim(W.curr,sigma2.curr,param.post.curr$R.inv)
-     beta.curr <- sim.curr$beta
-     mu.curr <- as.numeric(D%*%beta.curr)
-     S.curr <- sim.curr$S
-     W.curr <- rtruncnorm(n,lim.y[,1],lim.y[,2],
-               mean=S.curr[ID.coords]+mu.curr)
+    # Update beta, S and W
+    sim.curr <- full.cond.sim(W.curr,sigma2.curr,param.post.curr$R.inv)
+    beta.curr <- sim.curr$beta
+    mu.curr <- as.numeric(D%*%beta.curr)
+    S.curr <- sim.curr$S
+    W.curr <- rtruncnorm(n,lim.y[,1],lim.y[,2],
+                         mean=S.curr[ID.coords]+mu.curr)
 
-     lp.curr <- log.posterior(theta1.curr,theta2.curr,S.curr,
-	                          param.post.curr)
+    lp.curr <- log.posterior(theta1.curr,theta2.curr,S.curr,
+                             param.post.curr)
 
-     if(i > burnin & (i-burnin)%%thin==0) {
-	    out$S[(i-burnin)/thin,] <- S.curr
-		out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
-		                                    phi.curr)
+    if(i > burnin & (i-burnin)%%thin==0) {
+      out$S[(i-burnin)/thin,] <- S.curr
+      out$estimate[(i-burnin)/thin,] <- c(beta.curr,sigma2.curr,
+                                          phi.curr)
 
-   	 }
-     if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-     flush.console()
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
 
-   }
-   class(out) <- "Bayes.PrevMap"
-   out$y <- y
-   out$D <- D
-   out$coords <- coords
-   out$kappa <- kappa
-   out$ID.coords <- ID.coords
-   out$h1 <- h1
-   out$h2 <- h2
-   return(out)
+  }
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$ID.coords <- ID.coords
+  out$h1 <- h1
+  out$h2 <- h2
+  return(out)
 }
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -8757,201 +8882,201 @@ binary.geo.Bayes <- function(formula,coords,data,
 ##' @importFrom truncnorm rtruncnorm
 ##' @importFrom pdist pdist
 binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
-                       control.mcmc,control.prior,kappa,messages) {
-   knots <- as.matrix(knots)
-   coords <- unique(as.matrix(model.frame(coords,data)))
+                                control.mcmc,control.prior,kappa,messages) {
+  knots <- as.matrix(knots)
+  coords <- unique(as.matrix(model.frame(coords,data)))
 
 
-   if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
-   mf <- model.frame(formula,data=data)
-   y <- as.numeric(model.response(mf))
-   n <- length(y)
-   N <- nrow(knots)
-   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-   p <- ncol(D)
-   if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
-   U.k <- as.matrix(pdist(coords,knots))
-   V.inv <- control.prior$V.inv
-   m <- control.prior$m
-   nu <- 2*kappa
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("coordinates must consist of two sets of numeric values.")
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  N <- nrow(knots)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+  if(length(control.mcmc$start.beta)!=p) stop("wrong starting values for beta.")
+  U.k <- as.matrix(pdist(coords,knots))
+  V.inv <- control.prior$V.inv
+  m <- control.prior$m
+  nu <- 2*kappa
 
-   log.prior.theta1_2 <- function(theta1,theta2) {
-      sigma2 <- exp(2*theta1)
-      phi <- (exp(2*theta1-theta2))^(1/nu)
-      log(phi/kappa)+control.prior$log.prior.sigma2(sigma2)+
+  log.prior.theta1_2 <- function(theta1,theta2) {
+    sigma2 <- exp(2*theta1)
+    phi <- (exp(2*theta1-theta2))^(1/nu)
+    log(phi/kappa)+control.prior$log.prior.sigma2(sigma2)+
       control.prior$log.prior.phi(phi)
-   }
+  }
 
-   log.posterior <- function(theta1,theta2,mu,S,W,Z) {
-	  sigma2 <- exp(2*theta1)
-	  mu.Z <- as.numeric(mu+W[ID.coords])
-	  diff.Z <- Z-mu.Z
-	  as.numeric(log.prior.theta1_2(theta1,theta2)+
-	  -0.5*(N*log(sigma2)+sum(S^2)/sigma2)+
-     -0.5*sum(diff.Z^2))
-   }
+  log.posterior <- function(theta1,theta2,mu,S,W,Z) {
+    sigma2 <- exp(2*theta1)
+    mu.Z <- as.numeric(mu+W[ID.coords])
+    diff.Z <- Z-mu.Z
+    as.numeric(log.prior.theta1_2(theta1,theta2)+
+                 -0.5*(N*log(sigma2)+sum(S^2)/sigma2)+
+                 -0.5*sum(diff.Z^2))
+  }
 
-   c1.h.theta1 <- control.mcmc$c1.h.theta1
-   c1.h.theta2 <- control.mcmc$c1.h.theta2
+  c1.h.theta1 <- control.mcmc$c1.h.theta1
+  c1.h.theta2 <- control.mcmc$c1.h.theta2
 
-   c2.h.theta1 <- control.mcmc$c2.h.theta1
-   c2.h.theta2 <- control.mcmc$c2.h.theta2
+  c2.h.theta1 <- control.mcmc$c2.h.theta1
+  c2.h.theta2 <- control.mcmc$c2.h.theta2
 
-   h.theta1 <- control.mcmc$h.theta1
-   h.theta2 <- control.mcmc$h.theta2
+  h.theta1 <- control.mcmc$h.theta1
+  h.theta2 <- control.mcmc$h.theta2
 
-   acc.theta1 <- 0
-   acc.theta2 <- 0
+  acc.theta1 <- 0
+  acc.theta2 <- 0
 
-   n.sim <- control.mcmc$n.sim
-   burnin <- control.mcmc$burnin
-   thin <- control.mcmc$thin
+  n.sim <- control.mcmc$n.sim
+  burnin <- control.mcmc$burnin
+  thin <- control.mcmc$thin
 
-   out <- list()
-   out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
-   colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
+  out <- list()
+  out$estimate <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=p+2)
+  colnames(out$estimate) <- c(colnames(D),"sigma^2","phi")
 
-   out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
-   out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
+  out$S <- matrix(NA,nrow=(n.sim-burnin)/thin,ncol=N)
+  out$const.sigma2 <- rep(NA,(n.sim-burnin)/thin)
 
-   # Initialise all the parameters
-   sigma2.curr <- control.mcmc$start.sigma2
-   phi.curr <- control.mcmc$start.phi
-   rho.curr <- phi.curr*2*sqrt(kappa)
-   theta1.curr <- 0.5*log(sigma2.curr)
-   theta2.curr <- log(sigma2.curr/(phi.curr^nu))
+  # Initialise all the parameters
+  sigma2.curr <- control.mcmc$start.sigma2
+  phi.curr <- control.mcmc$start.phi
+  rho.curr <- phi.curr*2*sqrt(kappa)
+  theta1.curr <- 0.5*log(sigma2.curr)
+  theta2.curr <- log(sigma2.curr/(phi.curr^nu))
 
-   beta.curr <- control.mcmc$start.beta
-   mu.curr <- as.numeric(D%*%beta.curr)
-   S.curr <- rep(0,N)
+  beta.curr <- control.mcmc$start.beta
+  mu.curr <- as.numeric(D%*%beta.curr)
+  S.curr <- rep(0,N)
 
-   ind0 <- which(y==0)
-   lim.y <- matrix(NA,ncol=2,nrow=n)
-   lim.y[ind0,1] <- -Inf
-   lim.y[ind0,2] <- 0
-   lim.y[-ind0,1] <- 0
-   lim.y[-ind0,2] <- Inf
+  ind0 <- which(y==0)
+  lim.y <- matrix(NA,ncol=2,nrow=n)
+  lim.y[ind0,1] <- -Inf
+  lim.y[ind0,2] <- 0
+  lim.y[-ind0,1] <- 0
+  lim.y[-ind0,2] <- Inf
 
-   ind.beta <- 1:p
-   ind.S <- (p+1):(N+p)
-   cond.cov.inv <- matrix(NA,nrow=N+p,ncol=N+p)
-   cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
-   beta.aux <- as.numeric(V.inv%*%m)
+  ind.beta <- 1:p
+  ind.S <- (p+1):(N+p)
+  cond.cov.inv <- matrix(NA,nrow=N+p,ncol=N+p)
+  cond.cov.inv[ind.beta,ind.beta] <- V.inv+t(D)%*%D
+  beta.aux <- as.numeric(V.inv%*%m)
 
-   n.S <- as.numeric(tapply(ID.coords,ID.coords,length))
-   D.aux <- sapply(1:p,function(i) tapply(D[,i],ID.coords,sum))
+  n.S <- as.numeric(tapply(ID.coords,ID.coords,length))
+  D.aux <- sapply(1:p,function(i) tapply(D[,i],ID.coords,sum))
 
-   full.cond.sim <- function(Z,sigma2,K) {
-      cond.cov.inv[ind.S,ind.S] <- t(K*n.S)%*%K
-      diag(cond.cov.inv[ind.S,ind.S]) <-
+  full.cond.sim <- function(Z,sigma2,K) {
+    cond.cov.inv[ind.S,ind.S] <- t(K*n.S)%*%K
+    diag(cond.cov.inv[ind.S,ind.S]) <-
       diag(cond.cov.inv[ind.S,ind.S])+1/sigma2
 
-      cond.cov.inv[ind.S,ind.beta] <- t(K)%*%D.aux
-      cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
+    cond.cov.inv[ind.S,ind.beta] <- t(K)%*%D.aux
+    cond.cov.inv[ind.beta,ind.S] <- t(cond.cov.inv[ind.S,ind.beta])
 
-      out.param.sim <- list()
-      cond.cov <- solve(cond.cov.inv)
-      b <- c(beta.aux+t(D)%*%Z,t(K)%*%tapply(Z,ID.coords,sum))
-      cond.mean <- as.numeric(cond.cov%*%b)
-      out.sim <- list()
-      sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(N+p)
-      out.sim$beta <- sim.par[ind.beta]
-      out.sim$S <- sim.par[ind.S]
-      return(out.sim)
-   }
+    out.param.sim <- list()
+    cond.cov <- solve(cond.cov.inv)
+    b <- c(beta.aux+t(D)%*%Z,t(K)%*%tapply(Z,ID.coords,sum))
+    cond.mean <- as.numeric(cond.cov%*%b)
+    out.sim <- list()
+    sim.par <- cond.mean+t(chol(cond.cov))%*%rnorm(N+p)
+    out.sim$beta <- sim.par[ind.beta]
+    out.sim$S <- sim.par[ind.S]
+    return(out.sim)
+  }
 
-   # Compute the log-posterior density
-   K.curr <- matern.kernel(U.k,rho.curr,kappa)
-   W.curr <- as.numeric(K.curr%*%S.curr)
-   Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
-             mean=mu.curr+W.curr[ID.coords],sd=1)
-   lp.curr <- log.posterior(theta1.curr,theta2.curr,mu.curr,
-              S.curr,W.curr,Z.curr)
+  # Compute the log-posterior density
+  K.curr <- matern.kernel(U.k,rho.curr,kappa)
+  W.curr <- as.numeric(K.curr%*%S.curr)
+  Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+                       mean=mu.curr+W.curr[ID.coords],sd=1)
+  lp.curr <- log.posterior(theta1.curr,theta2.curr,mu.curr,
+                           S.curr,W.curr,Z.curr)
 
 
-   h1 <- rep(NA,n.sim)
-   h2 <- rep(NA,n.sim)
-   for(i in 1:n.sim) {
+  h1 <- rep(NA,n.sim)
+  h2 <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
 
-      # Update theta1
-      theta1.prop <- theta1.curr+h.theta1*rnorm(1)
-      sigma2.prop <- exp(2*theta1.prop)
-	  phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-	  rho.prop <- phi.prop*2*sqrt(kappa)
-      K.prop <- matern.kernel(U.k,rho.curr,kappa)
+    # Update theta1
+    theta1.prop <- theta1.curr+h.theta1*rnorm(1)
+    sigma2.prop <- exp(2*theta1.prop)
+    phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
+    rho.prop <- phi.prop*2*sqrt(kappa)
+    K.prop <- matern.kernel(U.k,rho.curr,kappa)
 
-      W.prop <- as.numeric(K.prop%*%S.curr)
-	  lp.prop <- log.posterior(theta1.prop,theta2.curr,
-	             mu.curr,S.curr,W.prop,Z.curr)
-	  if(log(runif(1)) < lp.prop-lp.curr) {
-	     theta1.curr <- theta1.prop
-	     lp.curr <- lp.prop
-	     sigma2.curr <- sigma2.prop
-	     phi.curr <- phi.prop
-	     rho.curr <- rho.prop
-	     K.curr <- K.prop
-	     W.curr <- W.prop
-	     acc.theta1 <- acc.theta1+1
-	  }
-	  rm(theta1.prop,sigma2.prop,phi.prop,K.prop,W.prop,rho.prop)
-      h1[i] <- h.theta1 <- max(0,h.theta1 +
-	  (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.prop,theta2.curr,
+                             mu.curr,S.curr,W.prop,Z.curr)
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta1.curr <- theta1.prop
+      lp.curr <- lp.prop
+      sigma2.curr <- sigma2.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      K.curr <- K.prop
+      W.curr <- W.prop
+      acc.theta1 <- acc.theta1+1
+    }
+    rm(theta1.prop,sigma2.prop,phi.prop,K.prop,W.prop,rho.prop)
+    h1[i] <- h.theta1 <- max(0,h.theta1 +
+                               (c1.h.theta1*i^(-c2.h.theta1))*(acc.theta1/i-0.45))
 
-      # Update theta2
-      theta2.prop <- theta2.curr+h.theta2*rnorm(1)
-	  phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-	  rho.prop <- 2*phi.prop*sqrt(kappa)
-      K.prop <- matern.kernel(U.k,rho.prop,kappa)
+    # Update theta2
+    theta2.prop <- theta2.curr+h.theta2*rnorm(1)
+    phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
+    rho.prop <- 2*phi.prop*sqrt(kappa)
+    K.prop <- matern.kernel(U.k,rho.prop,kappa)
 
-      W.prop <- as.numeric(K.prop%*%S.curr)
-	  lp.prop <- log.posterior(theta1.curr,theta2.prop,
-	             mu.curr,S.curr,W.prop,Z.curr)
+    W.prop <- as.numeric(K.prop%*%S.curr)
+    lp.prop <- log.posterior(theta1.curr,theta2.prop,
+                             mu.curr,S.curr,W.prop,Z.curr)
 
-	  if(log(runif(1)) < lp.prop-lp.curr) {
-	     theta2.curr <- theta2.prop
-	     lp.curr <- lp.prop
-	     phi.curr <- phi.prop
-	     rho.curr <- rho.prop
-	     K.curr <- K.prop
-	     W.curr <- W.prop
-	     acc.theta2 <- acc.theta2+1
-	  }
-	  rm(theta2.prop,phi.prop,rho.prop,K.prop,W.prop)
-      h2[i] <- h.theta2 <- max(0,h.theta2 +
-	  (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
+    if(log(runif(1)) < lp.prop-lp.curr) {
+      theta2.curr <- theta2.prop
+      lp.curr <- lp.prop
+      phi.curr <- phi.prop
+      rho.curr <- rho.prop
+      K.curr <- K.prop
+      W.curr <- W.prop
+      acc.theta2 <- acc.theta2+1
+    }
+    rm(theta2.prop,phi.prop,rho.prop,K.prop,W.prop)
+    h2[i] <- h.theta2 <- max(0,h.theta2 +
+                               (c1.h.theta2*i^(-c2.h.theta2))*(acc.theta2/i-0.45))
 
-      # Update beta, S and Z
-      sim.curr <- full.cond.sim(Z.curr,sigma2.curr,K.curr)
-      beta.curr <- sim.curr$beta
-      mu.curr <- as.numeric(D%*%beta.curr)
-      S.curr <- sim.curr$S
-      W.curr <- K.curr%*%S.curr
-      Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
-                mean=mu.curr+W.curr[ID.coords],sd=1)
+    # Update beta, S and Z
+    sim.curr <- full.cond.sim(Z.curr,sigma2.curr,K.curr)
+    beta.curr <- sim.curr$beta
+    mu.curr <- as.numeric(D%*%beta.curr)
+    S.curr <- sim.curr$S
+    W.curr <- K.curr%*%S.curr
+    Z.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
+                         mean=mu.curr+W.curr[ID.coords],sd=1)
 
-      lp.curr <- log.posterior(theta1.curr,theta2.curr,
-	             mu.curr,S.curr,W.curr,Z.curr)
+    lp.curr <- log.posterior(theta1.curr,theta2.curr,
+                             mu.curr,S.curr,W.curr,Z.curr)
 
-      if(i > burnin & (i-burnin)%%thin==0) {
-	     out$S[(i-burnin)/thin,] <- S.curr
-		 out$estimate[(i-burnin)/thin,] <-
-		 c(beta.curr,sigma2.curr,phi.curr)
-		 out$const.sigma2[(i-burnin)/thin] <-
-		 mean(apply(K.curr,1,function(r) sqrt(sum(r^2))))
-   	  }
-      if(messages) cat("Iteration",i,"out of",n.sim,"\r")
-      flush.console()
-   }
+    if(i > burnin & (i-burnin)%%thin==0) {
+      out$S[(i-burnin)/thin,] <- S.curr
+      out$estimate[(i-burnin)/thin,] <-
+        c(beta.curr,sigma2.curr,phi.curr)
+      out$const.sigma2[(i-burnin)/thin] <-
+        mean(apply(K.curr,1,function(r) sqrt(sum(r^2))))
+    }
+    if(messages) cat("Iteration",i,"out of",n.sim,"\r")
+    flush.console()
+  }
 
-   class(out) <- "Bayes.PrevMap"
-   out$y <- y
-   out$D <- D
-   out$coords <- coords
-   out$kappa <- kappa
-   out$knots <- knots
-   out$h1 <- h1
-   out$h2 <- h2
-   return(out)
+  class(out) <- "Bayes.PrevMap"
+  out$y <- y
+  out$D <- D
+  out$coords <- coords
+  out$kappa <- kappa
+  out$knots <- knots
+  out$h1 <- h1
+  out$h2 <- h2
+  return(out)
 }
 
 
@@ -8996,35 +9121,36 @@ binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
 ##' @return \code{h2}: vector of values taken by the tuning parameter \code{h.theta2} at each iteration.
 ##' @return \code{call}: the matched call.
 ##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applications.} Chapman & Hall, London.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
 binary.probit.Bayes <- function(formula,coords,data,ID.coords,
-                           control.prior,control.mcmc,kappa,low.rank=FALSE,
-                           knots=NULL,messages=TRUE) {
-    if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-    if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
+                                control.prior,control.mcmc,kappa,low.rank=FALSE,
+                                knots=NULL,messages=TRUE) {
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(class(control.mcmc)!="mcmc.Bayes.PrevMap") stop("control.mcmc must be of class 'mcmc.Bayes.PrevMap'")
 
-    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
-    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
-    if(kappa < 0) stop("kappa must be positive.")
-	if(!low.rank) {
-		res <- binary.geo.Bayes(formula=formula,coords=coords,
-		       data=data,ID.coords=ID.coords,
-		       control.prior=control.prior,
-		       control.mcmc=control.mcmc,
-		       kappa=kappa,messages=messages)
-	} else {
-		res <- binary.geo.Bayes.lr(formula=formula,
-		       coords=coords,data=data,ID.coords=ID.coords,
-		       knots=knots,control.mcmc=control.mcmc,
-		       control.prior=control.prior,kappa=kappa,
-		       messages=messages)
-	}
-	res$call <- match.call()
-	return(res)
+  if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(!low.rank) {
+    res <- binary.geo.Bayes(formula=formula,coords=coords,
+                            data=data,ID.coords=ID.coords,
+                            control.prior=control.prior,
+                            control.mcmc=control.mcmc,
+                            kappa=kappa,messages=messages)
+  } else {
+    res <- binary.geo.Bayes.lr(formula=formula,
+                               coords=coords,data=data,ID.coords=ID.coords,
+                               knots=knots,control.mcmc=control.mcmc,
+                               control.prior=control.prior,kappa=kappa,
+                               messages=messages)
+  }
+  res$call <- match.call()
+  return(res)
 }
 
 ##' @title Monte Carlo Maximum Likelihood estimation for the Poisson model
@@ -9075,6 +9201,7 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
@@ -9089,31 +9216,31 @@ poisson.log.MCML <- function(formula,units.m=NULL,coords,data,
                              knots=NULL,
                              messages=TRUE,
                              plot.correlogram=TRUE) {
-    if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
-    if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("control.mcmc must be of class 'mcmc.MCML.PrevMap'")
-    if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
-    if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
-    if(length(units.m)>0 && class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the offset for the mean of the Poisson model.")
-    if(length(units.m)==0) {
-       data$units.m <- rep(1,nrow(data))
-       units.m <- ~ units.m
-    }
-    if(kappa < 0) stop("kappa must be positive.")
-    if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
-    if(!low.rank) {
-		   res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
-		           data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
-		           kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
-		           start.cov.pars=start.cov.pars,method=method,messages=messages,
-		           plot.correlogram=plot.correlogram,poisson.llik=TRUE)
-    } else {
-		   res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
-		           data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
-		           kappa=kappa,start.cov.pars=start.cov.pars,method=method,
-		           messages=messages,plot.correlogram=plot.correlogram,poisson.llik=TRUE)
-    }
-    res$call <- match.call()
-    return(res)
+  if(low.rank & length(dim(knots))==0) stop("if low.rank=TRUE, then knots must be provided.")
+  if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("control.mcmc must be of class 'mcmc.MCML.PrevMap'")
+  if(class(formula)!="formula") stop("formula must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("coords must be a 'formula' object indicating the spatial coordinates.")
+  if(length(units.m)>0 && class(units.m)!="formula") stop("units.m must be a 'formula' object indicating the offset for the mean of the Poisson model.")
+  if(length(units.m)==0) {
+    data$units.m <- rep(1,nrow(data))
+    units.m <- ~ units.m
+  }
+  if(kappa < 0) stop("kappa must be positive.")
+  if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
+  if(!low.rank) {
+    res <- geo.MCML(formula=formula,units.m=units.m,coords=coords,
+                    data=data,ID.coords=ID.coords,par0=par0,control.mcmc=control.mcmc,
+                    kappa=kappa,fixed.rel.nugget=fixed.rel.nugget,
+                    start.cov.pars=start.cov.pars,method=method,messages=messages,
+                    plot.correlogram=plot.correlogram,poisson.llik=TRUE)
+  } else {
+    res <- geo.MCML.lr(formula=formula,units.m=units.m,coords=coords,
+                       data=data,knots=knots,par0=par0,control.mcmc=control.mcmc,
+                       kappa=kappa,start.cov.pars=start.cov.pars,method=method,
+                       messages=messages,plot.correlogram=plot.correlogram,poisson.llik=TRUE)
+  }
+  res$call <- match.call()
+  return(res)
 }
 
 
@@ -9144,202 +9271,202 @@ poisson.log.MCML <- function(formula,units.m=NULL,coords,data,
 ##' @export
 
 spatial.pred.poisson.MCML <- function(object,grid.pred,predictors=NULL,control.mcmc,
-                                     type="marginal",
-                                     scale.predictions=c("log","exponential"),
-                                     quantiles=c(0.025,0.975),
-                                     standard.errors=FALSE,
-                                     thresholds=NULL,
-                                     scale.thresholds=NULL,
-                                     plot.correlogram=FALSE,
-                                     messages=TRUE) {
-   if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-   if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-   if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
-   p <- object$p <- ncol(object$D)
-   kappa <- object$kappa
-   n.pred <- nrow(grid.pred)
-   coords <- object$coords
-   if(type=="marginal" & length(object$knots) > 0) warning("only joint predictions are avilable for the low-rank approximation.")
-   if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
-   for(i in 1:length(scale.predictions)) {
-      if(any(c("log","exponential")==scale.predictions[i])==FALSE) stop("invalid scale.predictions.")
-   }
+                                      type="marginal",
+                                      scale.predictions=c("log","exponential"),
+                                      quantiles=c(0.025,0.975),
+                                      standard.errors=FALSE,
+                                      thresholds=NULL,
+                                      scale.thresholds=NULL,
+                                      plot.correlogram=FALSE,
+                                      messages=TRUE) {
+  if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
+  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  p <- object$p <- ncol(object$D)
+  kappa <- object$kappa
+  n.pred <- nrow(grid.pred)
+  coords <- object$coords
+  if(type=="marginal" & length(object$knots) > 0) warning("only joint predictions are avilable for the low-rank approximation.")
+  if(any(type==c("marginal","joint"))==FALSE) stop("type of predictions should be marginal or joint")
+  for(i in 1:length(scale.predictions)) {
+    if(any(c("log","exponential")==scale.predictions[i])==FALSE) stop("invalid scale.predictions.")
+  }
 
-   if(length(thresholds)>0) {
-      if(any(scale.predictions==scale.thresholds)==FALSE) {
-	       stop("scale thresholds must be equal to a scale prediction")
+  if(length(thresholds)>0) {
+    if(any(scale.predictions==scale.thresholds)==FALSE) {
+      stop("scale thresholds must be equal to a scale prediction")
+    }
+  }
+
+  if(length(thresholds)==0 & length(scale.thresholds)>0 |
+     length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
+
+  if(object$p==1) {
+    predictors <- matrix(1,nrow=n.pred)
+  } else {
+    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+  }
+
+  if(length(dim(object$knots)) > 0) {
+    beta <- object$estimate[1:p]
+    sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
+    rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
+    knots <- object$knots
+    U.k <- as.matrix(pdist(coords,knots))
+    K <- matern.kernel(U.k,rho,kappa)
+    mu.pred <- as.numeric(predictors%*%beta)
+    object$mu <- object$D%*%beta
+    Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
+                                     object$y,object$units.m,control.mcmc,
+                                     plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE)
+    Z.sim <- Z.sim.res$samples
+    U.k.pred <- as.matrix(pdist(grid.pred,knots))
+    K.pred <- matern.kernel(U.k.pred,rho,kappa)
+    out <- list()
+    eta.sim <- sapply(1:(dim(Z.sim)[1]), function(i) mu.pred+K.pred%*%Z.sim[i,])
+
+    if(any(scale.predictions=="log")) {
+      if(messages) cat("Spatial predictions: log \n")
+      out$log$predictions <- apply(eta.sim,1,mean)
+      if(standard.errors) {
+        out$log$standard.errors <- apply(eta.sim,1,sd)
       }
-   }
-
-   if(length(thresholds)==0 & length(scale.thresholds)>0 |
-      length(thresholds)>0 & length(scale.thresholds)==0) stop("to estimate exceedance probabilities both thresholds and scale.thresholds.")
-
-   if(object$p==1) {
-      predictors <- matrix(1,nrow=n.pred)
-   } else {
-	    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-	    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
-	    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-	    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
-   }
-
-   if(length(dim(object$knots)) > 0) {
-	    beta <- object$estimate[1:p]
-	    sigma2 <- exp(object$estimate["log(sigma^2)"])/object$const.sigma2
-	    rho <- exp(object$estimate["log(phi)"])*2*sqrt(object$kappa)
-	    knots <- object$knots
-	    U.k <- as.matrix(pdist(coords,knots))
-	    K <- matern.kernel(U.k,rho,kappa)
-	    mu.pred <- as.numeric(predictors%*%beta)
-	    object$mu <- object$D%*%beta
-	    Z.sim.res <- Laplace.sampling.lr(object$mu,sigma2,K,
-	    object$y,object$units.m,control.mcmc,
-	    plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE)
-	    Z.sim <- Z.sim.res$samples
-	    U.k.pred <- as.matrix(pdist(grid.pred,knots))
-	    K.pred <- matern.kernel(U.k.pred,rho,kappa)
-	    out <- list()
-      eta.sim <- sapply(1:(dim(Z.sim)[1]), function(i) mu.pred+K.pred%*%Z.sim[i,])
-
-      if(any(scale.predictions=="log")) {
-         if(messages) cat("Spatial predictions: log \n")
-    	   out$log$predictions <- apply(eta.sim,1,mean)
-         if(standard.errors) {
-            out$log$standard.errors <- apply(eta.sim,1,sd)
-         }
-         if(length(quantiles) > 0) {
-            out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
-         }
-
-         if(length(thresholds) > 0 && scale.thresholds=="log") {
-            out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-            colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-            for(j in 1:length(thresholds)) {
-               out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
-            }
-         }
+      if(length(quantiles) > 0) {
+        out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
       }
 
-      if(any(scale.predictions=="exponential")) {
-         if(messages) cat("Spatial predictions: exponential \n")
-         exponential.sim <- exp(eta.sim)
-         out$exponential$predictions <- apply(exponential.sim,1,mean)
-         if(standard.errors) {
-             out$exponential$standard.errors <- apply(exponential.sim,1,sd)
-         }
-
-         if(length(quantiles) > 0) {
-            out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))
-         }
-
-         if(length(thresholds) > 0 && scale.thresholds=="exponential") {
-            out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-       	    colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-            for(j in 1:length(thresholds)) {
-               out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))
-            }
-         }
+      if(length(thresholds) > 0 && scale.thresholds=="log") {
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
+        }
       }
-   } else {
-      beta <- object$estimate[1:p]
-	    sigma2 <- exp(object$estimate[p+1])
-	    phi <- exp(object$estimate[p+2])
-	    if(length(object$fixed.rel.nugget)==0){
-	       tau2 <- sigma2*exp(object$estimate[p+3])
-	    } else {
-	       tau2 <- object$fixed.rel.nugget*sigma2
-	    }
+    }
 
-
-	    U <- dist(coords)
-	    U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-	    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
-	             cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
-	    Sigma.inv <- solve(Sigma)
-      C <- sigma2*matern(U.pred.coords,phi,kappa)
-      A <- C%*%Sigma.inv
-      out <- list()
-	    mu.pred <- as.numeric(predictors%*%beta)
-	    object$mu <- object$D%*%beta
-
-	    S.sim.res <- Laplace.sampling(mu=object$mu,Sigma=Sigma,
-	                 y=object$y,units.m=object$units.m,control.mcmc=control.mcmc,ID.coords=object$ID.coords,
-	                 plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE)
-      S.sim <- S.sim.res$samples
-      if(length(object$ID.coords)==0) {
-        mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%(S.sim[i,]-object$mu))
-      } else {
-        mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%S.sim[i,])
+    if(any(scale.predictions=="exponential")) {
+      if(messages) cat("Spatial predictions: exponential \n")
+      exponential.sim <- exp(eta.sim)
+      out$exponential$predictions <- apply(exponential.sim,1,mean)
+      if(standard.errors) {
+        out$exponential$standard.errors <- apply(exponential.sim,1,sd)
       }
 
+      if(length(quantiles) > 0) {
+        out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))
+      }
+
+      if(length(thresholds) > 0 && scale.thresholds=="exponential") {
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))
+        }
+      }
+    }
+  } else {
+    beta <- object$estimate[1:p]
+    sigma2 <- exp(object$estimate[p+1])
+    phi <- exp(object$estimate[p+2])
+    if(length(object$fixed.rel.nugget)==0){
+      tau2 <- sigma2*exp(object$estimate[p+3])
+    } else {
+      tau2 <- object$fixed.rel.nugget*sigma2
+    }
 
 
+    U <- dist(coords)
+    U.pred.coords <- as.matrix(pdist(grid.pred,coords))
+    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                            cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
+    Sigma.inv <- solve(Sigma)
+    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    A <- C%*%Sigma.inv
+    out <- list()
+    mu.pred <- as.numeric(predictors%*%beta)
+    object$mu <- object$D%*%beta
+
+    S.sim.res <- Laplace.sampling(mu=object$mu,Sigma=Sigma,
+                                  y=object$y,units.m=object$units.m,control.mcmc=control.mcmc,ID.coords=object$ID.coords,
+                                  plot.correlogram=plot.correlogram,messages=messages,poisson.llik=TRUE)
+    S.sim <- S.sim.res$samples
+    if(length(object$ID.coords)==0) {
+      mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%(S.sim[i,]-object$mu))
+    } else {
+      mu.cond <- sapply(1:(dim(S.sim)[1]),function(i) mu.pred+A%*%S.sim[i,])
+    }
+
+
+
+    if(type=="marginal") {
+      if(messages) cat("Type of predictions:",type,"\n")
+      sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
+    } else if (type=="joint") {
+      if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
+      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+                                    cov.pars=c(sigma2,phi),kappa=kappa)$varcov
+      Sigma.cond <- Sigma.pred - A%*%t(C)
+      sd.cond <- sqrt(diag(Sigma.cond))
+    }
+
+    if((length(quantiles) > 0) |
+       (any(scale.predictions=="exponential")) |
+       (length(scale.thresholds)>0)) {
       if(type=="marginal") {
-    	   if(messages) cat("Type of predictions:",type,"\n")
-    	   sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
-      } else if (type=="joint") {
-    	   if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
-    	   Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
-	                      cov.pars=c(sigma2,phi),kappa=kappa)$varcov
-	       Sigma.cond <- Sigma.pred - A%*%t(C)
-	       sd.cond <- sqrt(diag(Sigma.cond))
+        eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) rnorm(n.pred,mu.cond[,i],sd.cond))
+      } else if(type=="joint") {
+        Sigma.cond.sroot <- t(chol(Sigma.cond))
+        eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) mu.cond[,i]+
+                            Sigma.cond.sroot%*%rnorm(n.pred))
+      }
+    }
+
+    if(any(scale.predictions=="log")) {
+      if(messages) cat("Spatial predictions: log \n")
+      out$log$predictions <- apply(mu.cond,1,mean)
+      if(standard.errors) {
+        out$log$standard.errors <- sqrt(sd.cond^2+diag(A%*%cov(S.sim)%*%t(A)))
       }
 
-      if((length(quantiles) > 0) |
-         (any(scale.predictions=="exponential")) |
-         (length(scale.thresholds)>0)) {
-         if(type=="marginal") {
-            eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) rnorm(n.pred,mu.cond[,i],sd.cond))
-         } else if(type=="joint") {
-            Sigma.cond.sroot <- t(chol(Sigma.cond))
-            eta.sim <- sapply(1:(dim(S.sim)[1]), function(i) mu.cond[,i]+
-                                                             Sigma.cond.sroot%*%rnorm(n.pred))
-         }
+      if(length(quantiles) > 0) {
+        out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
       }
 
-      if(any(scale.predictions=="log")) {
-    	   if(messages) cat("Spatial predictions: log \n")
-    	       out$log$predictions <- apply(mu.cond,1,mean)
-         if(standard.errors) {
-            out$log$standard.errors <- sqrt(sd.cond^2+diag(A%*%cov(S.sim)%*%t(A)))
-         }
+      if(length(thresholds) > 0 && scale.thresholds=="log") {
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
+        }
+      }
+    }
 
-         if(length(quantiles) > 0) {
-            out$log$quantiles <- t(apply(eta.sim,1,function(r) quantile(r,quantiles)))
-         }
-
-         if(length(thresholds) > 0 && scale.thresholds=="log") {
-            out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-            colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-            for(j in 1:length(thresholds)) {
-               out$exceedance.prob[,j] <- apply(eta.sim,1,function(r) mean(r > thresholds[j]))
-            }
-         }
+    if(any(scale.predictions=="exponential")) {
+      if(messages) cat("Spatial predictions: exponential \n")
+      exponential.sim <- exp(eta.sim)
+      out$exponential$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
+      if(standard.errors) {
+        out$exponential$standard.errors <- apply(exponential.sim,1,sd)
+      }
+      if(length(quantiles) > 0) {
+        out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))
       }
 
-      if(any(scale.predictions=="exponential")) {
-        if(messages) cat("Spatial predictions: exponential \n")
-        exponential.sim <- exp(eta.sim)
-        out$exponential$predictions <- apply(exp(mu.cond+0.5*sd.cond^2),1,mean)
-        if(standard.errors) {
-           out$exponential$standard.errors <- apply(exponential.sim,1,sd)
+      if(length(thresholds) > 0 && scale.thresholds=="exponential") {
+        out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
+        colnames(out$exceedance.prob) <- paste(thresholds,sep="")
+        for(j in 1:length(thresholds)) {
+          out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))
         }
-        if(length(quantiles) > 0) {
-           out$exponential$quantiles <- t(apply(exponential.sim,1,function(r) quantile(r,quantiles)))
-        }
-
-        if(length(thresholds) > 0 && scale.thresholds=="exponential") {
-     	     out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-     	     colnames(out$exceedance.prob) <- paste(thresholds,sep="")
-           for(j in 1:length(thresholds)) {
-              out$exceedance.prob[,j] <- apply(exponential.sim,1,function(r) mean(r > thresholds[j]))
-           }
-        }
-     }
+      }
+    }
   }
 
   if(any(scale.predictions=="exponential")) {
-     out$samples <- eta.sim
+    out$samples <- eta.sim
   }
   out$grid <- grid.pred
   class(out) <- "pred.PrevMap"
@@ -9530,8 +9657,8 @@ cond.sim.ps <- function(y,Q0,mu1.0,mu1.grid0,mu2.0,alpha0,sigma2.t0,sigma2.2.0,R
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
 ##' @return \code{call}: the matched call.
-##'
-##' @references Diggle, P. J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+##' @references Diggle, P.J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.
 ##' @references Diggle, P.J., Menezes, R. and Su, T.-L. (2010). \emph{Geostatistical analysis under preferential sampling (with Discussion).} Applied Statistics, 59, 191-232.
 ##' @references Lindgren, F., Havard, R., Lindstrom, J. (2011). \emph{An explicit link between Gaussian fields and Gaussian Markov random fields: the stochastic partial differential equation approach (with discussion).}
 ##' Journal of the Royal Statistical Society, Series B, 73, 423--498.
@@ -9558,12 +9685,12 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
   if(!is.null(which.is.preferential)) {
     if(any(which.is.preferential!=0 & which.is.preferential!=1)) {
       stop("'which.is.preferential' must be a vector of 0 and 1, where 1 indicates that the corresponding
-         location in the data-set is from a preferential sampling scheme and 0 if not.")
+           location in the data-set is from a preferential sampling scheme and 0 if not.")
     }
     if(length(which.is.preferential) != nrow(data.response)) {
       stop("the length of 'which.is.preferential' must match the number of rows in 'data'.")
     }
-  }
+    }
 
   if(dim(grid.intensity)[2]!=2) stop("'grid.intensity' must be a matrix with no more than two columns.")
   if(class(grid.intensity)=="data.frame") grid.intensity <- as.matrix(grid.intensity)
@@ -9576,7 +9703,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
 
   if(!is.null(which.is.preferential) & as.character(formula.response[[3]][[1]])!="|") {
     stop("If 'which.is.preferential' is given, then 'formula.response' must have two linear predictors, one for the
-          preferential and one for the non-preferential surveys. See ?lm.ps.MCML ")
+         preferential and one for the non-preferential surveys. See ?lm.ps.MCML ")
   }
 
   if(as.character(formula.response[[3]][[1]])=="|" & is.null(which.is.preferential)) {
@@ -9630,14 +9757,14 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
   }
 
   if(formula.log.intensity[[2]]!=1) {
-     if(is.null(data.intensity)) stop("'data.intensity' must be provided.")
-     if(!is.data.frame(data.intensity)) stop("'data.intensity' must be a 'data.frame' object.")
-     if(nrow(data.intensity)!=nrow(grid.intensity)) stop("the number of rows in 'data.intensity' does not match that of 'grid.intensity'.")
-     mf.intensity <- model.frame(formula.log.intensity,data=data.intensity)
-     D1.grid <- as.matrix(model.matrix(attr(mf.intensity,"terms"),data=data.intensity))
+    if(is.null(data.intensity)) stop("'data.intensity' must be provided.")
+    if(!is.data.frame(data.intensity)) stop("'data.intensity' must be a 'data.frame' object.")
+    if(nrow(data.intensity)!=nrow(grid.intensity)) stop("the number of rows in 'data.intensity' does not match that of 'grid.intensity'.")
+    mf.intensity <- model.frame(formula.log.intensity,data=data.intensity)
+    D1.grid <- as.matrix(model.matrix(attr(mf.intensity,"terms"),data=data.intensity))
   } else if (formula.log.intensity[[2]]==1){
-     D1.grid <- cbind(rep(1,nrow(grid.intensity)))
-     colnames(D1.grid) <- "(Intercept)"
+    D1.grid <- cbind(rep(1,nrow(grid.intensity)))
+    colnames(D1.grid) <- "(Intercept)"
   }
   D1 <- as.matrix(D1.grid[ind.grid,])
   colnames(D1) <- colnames(D1.grid)
@@ -10213,15 +10340,15 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
     names(estim$estimate)[(q+1):(p.97+q)] <- paste(colnames(D2.97),"_pref",sep="")
     names(estim$estimate)[(p.97+q+1):(p.00+p.97+q)] <- paste(colnames(D2.00),"_non_pref",sep="")
     names(estim$estimate)[-(1:(p.00+p.97+q))] <- c("Pref. param.","sigma1^2","sigma2^2",
-                                           "phi1","phi2","tau^2")
+                                                   "phi1","phi2","tau^2")
 
     estim$covariance <- solve(-J%*%hessian%*%t(J))
     colnames(estim$covariance) <-
-    rownames(estim$covariance) <- c(colnames(D1),
-                                    paste(colnames(D2.97),"_pref",sep=""),
-                                    paste(colnames(D2.00),"_non_pref",sep=""),
-                                    "Pref. param.","log(sigma1^2)","log(sigma2^2)",
-                                    "log(phi1)","log(phi2)","log(tau^2)")
+      rownames(estim$covariance) <- c(colnames(D1),
+                                      paste(colnames(D2.97),"_pref",sep=""),
+                                      paste(colnames(D2.00),"_non_pref",sep=""),
+                                      "Pref. param.","log(sigma1^2)","log(sigma2^2)",
+                                      "log(phi1)","log(phi2)","log(tau^2)")
 
 
   } else {
@@ -10267,7 +10394,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
     n.samples <- (control.mcmc$n.sim-control.mcmc$burnin)/control.mcmc$thin
 
     sim <- cond.sim.ps(y,Q0,mu1.0,mu1.grid0,mu2.0,alpha0,sigma2.t0,sigma2.2.0,R0.inv,
-            control.mcmc,messages,plot.correlogram,delta,A,A.grid,n.spde)
+                       control.mcmc,messages,plot.correlogram,delta,A,A.grid,n.spde)
 
     compute.den <- function(par) {
       beta1 <- par[ind.beta1]
@@ -10607,12 +10734,12 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
     names(estim$estimate)[1:q] <- colnames(D1)
     names(estim$estimate)[(q+1):(p+q)] <- colnames(D2)
     names(estim$estimate)[-(1:(p+q))] <- c("Pref. param.","sigma1^2","sigma2^2",
-                                               "phi1","phi2","tau^2")
+                                           "phi1","phi2","tau^2")
 
     estim$covariance <- solve(-J%*%hessian%*%t(J))
     colnames(estim$covariance) <-
-    rownames(estim$covariance) <- c(colnames(D1),colnames(D2),"Pref. param.","log(sigma1^2)","log(sigma2^2)",
-                                    "log(phi1)","log(phi2)","log(tau^2)")
+      rownames(estim$covariance) <- c(colnames(D1),colnames(D2),"Pref. param.","log(sigma1^2)","log(sigma2^2)",
+                                      "log(phi1)","log(phi2)","log(tau^2)")
 
   }
   if(DG.model) {
@@ -10694,24 +10821,24 @@ summary.PrevMap.ps <- function(object, log.cov.pars = TRUE,...) {
   se.response <- sqrt(diag(covariance)[ind.response])
   zval.response <- object$estimate[ind.response][1:p]/se.response[1:p]
   TAB.response <- cbind(Estimate = res$estimates$response[1:p], StdErr = se.response[1:p],
-               z.value = zval.response, p.value = 2 * pnorm(-abs(zval.response)))
+                        z.value = zval.response, p.value = 2 * pnorm(-abs(zval.response)))
   cov.pars.response <- cbind(Estimate = res$estimates$response[-(1:p)],StdErr = se.response[-(1:p)])
 
   se.intensity <- sqrt(diag(covariance)[ind.intensity])
   zval.intensity <- object$estimate[ind.intensity][1:q]/se.intensity[1:q]
   TAB.intensity <- cbind(Estimate = res$estimates$intensity[1:q], StdErr = se.intensity[1:q],
-                        z.value = zval.intensity, p.value = 2 * pnorm(-abs(zval.intensity)))
+                         z.value = zval.intensity, p.value = 2 * pnorm(-abs(zval.intensity)))
   cov.pars.intensity <- cbind(Estimate = res$estimates$intensity[-(1:q)],StdErr = se.intensity[-(1:q)])
 
   if(log.cov.pars) {
-     rownames(cov.pars.intensity) <- c("log(sigma1^2)", "log(phi1)")
-     rownames(cov.pars.response) <- c("log(sigma2^2)", "log(phi2)", "log(tau^2)")
+    rownames(cov.pars.intensity) <- c("log(sigma1^2)", "log(phi1)")
+    rownames(cov.pars.response) <- c("log(sigma2^2)", "log(phi2)", "log(tau^2)")
   }
 
   se.pref.param <- sqrt(diag(covariance)[ind.pref.param])
   zval.pref.param <- object$estimate[ind.pref.param]/se.pref.param
   TAB.pref.param <- cbind(Estimate = object$estimate[ind.pref.param], StdErr = se.pref.param,
-                         z.value = zval.pref.param, p.value = 2 * pnorm(-abs(zval.pref.param)))
+                          z.value = zval.pref.param, p.value = 2 * pnorm(-abs(zval.pref.param)))
   rownames(TAB.pref.param) <- " "
   res$coefficients.response <- TAB.response
   res$coefficients.intensity <- TAB.intensity
@@ -10855,9 +10982,9 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
   if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
   if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
   if(target != 1 & target != 2 & target != 3) stop("target must be set to one of the following values: \n
-  - target=1 to predict the response variable; \n
-  - target=2 to predict the sampling intensity of the preferentially sampled data; \n
-  - target=3 to predict both.")
+                                                   - target=1 to predict the response variable; \n
+                                                   - target=2 to predict the sampling intensity of the preferentially sampled data; \n
+                                                   - target=3 to predict both.")
 
   if(class(control.mcmc)!="mcmc.MCML.PrevMap") stop("'control.mcmc' must be an output of 'control.mcmc.MCML'")
   q <- ncol(object$D.intensity)
@@ -10883,7 +11010,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
 
   if(DG.model) {
     p <- ncol(object$D.response$preferential)+
-         ncol(object$D.response$non.preferential)
+      ncol(object$D.response$non.preferential)
   } else {
     p <- ncol(object$D.response)
   }
@@ -10973,7 +11100,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
       n97 <- length(object$y$preferential)
       ind.grid <- sapply(1:n97, function(h)
         which.min((object$coords$preferential[h,1]-object$grid.intensity[,1])^2+(object$coords$preferential[h,2]-
-                        object$grid.intensity[,2])^2))
+                                                                                   object$grid.intensity[,2])^2))
       mu.intensity.obs <- as.numeric(as.matrix(object$D.intensity[ind.grid,])%*%beta1)
     } else {
       R <- varcov.spatial(dists.lowertri = dist(object$coords),
@@ -10997,11 +11124,11 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
 
     if(DG.model) {
       object$samples <- cond.sim.ps(object$y$preferential,Q,mu.intensity.obs,mu.grid,mu.response,alpha,sigma2.t,sigma2.2,R.inv,
-                         control.mcmc,messages,plot.correlogram=FALSE,delta,A.coords,A.grid,n.spde)
+                                    control.mcmc,messages,plot.correlogram=FALSE,delta,A.coords,A.grid,n.spde)
       sim.done <- TRUE
     } else {
       object$samples <- cond.sim.ps(object$y,Q,mu.intensity.obs,mu.grid,mu.response,alpha,sigma2.t,sigma2.2,R.inv,
-                         control.mcmc,messages,plot.correlogram=FALSE,delta,A.coords,A.grid,n.spde)
+                                    control.mcmc,messages,plot.correlogram=FALSE,delta,A.coords,A.grid,n.spde)
       sim.done <- TRUE
     }
 
@@ -11011,13 +11138,13 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
 
 
     mu.cond <- mu.response.pred+sapply(1:n.samples,function(i) alpha*as.numeric(A.pred%*%object$samples[i,])+
-               as.numeric(A%*%(y.diff-alpha*(A.coords%*%object$samples[i,]))))
+                                         as.numeric(A%*%(y.diff-alpha*(A.coords%*%object$samples[i,]))))
     if(return.samples | standard.errors | length(quantiles)>0) {
       sd.cond <- sqrt((sigma2.2-apply(A*C,1,sum)))
       if(type=="joint") {
         U.pred <- dist(grid.pred)
         Sigma.pred <- varcov.spatial(dists.lowertri = U.pred,
-                           cov.pars=c(sigma2.2,phi2),nugget=0,kappa=kappa.response)$varcov
+                                     cov.pars=c(sigma2.2,phi2),nugget=0,kappa=kappa.response)$varcov
         Sigma.pred.cond <- Sigma.pred - A%*%t(C)
       }
     }
@@ -11047,7 +11174,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
 
     if(length(quantiles)>0) {
       quantiles.res <- sapply(quantiles, function(x)
-                       sapply(1:n.pred, function(j) quantile(samples[,j],x)))
+        sapply(1:n.pred, function(j) quantile(samples[,j],x)))
       if(DG.model) {
         out$response$quantiles$preferential <- quantiles.res
       } else {
@@ -11087,7 +11214,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
       if(!is.null(quantiles)) {
         if(!standard.errors) sd.cond <- sqrt((sigma2.2-apply(A*C,1,sum)))
         out$response$quantiles$non.preferential <- sapply(quantiles,
-                                                   function(x) qnorm(x,mean=mu.cond,sd=sd.cond))
+                                                          function(x) qnorm(x,mean=mu.cond,sd=sd.cond))
       }
       if(return.samples) {
         if(type=="marginal") {
@@ -11178,8 +11305,8 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
 plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
   if(class(x)!="pred.PrevMap.ps") stop("x must be of class 'pred.PrevMap.ps'")
   if(target != 1 & target != 2) stop("target must be set to one of the following values: \n
-  - target=1 to visualize summaries of the surface associated with the response; \n
-  - target=2 to visualize summaries of the surface associated with the sampling intensity.")
+                                     - target=1 to visualize summaries of the surface associated with the response; \n
+                                     - target=2 to visualize summaries of the surface associated with the sampling intensity.")
 
   only.one <- (is.null(x$response) | is.null(x$intensity))
   if(only.one) target <- 1
@@ -11187,7 +11314,7 @@ plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
 
 
   if(any(summary==c("predictions",
-                   "quantiles","standard.errors"))==FALSE) {
+                    "quantiles","standard.errors"))==FALSE) {
     stop("summary must be 'predictions','quantiles' or
          'standard.errors'")
   }
@@ -11195,7 +11322,7 @@ plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
   DG.model <- length(x$response$predictions)==2
   if(DG.model & target==1) {
     r <- rasterFromXYZ(cbind(x$grid.pred,Preferential=x[[target]][[summary]][[1]],
-                                         Non_preferential=x[[target]][[summary]][[2]]))
+                             Non_preferential=x[[target]][[summary]][[2]]))
   } else {
     r <- rasterFromXYZ(cbind(x$grid.pred,x[[target]][[summary]]))
   }
@@ -11203,3 +11330,4 @@ plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
 
   getMethod('plot',signature=signature(x='Raster', y='ANY'))(r,...)
 }
+

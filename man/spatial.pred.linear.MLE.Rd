@@ -6,7 +6,7 @@
 \usage{
 spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
   type = "marginal", scale.predictions = c("logit", "prevalence", "odds"),
-  quantiles = c(0.025, 0.975), n.sim.prev = 1000, standard.errors = FALSE,
+  quantiles = c(0.025, 0.975), n.sim.prev = 0, standard.errors = FALSE,
   thresholds = NULL, scale.thresholds = NULL, messages = TRUE,
   include.nugget = FALSE)
 }
@@ -23,7 +23,7 @@ spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
 
 \item{quantiles}{a vector of quantiles used to summarise the spatial predictions.}
 
-\item{n.sim.prev}{number of simulation for predictions of prevalence. Default is \code{n.sim.prev=1000}.}
+\item{n.sim.prev}{number of simulation for predictions of prevalence. Default is \code{n.sim.prev=0}.}
 
 \item{standard.errors}{logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.}
 
@@ -44,6 +44,8 @@ Each of the three components \code{logit}, \code{prevalence} and  \code{odds} is
 \code{standard.errors}: a vector of prediction standard errors (if \code{standard.errors=TRUE}).
 
 \code{quantiles}: a matrix of quantiles of the resulting predictions with each column corresponding to a quantile specified through the argument \code{quantiles}.
+
+\code{samples}: If \code{n.sim.prev > 0}, the function returns \code{n.sim.prev} samples of the linear predictor at each of the prediction locations.
 }
 \description{
 This function performs spatial prediction, fixing the model parameters at the maximum likelihood estimates of a linear geostatistical model.
@@ -53,4 +55,3 @@ Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-

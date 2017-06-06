@@ -53,4 +53,3 @@ This function performs spatial prediction, fixing the model parameters at the ma
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 }
-

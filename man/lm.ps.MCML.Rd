@@ -117,11 +117,10 @@ where \eqn{\beta^*} is vector of regression coefficients, different from \eqn{\b
 For example, \code{response ~ x | x + z} defines a linear predictor for \eqn{Y} with one explanatory variable \code{x} and a linear predictor for \eqn{Y^*} with two explanatory variables
 \code{x} and \code{z}. An example on the application of this model is given in Diggle and Giorgi (2016).
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-}
 \references{
-Diggle, P. J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
+Diggle, P.J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.
 
 Diggle, P.J., Menezes, R. and Su, T.-L. (2010). \emph{Geostatistical analysis under preferential sampling (with Discussion).} Applied Statistics, 59, 191-232.
 
@@ -130,4 +129,6 @@ Journal of the Royal Statistical Society, Series B, 73, 423--498.
 
 Pati, D., Reich, B. J., and Dunson, D. B. (2011). \emph{Bayesian geostatistical modelling with informative sampling locations.} Biometrika, 98, 35-48.
 }
-
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
+}

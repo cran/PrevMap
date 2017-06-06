@@ -1,0 +1,22 @@
+bibentry(bibtype = "Article",
+  title        = "{PrevMap}: An {R} Package for Prevalence Mapping",
+  author       = c(person(given = "Emanuele",
+                          family = "Giorgi",
+                          email = "e.giorgi@lancaster.ac.uk"),
+                   person(given = c("Peter", "J."),
+                          family = "Diggle")),
+  journal      = "Journal of Statistical Software",
+  year         = "2017",
+  volume       = "78",
+  number       = "8",
+  pages        = "1--29",
+  doi          = "10.18637/jss.v078.i08",
+
+  header       = "To cite PrevMap in publications use:",
+  textVersion  =
+  paste("Emanuele Giorgi, Peter J. Diggle (2017).",
+        "PrevMap: An R Package for Prevalence Mapping.",
+        "Journal of Statistical Software, 78(8), 1-29.",
+        "doi:10.18637/jss.v078.i08")
+)
+

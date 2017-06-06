@@ -31,4 +31,3 @@ The variables are as follows:
 Diggle, P.J., Thomson, M.C., Christensen, O.F., Rowlingson, B., Obsomer, V., Gardon, J., Wanji, S., Takougang, I., Enyong, P., Kamgno, J., Remme, H., Boussinesq, M. and Molyneux, D.H. (2007). Spatial modelling and prediction of Loa loa risk: decision making under uncertainty. Annals of Tropical Medicine and Parasitology, 101, 499-509.
 }
 \keyword{datasets}
-

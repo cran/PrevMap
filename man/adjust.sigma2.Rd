@@ -39,12 +39,11 @@ knots.dist <- as.matrix(pdist(coords,knots))
 adjust.sigma2(knots.dist,0.1,2)
 
 }
+\seealso{
+\code{\link{matern.kernel}}, \code{\link{pdist}}.
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{matern.kernel}}, \code{\link{pdist}}.
-}
-

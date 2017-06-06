@@ -62,12 +62,11 @@ invisible(Laplace.sampling(mu=mu,Sigma=Sigma,
                                        y=data_subset$y,units.m=data_subset$units.m,
                                        control.mcmc=control.mcmc))
 }
+\seealso{
+\code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
-}
-

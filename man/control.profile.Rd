@@ -26,12 +26,11 @@ A list with components named as the arguments.
 \description{
 Auxiliary function used by \code{\link{loglik.linear.model}}. This function defines whether the profile-loglikelihood should be computed or evaluation of the likelihood is required by keeping the other parameters fixed.
 }
+\seealso{
+\code{\link{loglik.linear.model}}
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{loglik.linear.model}}
-}
-

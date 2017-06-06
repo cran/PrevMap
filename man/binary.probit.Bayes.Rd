@@ -74,12 +74,9 @@ where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-
-Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
-}
 \references{
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
 Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applications.} Chapman & Hall, London.
 
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -87,4 +84,8 @@ Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures
 \seealso{
 \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 }
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
+Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
+}

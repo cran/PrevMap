@@ -46,12 +46,11 @@ where \eqn{\tilde{z}_{curr}} is the current value for \eqn{\tilde{Z}}, \eqn{h} i
 where \eqn{c_{1} > 0} and \eqn{0 < c_{2} < 1} are pre-defined constants, and \eqn{\alpha_{i}} is the acceptance rate at the \eqn{i}-th iteration (\eqn{0.547} is the optimal acceptance rate for a multivariate standard Gaussian distribution).
 The starting value for \eqn{h}, and the values for \eqn{c_{1}} and \eqn{c_{2}} can be set through the function \code{\link{control.mcmc.MCML}}.
 }
+\seealso{
+\code{\link{control.mcmc.MCML}}.
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{control.mcmc.MCML}}.
-}
-

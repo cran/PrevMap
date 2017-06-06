@@ -38,12 +38,11 @@ a list corresponding the prior distributions for each model parameter.
 \description{
 This function is used to define priors for the model parameters of a Bayesian geostatistical model.
 }
+\seealso{
+See "Priors definition" in the Details section of the \code{\link{binomial.logistic.Bayes}} function.
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-See "Priors definition" in the Details section of the \code{\link{binomial.logistic.Bayes}} function.
-}
-

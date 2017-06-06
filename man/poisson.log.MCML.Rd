@@ -92,12 +92,9 @@ The Monte Carlo maximum likelihood method uses conditional simulation from the d
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), the parameter \code{sigma2} is then multiplied by a factor \code{constant.sigma2} so as to obtain a value that is closer to the actual variance of \eqn{S(x)}.
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-
-Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
-}
 \references{
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
 Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -105,4 +102,8 @@ Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures
 \seealso{
 \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
 }
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
+Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
+}

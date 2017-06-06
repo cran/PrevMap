@@ -20,4 +20,3 @@ a list of coefficients extracted from the model in \code{object}.
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 }
-

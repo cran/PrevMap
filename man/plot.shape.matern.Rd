@@ -19,12 +19,11 @@ The function does not return any value.
 \description{
 This function plots the profile likelihood for the shape parameter of the Matern covariance function using the output from \code{\link{shape.matern}} function.
 }
+\seealso{
+\code{\link{shape.matern}}
+}
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
 Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
 }
-\seealso{
-\code{\link{shape.matern}}
-}
-

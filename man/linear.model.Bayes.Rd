@@ -90,15 +90,16 @@ fit.Bayes <- linear.model.Bayes(logit ~ 1,coords=~LONGITUDE+LATITUDE,
                 control.prior = cp)
 summary(fit.Bayes)
 }
-\author{
-Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
-
-Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
-}
 \references{
+Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
 \code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
 }
+\author{
+Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}
 
+Peter J. Diggle \email{p.diggle@lancaster.ac.uk}
+}
