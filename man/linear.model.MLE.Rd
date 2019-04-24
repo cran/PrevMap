@@ -6,8 +6,9 @@
 \usage{
 linear.model.MLE(formula, coords = NULL, data, ID.coords = NULL, kappa,
   fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
-  low.rank = FALSE, knots = NULL, messages = TRUE, profile.llik = FALSE,
-  SPDE = FALSE, mesh = NULL, SPDE.analytic.hessian = FALSE)
+  low.rank = FALSE, knots = NULL, messages = TRUE,
+  profile.llik = FALSE, SPDE = FALSE, mesh = NULL,
+  SPDE.analytic.hessian = FALSE)
 }
 \arguments{
 \item{formula}{an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -114,6 +115,8 @@ summary(fit,log.cov.pars=FALSE)
 
 }
 \references{
+Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
+
 Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.

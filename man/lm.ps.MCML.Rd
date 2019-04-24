@@ -5,9 +5,10 @@
 \title{Monte Carlo Maximum Likelihood estimation of the geostatistical linear model with preferentially sampled locations}
 \usage{
 lm.ps.MCML(formula.response, formula.log.intensity = ~1, coords,
-  which.is.preferential = NULL, data.response, data.intensity = NULL, par0,
-  control.mcmc, kappa1, kappa2, mesh, grid.intensity, start.par = NULL,
-  method = "nlminb", messages = TRUE, plot.correlogram = TRUE)
+  which.is.preferential = NULL, data.response, data.intensity = NULL,
+  par0, control.mcmc, kappa1, kappa2, mesh, grid.intensity,
+  start.par = NULL, method = "nlminb", messages = TRUE,
+  plot.correlogram = TRUE)
 }
 \arguments{
 \item{formula.response}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the sub-model for the response variable.}
@@ -118,6 +119,8 @@ For example, \code{response ~ x | x + z} defines a linear predictor for \eqn{Y} 
 \code{x} and \code{z}. An example on the application of this model is given in Diggle and Giorgi (2016).
 }
 \references{
+Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
+
 Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 
 Diggle, P.J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.

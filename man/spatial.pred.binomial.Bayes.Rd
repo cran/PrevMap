@@ -6,8 +6,8 @@
 \usage{
 spatial.pred.binomial.Bayes(object, grid.pred, predictors = NULL,
   type = "marginal", scale.predictions = "prevalence",
-  quantiles = c(0.025, 0.975), standard.errors = FALSE, thresholds = NULL,
-  scale.thresholds = NULL, messages = TRUE)
+  quantiles = c(0.025, 0.975), standard.errors = FALSE,
+  thresholds = NULL, scale.thresholds = NULL, messages = TRUE)
 }
 \arguments{
 \item{object}{an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{binomial.logistic.Bayes}} or \code{\link{binary.probit.Bayes}}.}

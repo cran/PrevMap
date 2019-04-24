@@ -1,14 +1,16 @@
-##' @importFrom graphics abline contour lines plot
+##' @importFrom graphics abline contour lines plot hist matplot par points polygon
 ##' @importFrom stats acf coef cov delete.response density dist dlnorm dunif formula
 ##' integrate median model.frame model.matrix model.response na.fail nlminb optimize pnorm
 ##' printCoefmat qchisq qlnorm qnorm quantile rnorm rt runif sd splinefun terms uniroot
 ##' @importFrom utils data flush.console
+##' @importFrom stats binomial lm poisson rbinom rpois
 
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom maxLik maxBFGS
-maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
+maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik,
+                            hessian=FALSE) {
   if(length(ID.coords)==0) {
     Sigma.inv <- solve(Sigma)
 
@@ -49,7 +51,12 @@ maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
     estim <- maxBFGS(function(x) integrand(x),function(x) grad.integrand(x),
                      function(x) hessian.integrand(x),start=mu)
     out$mode <- estim$estimate
-    out$Sigma.tilde <- solve(-estim$hessian)
+
+    if(hessian) {
+      out$hessian <- estim$hessian
+    } else {
+      out$Sigma.tilde <- solve(-estim$hessian)
+    }
 
   } else {
     Sigma.inv <- solve(Sigma)
@@ -96,7 +103,11 @@ maxim.integrand <- function(y,units.m,mu,Sigma,ID.coords=NULL,poisson.llik) {
     out <- list()
     estim <- maxBFGS(integrand,grad.integrand,hessian.integrand,rep(0,n.x))
     out$mode <- estim$estimate
-    out$Sigma.tilde <- solve(-estim$hessian)
+    if(hessian) {
+      out$hessian <- estim$hessian
+    } else {
+      out$Sigma.tilde <- solve(-estim$hessian)
+    }
   }
 
   return(out)
@@ -1702,6 +1713,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -1787,6 +1799,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,times=NULL,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} can be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process, the parameter \code{sigma2} is adjusted by a factor\code{constant.sigma2}. See \code{\link{adjust.sigma2}} for more details on the the computation of the adjustment factor \code{constant.sigma2} in the low-rank approximation.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "PrevMap".
@@ -1902,6 +1915,7 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
 ##'
 ##' \bold{Low-rank approximation.}
 ##' In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @return An object of class "Bayes.PrevMap".
@@ -2006,6 +2020,13 @@ summary.PrevMap <- function(object, log.cov.pars = TRUE,...) {
     res$poisson <- FALSE
   }
 
+  if(!is.null(object$family)) {
+    if(object$family=="Poisson") {
+      res$poisson <- TRUE
+    } else {
+      res$poisson <- FALSE
+    }
+  }
   if(length(dim(object$knots))==0) {
     res$ck<-FALSE
   } else {
@@ -3891,10 +3912,12 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 ##' @param object an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.
 ##' @param grid.pred a matrix of prediction locations.
 ##' @param predictors a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.
+##' @param predictors.samples a list of data frame objects. This argument is used to average over repeated simulations of the predictor variables in order to obtain an "average" map over the distribution of the explanatory variables in the model.
+##' Each component of the list is a simulation. The number of simulations passed through \code{predictors.samples} must be the same as \code{n.sim.prev}. NOTE: This argument can currently only be used only for a linear regression model that does not use any approximation of the spatial Gaussian process.
 ##' @param type a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only marginal predictions are available.
 ##' @param scale.predictions a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.
 ##' @param quantiles a vector of quantiles used to summarise the spatial predictions.
-##' @param n.sim.prev number of simulation for predictions of prevalence. Default is \code{n.sim.prev=0}.
+##' @param n.sim.prev number of simulation for non-linear predictive targets. Default is \code{n.sim.prev=0}.
 ##' @param standard.errors logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.
 ##' @param thresholds a vector of exceedance thresholds; default is \code{thresholds=NULL}.
 ##' @param scale.thresholds a character value indicating the scale on which exceedance thresholds are provided; \code{"logit"}, \code{"prevalence"} or \code{"odds"}. Default is \code{scale.thresholds=NULL}.
@@ -3915,23 +3938,36 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 ##' @importFrom Matrix t solve chol diag
 ##' @export
 spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
+                                    predictors.samples=NULL,
                                     type="marginal",
                                     scale.predictions=c("logit","prevalence","odds"),
                                     quantiles=c(0.025,0.975),n.sim.prev=0,
                                     standard.errors=FALSE,
                                     thresholds=NULL,scale.thresholds=NULL,
                                     messages=TRUE,include.nugget=FALSE) {
+
+  if(length(predictors.samples)>0) {
+    if(length(predictors.samples)!=n.sim.prev) {
+      stop("The number of simulation in 'predictors.samples' should be the same as set in 'n.sim.prev'")
+    }
+  }
   linear.ID.coords <- length(object$ID.coords) > 0 &
     substr(object$call[1],1,6)=="linear"
-  if(scale.predictions=="prevalence" & n.sim.prev==0) stop("To predict prevalence, a poisitive number of simulations in 'n.sim.prev' must be provided.")
+  if(any(scale.predictions=="prevalence") & n.sim.prev==0) stop("To predict prevalence, a poisitive number of simulations in 'n.sim.prev' must be provided.")
   if(linear.ID.coords & messages & !include.nugget) cat("NOTE: the nugget effect IS NOT included in the predictions. \n")
   if(linear.ID.coords & messages & include.nugget) cat("NOTE: the nugget effect IS included in the predictions. \n")
   if(include.nugget & !linear.ID.coords) warning("the argument 'include.nugget' is ignored; the option of
                                                  including the nugget effect in the target predictions is
                                                  available only for models having locations with multiple observations.")
   if(nrow(grid.pred) < 2) stop("prediction locations must be at least two.")
-  if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
-  if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  int.out.ce <- !is.null(predictors.samples)
+  if(int.out.ce){
+    if(any(is.na(predictors.samples))) stop("missing values found in 'predictors'.")
+    if(class(predictors.samples)!="list") stop("'predictors.samples' must be a list, with each component corresponding to a sample.")
+  } else {
+    if(length(predictors)>0 && class(predictors)!="data.frame") stop("'predictors' must be a data frame with columns' names matching those in the data used to fit the model.")
+    if(length(predictors)>0 && any(is.na(predictors))) stop("missing values found in 'predictors'.")
+  }
   p <- ncol(object$D)
   kappa <- object$kappa
   n.pred <- nrow(grid.pred)
@@ -3956,10 +3992,22 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
   if(p==1) {
     predictors <- matrix(1,nrow=n.pred)
   } else {
-    if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
-    predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
-    if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
-    if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+    if(int.out.ce) {
+      n.samples.pred <- length(predictors.samples)
+
+      predictors <- array(NA,dim=c(nrow(grid.pred),p,n.samples.pred))
+      n.pred <-nrow(grid.pred)
+      for(i in 1:n.samples.pred) {
+        if(class(predictors.samples[[i]])!="data.frame") stop("each component of 'predictors.samples' must be a data frame.")
+        if(nrow(predictors.samples[[i]])!=n.pred) stop("The number of row of the component no.",i," of 'predictors.samples' does not coincide with the number of prediction locations.")
+        predictors[,,i] <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors.samples[[i]]))
+      }
+    } else {
+      if(length(dim(predictors))==0) stop("covariates at prediction locations should be provided.")
+      predictors <- as.matrix(model.matrix(delete.response(terms(formula(object$call))),data=predictors))
+      if(nrow(predictors)!=nrow(grid.pred)) stop("the provided values for 'predictors' do not match the number of prediction locations in 'grid.pred'.")
+      if(ncol(predictors)!=ncol(object$D)) stop("the provided variables in 'predictors' do not match the number of explanatory variables used to fit the model.")
+    }
   }
 
   beta <- object$estimate[1:p]
@@ -3984,7 +4032,6 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 
     A <- INLA::inla.spde.make.A(object$mesh,loc=coords)
     A.pred <- INLA::inla.spde.make.A(object$mesh,loc=grid.pred)
-    mu.pred <- as.numeric(predictors%*%beta)
 
     mesh.fem <- INLA::inla.mesh.fem(object$mesh,order=1)
     AtA <- t(A)%*%A
@@ -3995,7 +4042,14 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
     At.diff.y.std <- as.numeric(t(A)%*%diff.y/tau2)
     mu.X.cond <- as.numeric(solve(Q.cond,At.diff.y.std))
 
-    mu.cond <- mu.pred+as.numeric(A.pred%*%mu.X.cond)
+    if(int.out.ce) {
+      int.out.ce.M.aux <- as.numeric(A.pred%*%mu.X.cond)
+      mu.pred <- t(sapply(1:n.samples.pred, function(i) predictors[,,i]%*%beta))
+      mu.cond <- t(sapply(1:n.samples.pred,function(i) mu.pred[i,]+int.out.ce.M.aux))
+    } else {
+      mu.pred <- as.numeric(predictors%*%beta)
+      mu.cond <- mu.pred+as.numeric(A.pred%*%mu.X.cond)
+    }
 
     M.aux.pred <- solve(Q.cond,t(A.pred))
 
@@ -4019,7 +4073,6 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
       mat*(nu2^(-1))
     }
 
-    mu.pred <- as.numeric(predictors%*%beta)
     U.k <- as.matrix(pdist(coords,object$knots))
     U.k.pred <- as.matrix(pdist(grid.pred,object$knots))
     K <- matern.kernel(U.k,rho,kappa)
@@ -4029,7 +4082,14 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
     Sigma.inv <- inv.vcov(tau2/sigma2,t(K)%*%K,K)/sigma2
     A <- C%*%Sigma.inv
 
-    mu.cond <- as.vector(mu.pred+C%*%Sigma.inv%*%(object$y-mu))
+    if(int.out.ce) {
+      int.out.ce.M.aux <- as.numeric(C%*%Sigma.inv%*%(object$y-mu))
+      mu.pred <- t(sapply(1:n.samples.pred, function(i) predictors[,,i]%*%beta))
+      mu.cond <- t(sapply(1:n.samples.pred,function(i) mu.pred[i,]+int.out.ce.M.aux))
+    } else {
+      mu.pred <- as.numeric(predictors%*%beta)
+      mu.cond <- as.vector(mu.pred+C%*%Sigma.inv%*%(object$y-mu))
+    }
     sd.cond <- sqrt(sigma2*apply(K.pred,1,function(x) sum(x^2))-
                       apply(A*C,1,sum))
 
@@ -4043,7 +4103,6 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
       tau2 <- object$fixed.rel.nugget*sigma2
       if(linear.ID.coords) omega2 <- sigma2*exp(object$estimate[p+3])
     }
-    mu.pred <- as.numeric(predictors%*%beta)
 
     U <- dist(coords)
     U.pred.coords <- as.matrix(pdist(grid.pred,coords))
@@ -4060,9 +4119,19 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
       diag(Omega.star) <- diag(Omega.star)+n.coords/nu2.2
       Omega.star.inv <- solve(Omega.star)
       M.sd <- Omega.star.inv%*%(t(C)*n.coords)
-      mu.cond <- mu.pred+C%*%diff.y.tilde/(sigma2*nu2.2)+
-        -t(t(C)*n.coords)%*%Omega.star.inv%*%diff.y.tilde/
-        (sigma2*nu2.2^2)
+
+      if(int.out.ce) {
+        int.out.ce.M.aux <- C%*%diff.y.tilde/(sigma2*nu2.2)+
+          -t(t(C)*n.coords)%*%Omega.star.inv%*%diff.y.tilde/
+          (sigma2*nu2.2^2)
+        mu.pred <- t(sapply(1:n.samples.pred, function(i) predictors[,,i]%*%beta))
+        mu.cond <- t(sapply(1:n.samples.pred,function(i) mu.pred[i,]+int.out.ce.M.aux))
+      } else {
+        mu.pred <- as.numeric(predictors%*%beta)
+        mu.cond <- mu.pred+C%*%diff.y.tilde/(sigma2*nu2.2)+
+          -t(t(C)*n.coords)%*%Omega.star.inv%*%diff.y.tilde/
+          (sigma2*nu2.2^2)
+      }
 
       if(type=="marginal") {
         if(include.nugget) {
@@ -4081,12 +4150,20 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
     } else {
       A <- C%*%Sigma.inv
 
-      mu.cond <- as.numeric(mu.pred+A%*%(object$y-mu))
+      if(int.out.ce) {
+        int.out.ce.M.aux <- A%*%(object$y-mu)
+        mu.pred <- t(sapply(1:n.samples.pred, function(i) predictors[,,i]%*%beta))
+        mu.cond <- t(sapply(1:n.samples.pred,function(i) mu.pred[i,]+int.out.ce.M.aux))
+      } else {
+        mu.pred <- as.numeric(predictors%*%beta)
+        mu.cond <- as.numeric(mu.pred+A%*%(object$y-mu))
+      }
+
       if(type=="marginal") sd.cond <- sqrt(sigma2-apply(A*C,1,sum))
     }
   }
 
-  if(type=="joint" & any(scale.predictions=="prevalence")) {
+  if(type=="joint" & any(scale.predictions=="prevalence") | int.out.ce) {
     if(messages) cat("Type of prevalence predictions: joint (this step might be demanding) \n")
     if(linear.ID.coords) {
       if(include.nugget) {
@@ -4112,18 +4189,35 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
     }
   }
 
-  if(any(scale.predictions=="prevalence") | n.sim.prev > 0) {
+  if(int.out.ce)  n.samples.pred <- n.sim.prev
+
+  if(any(scale.predictions=="prevalence") | n.sim.prev > 0 |
+     int.out.ce) {
     if(type=="marginal") {
       if(messages) cat("Type of prevalence predictions: marginal \n")
-      eta.sim <- sapply(1:n.sim.prev, function(i) rnorm(n.pred,mu.cond,sd.cond))
+      if(int.out.ce) {
+        eta.sim <- sapply(1:n.sim.prev, function(i) rnorm(n.pred,mu.cond[i,],sd.cond))
+      } else {
+        eta.sim <- sapply(1:n.sim.prev, function(i) rnorm(n.pred,mu.cond,sd.cond))
+      }
     } else if(type=="joint") {
       if(spde) {
         X.samples <- INLA::inla.qsample(n.sim.prev,Q.cond,mu=mu.X.cond)
-        eta.sim <- sapply(1:n.sim.prev,function(i)
-        mu.pred + as.numeric(A.pred%*%X.samples[,i]))
+        if(int.out.ce) {
+          eta.sim <- sapply(1:n.sim.prev,function(i)
+            mu.pred[i,] + as.numeric(A.pred%*%X.samples[,i]))
+        } else {
+          eta.sim <- sapply(1:n.sim.prev,function(i)
+            mu.pred + as.numeric(A.pred%*%X.samples[,i]))
+        }
+
       } else {
         Sigma.cond.sroot <- t(chol(Sigma.cond))
-        eta.sim <- sapply(1:n.sim.prev, function(i) mu.cond+Sigma.cond.sroot%*%rnorm(n.pred))
+        if(int.out.ce) {
+          eta.sim <- sapply(1:n.sim.prev, function(i) mu.cond[i,]+Sigma.cond.sroot%*%rnorm(n.pred))
+        } else {
+          eta.sim <- sapply(1:n.sim.prev, function(i) mu.cond+Sigma.cond.sroot%*%rnorm(n.pred))
+        }
       }
     }
     out$samples <- eta.sim
@@ -4131,18 +4225,38 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 
   if(any(scale.predictions=="logit")) {
     if(messages) cat("Spatial predictions: logit \n")
-    out$logit$predictions <-  mu.cond
+    if(int.out.ce) {
+      out$logit$predictions <-  apply(eta.sim,1,mean)
+    } else {
+      out$logit$predictions <-  mu.cond
+    }
+
     if(standard.errors) {
-      out$logit$standard.errors <- sd.cond
+      if(int.out.ce) {
+        out$logit$standard.errors <-  apply(eta.sim,1,sd)
+      } else {
+        out$logit$standard.errors <- sd.cond
+      }
     }
     if(length(quantiles) > 0) {
-      out$logit$quantiles <- sapply(quantiles,function(q) qnorm(q,mean=mu.cond,sd=sd.cond))
+      if(int.out.ce) {
+        out$logit$quantiles <- t(apply(eta.sim,1,
+                                       function(r) quantile(r,quantiles)))
+      } else {
+        out$logit$quantiles <- sapply(quantiles,function(q) qnorm(q,mean=mu.cond,sd=sd.cond))
+      }
     }
 
     if(length(thresholds) > 0 && scale.thresholds=="logit") {
       out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-      out$exceedance.prob <- sapply(thresholds, function(x)
-        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      if(int.out.ce) {
+        out$exceedance.prob <- t(t(apply(eta.sim,1,
+                                         function(r) sapply(thresholds, function(x) mean(r>x)))))
+      } else {
+        out$exceedance.prob <- sapply(thresholds, function(x)
+          1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      }
+
       colnames(out$exceedance.prob) <- paste(thresholds,sep="")
     }
   }
@@ -4163,37 +4277,65 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 
     if(length(thresholds) > 0 && scale.thresholds=="prevalence") {
       out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-      out$exceedance.prob <- sapply(log(thresholds/(1-thresholds)), function(x)
-        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      if(int.out.ce) {
+        out$exceedance.prob <- t(t(apply(eta.sim,1,
+                                         function(r) sapply(log(thresholds/(1-thresholds)),
+                                                            function(x) mean(r>x)))))
+      } else {
+        out$exceedance.prob <- sapply(log(thresholds/(1-thresholds)), function(x)
+          1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      }
       colnames(out$exceedance.prob) <- paste(thresholds,sep="")
     }
   }
 
   if(any(scale.predictions=="odds")) {
     if(messages) cat("Spatial predictions: odds \n")
-    out$odds$predictions <- exp(mu.cond+0.5*(sd.cond^2))
+    if(int.out.ce) {
+      odds.sim <- exp(eta.sim)
+      out$odds$predictions <- apply(odds.sim,1,mean)
+    } else {
+      out$odds$predictions <- exp(mu.cond+0.5*(sd.cond^2))
+    }
+
     if(standard.errors) {
-      out$odds$standard.errors <- sqrt(exp(2*mu.cond+sd.cond^2)*(exp(sd.cond^2)-1))
+      if(int.out.ce) {
+        out$odds$standard.errors <- apply(odds.sim,1,sd)
+      } else {
+        out$odds$standard.errors <- sqrt(exp(2*mu.cond+sd.cond^2)*(exp(sd.cond^2)-1))
+      }
     }
 
     if(length(quantiles) > 0) {
-      out$odds$quantiles <- sapply(quantiles,function(q) qlnorm(q,meanlog=mu.cond,sdlog=sd.cond))
+      if(int.out.ce) {
+        out$odds$quantiles <- t(apply(odds.sim,1,
+                                      function(r) quantile(r,quantiles)))
+      } else {
+        out$odds$quantiles <- sapply(quantiles,function(q) qlnorm(q,meanlog=mu.cond,sdlog=sd.cond))
+      }
     }
 
     if(length(thresholds) > 0 && scale.thresholds=="odds") {
       out$exceedance.prob <- matrix(NA,nrow=n.pred,ncol=length(thresholds))
-      out$exceedance.prob <- sapply(log(thresholds), function(x)
-        1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      if(int.out.ce) {
+        out$exceedance.prob <- t(apply(eta.sim,1,
+                                       function(r) sapply(log(thresholds),
+                                                          function(x) mean(r>x))))
+      } else {
+        out$exceedance.prob <- sapply(log(thresholds), function(x)
+          1-pnorm(x,mean=mu.cond,sd=sd.cond))
+      }
       colnames(out$exceedance.prob) <- paste(thresholds,sep="")
     }
   }
   out$grid.pred <- grid.pred
-  if(any(scale.predictions=="prevalence")) {
+  if(any(scale.predictions=="prevalence") | int.out.ce) {
     out$samples <- eta.sim
   }
   class(out) <- "pred.PrevMap"
   out
 }
+
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
@@ -5082,11 +5224,11 @@ control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
   if(length(uniform.sigma2) > 0 && any(uniform.sigma2 < 0)) stop("uniform.sigma2 must be positive.")
   if(length(uniform.phi) > 0 && any(uniform.phi < 0)) stop("uniform.phi must be positive.")
   if(length(uniform.nugget) > 0 && any(uniform.nugget < 0)) stop("uniform.nugget must be positive.")
-  
+
   if(length(log.normal.sigma2) > 0 && log.normal.sigma2[2] < 0) stop("the second element of log.normal.sigma2 must be positive.")
   if(length(log.normal.phi) > 0 && log.normal.phi[2] < 0) stop("the second element of log.normal.phi must be positive.")
   if(length(log.normal.nugget) > 0 && log.normal.nugget[2] < 0) stop("the second element of log.normal.nugget must be positive.")
-  
+
   if((length(log.prior.sigma2) > 0 & (length(uniform.sigma2)>0 | length(log.normal.sigma2))) |
      ((length(log.prior.sigma2) > 0 | length(uniform.sigma2)>0) & length(log.normal.sigma2)) |
      ((length(log.prior.sigma2) > 0 | length(log.normal.sigma2)>0) & length(uniform.sigma2))) stop("only one prior for sigma2 must be provided.")
@@ -5102,15 +5244,15 @@ control.prior <- function(beta.mean,beta.covar, log.prior.sigma2=NULL,
   if(length(log.normal.sigma2) > 0 && length(log.normal.sigma2) !=2) stop("wrong length of log.normal.sigma2")
   if(length(log.normal.phi) > 0 && length(log.normal.phi) !=2) stop("wrong length of log.normal.phi")
   if(length(log.normal.nugget) > 0 && length(log.normal.nugget) !=2) stop("wrong length of log.normal.nugget")
-  
+
   if(length(uniform.sigma2) > 0 && (uniform.sigma2[2] < uniform.sigma2[1])) stop("wrong value for uniform.sigma2: the value for the upper limit is smaller than the lower limit.")
   if(length(uniform.phi) > 0 && (uniform.phi[2] < uniform.phi[1])) stop("wrong value for uniform.phi: the value for the upper limit is smaller than the lower limit.")
   if(length(uniform.nugget) > 0 && (uniform.nugget[2] < uniform.nugget[1])) stop("wrong value for uniform.nugget: the value for the upper limit is smaller than the lower limit.")
-  
+
   if(length(uniform.sigma2) > 0 && any(uniform.sigma2<0)) stop("uniform.sigma2 must be positive.")
   if(length(uniform.phi) > 0 && any(uniform.phi<0)) stop("uniform.phi must be positive.")
   if(length(uniform.nugget) > 0 && any(uniform.nugget<0)) stop("uniform.nugget must be positive.")
-  
+
   if(length(uniform.sigma2) > 0) {
     log.prior.sigma2 <- function(sigma2) dunif(sigma2,uniform.sigma2[1], uniform.sigma2[2],log=TRUE)
   } else if(length(log.normal.sigma2) > 0) {
@@ -5234,35 +5376,35 @@ control.mcmc.Bayes <- function(n.sim,burnin,thin,
                                linear.model=FALSE,binary=FALSE) {
   if(!linear.model & !binary) epsilon.S.lim <- as.numeric(epsilon.S.lim)
   if(!linear.model & !binary && (any(length(epsilon.S.lim)==c(1,2))==FALSE)) stop("epsilon.S.lim must be: atomic; a vector of length 2.")
-  
+
   if(!linear.model & !binary && (any(length(L.S.lim)==c(1,2))==FALSE))  stop("L.S.lim must be: atomic; a vector of length 2; or NULL for the linear Gaussian model.")
-  
+
   if(n.sim < burnin) stop("n.sim cannot be smaller than burnin.")
-  
+
   if((n.sim-burnin)%%thin!=0) stop("thin must be a divisor of (n.sim-burnin)")
-  
+
   if(length(start.nugget) > 0 & length(h.theta3) == 0) stop("h.theta3 is missing.")
-  
+
   if(length(start.nugget) > 0 & length(c1.h.theta3) == 0) stop("c1.h.theta3 is missing.")
-  
+
   if(length(start.nugget) > 0 & length(c2.h.theta3) == 0) stop("c2.h.theta3 is missing.")
-  
+
   if(c1.h.theta1 < 0) stop("c1.h.theta1 must be positive.")
-  
+
   if(c1.h.theta2 < 0) stop("c1.h.theta2 must be positive.")
-  
+
   if(length(c1.h.theta3) > 0 && c1.h.theta3 < 0) stop("c1.h.theta3 must be positive.")
-  
+
   if(c2.h.theta1 < 0 | c2.h.theta1 > 1) stop("c2.h.theta1 must be between 0 and 1.")
-  
+
   if(c2.h.theta2 < 0 | c2.h.theta2 > 1) stop("c2.h.theta2 must be between 0 and 1.")
-  
+
   if(length(c2.h.theta3) > 0 && (c2.h.theta3 < 0 | c2.h.theta3 > 1)) stop("c2.h.theta3 must be between 0 and 1.")
-  
+
   if(!linear.model & !binary && (length(epsilon.S.lim)==2 & epsilon.S.lim[2] < epsilon.S.lim[1])) stop("The first element of epsilon.S.lim must be smaller than the second.")
-  
+
   if(!linear.model & !binary && (length(L.S.lim)==2 & L.S.lim[2] < epsilon.S.lim[1])) stop("The first element of L.S.lim must be smaller than the second.")
-  
+
   if(linear.model) {
     out <- list(n.sim=n.sim,burnin=burnin,thin=thin,
                 h.theta1=h.theta1,h.theta2=h.theta2,
@@ -5295,6 +5437,7 @@ control.mcmc.Bayes <- function(n.sim,burnin,thin,
   class(out) <- "mcmc.Bayes.PrevMap"
   out
 }
+
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
@@ -6514,6 +6657,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{call}: the matched call.
 ##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -6526,16 +6670,17 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' n.subset <- 50
 ##' data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
 ##' # Set the MCMC control parameters
-##' control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-##'                            h.theta1=0.05,h.theta2=0.05,
-##'                            L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
-##'                            start.beta=0,start.sigma2=1,start.phi=0.15,
-##'                            start.nugget=NULL,
-##'                            start.S=rep(0,n.subset))
+##'control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
+##'                                   h.theta1=0.05,h.theta2=0.05,
+##'                                   L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
+##'                                   start.beta=0,start.sigma2=1,start.phi=0.15,
+##'                                   start.nugget = 1,
+##'                                   start.S=rep(0,n.subset))
 ##'
-##' cp <- control.prior(beta.mean=0,beta.covar=1,
-##'                     log.normal.phi=c(log(0.15),0.05),
-##'                     log.normal.sigma2=c(log(1),0.1))
+##'cp <- control.prior(beta.mean=0,beta.covar=1,
+##'                    log.normal.phi=c(log(0.15),0.05),
+##'                    log.normal.sigma2=c(log(1),0.1),
+##'                    log.normal.nugget =c(log(1),0.1))
 ##'
 ##' fit.Bayes <- binomial.logistic.Bayes(formula=y~1,coords=~x1+x2,units.m=~units.m,
 ##'                                      data=data_subset,control.prior=cp,
@@ -7017,7 +7162,7 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
             & length(control.profile$rel.nugget) > 0) {
     start.par <- object$estimate["log(phi)"]
   }
-  
+
   if(control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget) {
     log.lik <- function(beta,sigma2,phi,kappa,nu2) {
       V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
@@ -7044,7 +7189,7 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
         plot(out$eval.points.phi,out$profile.phi,type="l",
              main=expression("Log-likelihood for"~phi~"and remaining parameters fixed", ),
              xlab=expression(phi),ylab="log-likelihood")
-        
+
       }
     } else if(control.profile$fixed.par.phi==FALSE & control.profile$fixed.par.rel.nugget) {
       out$eval.points.rel.nugget <- control.profile$rel.nugget
@@ -7098,7 +7243,7 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
       as.numeric(-0.5*(n*log(sigma2.hat)+ldet.V))
     }
     out <- list()
-    
+
     if(length(control.profile$phi) > 0 & length(control.profile$rel.nugget)==0) {
       out$eval.points.phi <- control.profile$phi
       out$profile.phi <- rep(NA,length(control.profile$phi))
@@ -7348,7 +7493,7 @@ geo.linear.Bayes <- function(formula,coords,data,
     colnames(out$estimate) <- c(colnames(D),"sigma^2","phi","tau^2")
     if(control.mcmc$start.nugget=="prior mean") {
       tau2.curr <- integrate(function(x) x*exp(control.prior$log.prior.nugget(x)),
-                               lower=-Inf,upper=Inf,rel.tol=1e-10)$value
+                             lower=-Inf,upper=Inf,rel.tol=1e-10)$value
     } else if(is.numeric(control.mcmc$start.nugget)) {
       tau2.curr <- control.mcmc$start.nugget
     } else {
@@ -7373,7 +7518,7 @@ geo.linear.Bayes <- function(formula,coords,data,
   }
   if(control.mcmc$start.phi=="prior mean") {
     phi.curr <- integrate(function(x) x*exp(control.prior$log.prior.phi(x)),
-                             lower=-Inf,upper=Inf,rel.tol=1e-10)$value
+                          lower=-Inf,upper=Inf,rel.tol=1e-10)$value
   } else if(is.numeric(control.mcmc$start.phi)) {
     phi.curr <- control.mcmc$start.phi
   } else {
@@ -9121,6 +9266,7 @@ binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
 ##' @return \code{h2}: vector of values taken by the tuning parameter \code{h.theta2} at each iteration.
 ##' @return \code{call}: the matched call.
 ##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applications.} Chapman & Hall, London.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -9201,6 +9347,7 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
 ##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
@@ -9657,6 +9804,7 @@ cond.sim.ps <- function(y,Q0,mu1.0,mu1.grid0,mu2.0,alpha0,sigma2.t0,sigma2.2.0,R
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
 ##' @return \code{call}: the matched call.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Diggle, P.J., Giorgi, E. (2017). \emph{Preferential sampling of exposures levels.} In: Handbook of Environmental and Ecological Statistics. Chapman & Hall.
 ##' @references Diggle, P.J., Menezes, R. and Su, T.-L. (2010). \emph{Geostatistical analysis under preferential sampling (with Discussion).} Applied Statistics, 59, 191-232.
@@ -10768,7 +10916,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
   estim$call <- match.call()
   class(estim) <- "PrevMap.ps"
   return(estim)
-}
+  }
 
 ##' @title Summarizing fits of geostatistical linear models with preferentially sampled locations
 ##' @description \code{summary} method for the class "PrevMap" that computes the standard errors and p-values of likelihood-based model fits.
@@ -11329,5 +11477,1087 @@ plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
 
 
   getMethod('plot',signature=signature(x='Raster', y='ANY'))(r,...)
+}
+
+
+##' @title Point map
+##' @description This function produces a plot with points indicating the data locations. Arguments can control the points sizes, patterns and colors. These can be set to be proportional to data values, ranks or quantiles. Alternatively, points can be added to the current plot.
+##' @param data an object of class "data.frame" containing the data.
+##' @param var.name a \code{\link{formula}} object indicating the variable to display.
+##' @param coords a \code{\link{formula}} object indicating the geographical coordinates.
+##' @param ... additional arguments to be passed to \code{\link{points.geodata}}.
+##' @importFrom geoR as.geodata
+##' @importFrom geoR points.geodata
+##' @export
+point.map <- function(data,var.name,coords,...) {
+  if(class(data)!="data.frame") stop("'data' must be an object of class 'data.frame'.")
+  if(class(var.name)!="formula") stop("'var.name' must be an object of class 'formula' indicating the variable to display.")
+  if(class(coords)!="formula") stop("'coords' must be an object of class 'formula' indicating the geographical coordinates.")
+
+  coords <- as.matrix(model.frame(coords,data))
+  y <- as.vector(model.frame(var.name,data))
+  gdo <- geoR::as.geodata(data.frame(x1=coords[,1],x2=coords[,2],y=y))
+  geoR::points.geodata(gdo,...)
+
+}
+
+##' @title Plot of trends
+##' @description This function produces a plot of the variable of interest against each of the two geographical coordinates.
+##' @param data an object of class "data.frame" containing the data.
+##' @param var.name a \code{\link{formula}} object indicating the variable to display.
+##' @param coords a \code{\link{formula}} object indicating the geographical coordinates.
+##' @param ... additional arguments to be passed to \code{\link{plot}}.
+##' @export
+trend.plot <- function(data,var.name,coords,...) {
+  if(class(data)!="data.frame") stop("'data' must be an object of class 'data.frame'.")
+  if(class(var.name)!="formula") stop("'var.name' must be an object of class 'formula' indicating the variable to display.")
+  if(class(coords)!="formula") stop("'coords' must be an object of class 'formula' indicating the geographical coordinates.")
+
+  coords <- as.matrix(model.frame(coords,data))
+  y <- as.numeric(model.frame(var.name,data)[,1])
+
+  par(mfrow=c(1,2))
+  plot(coords[,1],y,xlab="X Coord",...)
+  plot(coords[,2],y,xlab="Y Coord",...)
+  par(mfrow=c(1,1))
+}
+
+##' @title The empirical variogram
+##' @description This function computes sample (empirical) variograms with options for the classical or robust estimators. Output can be returned as a binned variogram, a variogram cloud or a smoothed variogram. Data transformation (Box-Cox) is allowed. “Trends” can be specified and are fitted by ordinary least squares in which case the variograms are computed using the residuals.
+##' @param data an object of class "data.frame" containing the data.
+##' @param var.name a \code{\link{formula}} object indicating the variable to display.
+##' @param coords a \code{\link{formula}} object indicating the geographical coordinates.
+##' @param ... additional arguments to be passed to \code{\link{variog}}.
+##' @return An object of the class "variogram" which is list containing components as detailed in \code{\link{variog}}.
+##' @importFrom geoR as.geodata
+##' @importFrom geoR variog
+##' @export
+variogram <- function(data,var.name,coords,...) {
+  if(class(data)!="data.frame") stop("'data' must be an object of class 'data.frame'.")
+  if(class(var.name)!="formula") stop("'var.name' must be an object of class 'formula' indicating the variable to display.")
+  if(class(coords)!="formula") stop("'coords' must be an object of class 'formula' indicating the geographical coordinates.")
+
+  coords <- as.matrix(model.frame(coords,data))
+  y <- as.vector(model.frame(var.name,data))
+  gdo <- as.geodata(data.frame(x1=coords[,1],x2=coords[,2],y=y))
+  variog(gdo,...)
+}
+
+##' @title Diagnostics for residual spatial correlation
+##' @description This function performs two variogram-based tests for residual spatial correlation in real-valued and count (Binomial and Poisson) data.
+##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
+##' @param units.m vector of binomial denominators, or offset if the Poisson model is used.
+##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
+##' @param data an object of class "data.frame" containing the data.
+##' @param likelihood a character that can be set to "Gaussian","Binomial" or "Poisson"
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}.
+##' These must be provided if, for example, spatial random effects are defined at
+##'  household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct
+##'  otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param n.sim number of simulations used to perform the selected test(s) for spatial correlation.
+##' @param nAGQ integer scalar (passed to \code{\link{glmer}}) - the number of points per axis for evaluating the adaptive Gauss-Hermite approximation to the log-likelihood.
+##' Defaults to 1, corresponding to the Laplace approximation. Values greater than 1 produce greater accuracy in the evaluation of the
+##'  log-likelihood at the expense of speed. A value of zero uses a faster but less exact form of parameter estimation for GLMMs by optimizing
+##'   the random effects and the fixed-effects coefficients in the penalized iteratively reweighted least squares step.
+##' @param uvec a vector with values used to define the variogram binning. If \code{uvec=NULL}, then \code{uvec} is then set to \code{seq(MIN_DIST,(MAX_DIST-MIN_DIST)/2,length=15)}
+##' where \code{MIN_DIST} and \code{MAX_DIST} are the minimum and maximum observed distances.
+##' @param plot.results if \code{plot.results=TRUE}, a plot is returned showing the results for the selected test(s) for spatial correlation. By default \code{plot.results=TRUE}.
+##' @param lse.variogram if \code{lse.variogram=TRUE}, a weighted least square fit of a Matern function (with fixed \code{kappa}) to the empirical variogram is performed. If \code{plot.results=TRUE} and \code{lse.variogram=TRUE}, the
+##' fitted weighted least square fit is displayed as a dashed line in the returned plot.
+##' @param kappa smothness parameter of the Matern function for the Gaussian process to approximate. The deafault is \code{kappa=0.5}.
+##' @param which.test a character specifying which test for residual spatial correlation is to be performed: "variogram", "test statistic" or "both". The default is \code{which.test="both"}. See 'Details'.
+##'
+##' @details The function first fits a generalized linear mixed model using the for an outcome \eqn{Y_i} which, conditionally on i.i.d. random effects \eqn{Z_i}, are mutually independent
+##' GLMs with linear predictor
+##' \deqn{g^{-1}(\eta_i)=d_i'\beta+Z_i}
+##' where \eqn{d_i} is a vector of covariates which are specified through \code{formula}. Finally, the \eqn{Z_i} are assumed to be zero-mean Gaussian variables with variance \eqn{\sigma^2}
+##'
+##' @details \bold{Variogram-based graphical diagnostic}
+##' @details This graphical diagnostic is performed by setting \code{which.test="both"} or \code{which.test="variogram"}. The output are 95% confidence intervals
+##' (see below \code{lower.lim} and \code{upper.lim}) that are generated under the assumption of spatial indepdence through the following steps
+##'
+##' @details 1. Fit a generalized linear mixed model as indicated by the equation above.
+##' @details 2. Obtain the mode, say \eqn{\hat{Z}_i}, of the \eqn{Z_i} conditioned on the data \eqn{Y_i}.
+##' @details 3. Compute the empirical variogram using \eqn{\hat{Z}_i}
+##' @details 4. Permute the locations specified in \code{coords}, \code{n.sim} time while holding the \eqn{\hat{Z}_i} fixed.
+##' @details 5. For each of the permuted data-sets compute the empirical variogram based on the \eqn{\hat{Z}_i}.
+##' @details 6. From the \code{n.sim} variograms obtained in the previous step, compute the 95% confidence interval.
+##'
+##' @details If the observed variogram (\code{obs.variogram} below), based on the un-permuted \eqn{\hat{Z}_i}, falls within the 95% confidence interval, we interpret this as evidence that the data do not show
+##' residual spatial correlation; if, instead, that partly falls outside the 95% confidence intervals, we interpret this as evidence of residual spatial correlation.
+##'
+##' @details \bold{Test for spatial independence}
+##' @details This diagnostic test is performed if \code{which.test="both"} or \code{which.test="test statistic"}. Let \eqn{\hat{v}(B)} denote the empirical variogram based on \eqn{\hat{Z}_i} for the distance bin \eqn{B}.
+##' The test statistic used for testing residual spatial correlation is
+##' \deqn{T = \sum_{B} N(B) \{v(B)-\hat{\sigma}^2\}}
+##' where \eqn{N(B)} is the number of pairs of data-points falling within the distance bin \eqn{B} (\code{n.bins} below) and \eqn{\hat{\sigma}^2} is the estimate of \eqn{\sigma^2}.
+##' @details To obtain the distribution of the test statistic \eqn{T} under the null hypothesis of spatial independence, we use the simulated empirical variograms as obtained in step 5 of the iterative procedure described in "Variogram-based graphical diagnostic."
+##' The p-value for the test of spatial independence is then computed by taking the proportion of simulated values for \eqn{T} under the null the hypothesis that are larger than the value of \eqn{T} based on the original (un-permuted) \eqn{\hat{Z}_i}
+##' @return An object of class "PrevMap.diagnostic" which is a list containing the following components:
+##' @return \code{obs.variogram}: a vector of length \code{length(uvec)-1} containing the values of the variogram for each of
+##' the distance bins defined through \code{uvec}.
+##' @return \code{distance.bins}: a vector of length \code{length(uvec)-1} containing the average distance within each of the distance bins
+##' defined through \code{uvec}.
+##' @return \code{n.bins}: a vector of length \code{length(uvec)-1} containing the number of pairs of data-points falling within each distance bin.
+##' @return \code{lower.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the lower limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of spatial correlation at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{upper.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the upper limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of spatial correlation at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{mode.rand.effects}: the predictive mode of the random effects from the fitted non-spatial generalized linear mixed model.
+##' @return \code{p.value}: (available only if \code{which.test="both"} or \code{which.test="test statistic"}) p-value of the test for residual spatial correlation.
+##' @return \code{lse.variogram}: (available only if \code{lse.variogram=TRUE}) a vector of length \code{length(uvec)-1} containing the values of the estimated Matern variogram via a weighted least square fit.
+##' @importFrom lme4 glmer
+##' @importFrom lme4 lmer
+##' @importFrom lme4 ranef
+##' @importFrom geoR matern
+##' @export
+spat.corr.diagnostic <- function(formula,
+                                 units.m=NULL, coords,data,likelihood, ID.coords=NULL,
+                                 n.sim=200,
+                                 nAGQ=1,uvec=NULL,plot.results=TRUE,
+                                 lse.variogram=FALSE,kappa=0.5,
+                                 which.test="both") {
+  if(class(formula)!="formula") stop("'formula' must be an object of class 'formula' indicating the model to be fitted.")
+  if(!is.null(units.m) & class(units.m)!="formula") stop("'units.m' must be an object of class 'formula'.")
+  if(class(data)!="data.frame") stop("'data' must be a 'data.frame' object.")
+  if(!any(likelihood==c("Gaussian","Binomial","Poisson"))) stop("'likelihood' must be either 'Gaussian', 'Binomial' or 'Poisson'.")
+  which.plot <- which.test
+  if(which.plot=="both" & which.test!=which.plot) stop("the input for 'which.plot' is not valid.")
+  if(which.test!="both" & (which.test != which.plot)) stop("the input for 'which.plot' is not valid.")
+  if(any(which.test==c("both","variogram","test statistic"))==FALSE) stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
+  if(any(which.plot==c("both","variogram","test statistic"))==FALSE) stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
+
+  if(!is.null(theta.start) & length(theta.start)!=3) stop("'theta.start' must be a numeric vector of length 3, providing the initial values for 'sigma2', 'phi' and 'nugget' for the least square fit to the empirical variogram")
+
+  mf <- model.frame(formula,data=data)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+
+  theta.start=NULL
+
+  y <- model.response(mf)
+  if(is.factor(y)) {
+    y <- 1*(y==levels(y)[2])
+  }
+
+  if(is.null(units.m)) {
+    units.m <- rep(1,nrow(data))
+  } else {
+    units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  }
+
+  coords <-  as.matrix(model.frame(coords,data)[,1:2])
+
+  if(!is.null(ID.coords)) {
+    coords <- unique(coords)
+  } else {
+    ID.coords <- 1:nrow(data)
+  }
+
+
+  if((length(ID.coords)!=nrow(coords))) {
+    n.x <- length(unique(ID.coords))
+    xy.set <- expand.grid(1:n.x,1:n.x)
+    xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
+    d.coords <- as.numeric(sqrt((coords[ID.coords[xy.set[,1]],1]-
+                                   coords[ID.coords[xy.set[,2]],1])^2+
+                                  (coords[ID.coords[xy.set[,1]],2]-
+                                     coords[ID.coords[xy.set[,2]],2])^2))
+  } else {
+    n.x <- length(ID.coords)
+    xy.set <- expand.grid(1:n.x,1:n.x)
+    xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
+    d.coords <- as.numeric(sqrt((coords[xy.set[,1],1]-coords[xy.set[,2],1])^2+
+                                  (coords[xy.set[,1],2]-coords[xy.set[,2],2])^2))
+  }
+
+  if(is.null(uvec)) {
+    u.range <- range(d.coords)
+    uvec <- seq(u.range[1],(u.range[1]+u.range[2])/2,length=15)
+  }
+  out <- list()
+  if(likelihood=="Binomial") {
+    data.aux <- data.frame(response.variable=y,units.m=units.m,D[,-1],ID=ID.coords)
+    formula.aux <- paste("cbind(response.variable,units.m-response.variable)", "~",
+                         paste(c(names(data.aux)[-c(1,2,p+2)],"(1|ID)"), collapse=" + "))
+    options(warn=-1)
+    glmer.fit <- glmer(formula.aux,data=data.aux,family = binomial,nAGQ=nAGQ)
+    options(warn=0)
+    sigma2.hat <- sqrt(glmer.fit@theta)
+    out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,1])
+  } else if(likelihood=="Poisson") {
+    data.aux <- data.frame(response.variable=y,units.m=units.m,D[,-1],ID=ID.coords)
+    formula.aux <- paste("response.variable", "~","offset(log(units.m)) +",
+                         paste(c(names(data.aux)[-c(1,2,p+2)],"(1|ID)"), collapse=" + "))
+    options(warn=-1)
+    glmer.fit <- glmer(formula.aux,data=data.aux,family = poisson,nAGQ=nAGQ)
+    options(warn=0)
+    sigma2.hat <- sqrt(glmer.fit@theta)
+    out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,1])
+  } else {
+    if(length(ID.coords)!=nrow(coords)) {
+      lm.fit <- lm(formula,data=data)
+      sigma2.hat <- mean(lm.fit$residuals^2)
+      out$mode.rand.effects <- lm.fit$residuals
+    } else {
+
+      if(length(ID.coords)!=nrow(coords)) {
+        data.aux <- data.frame(response.variable=y,D[,-1],ID=ID.coords)
+        formula.aux <- paste("response.variable", "~",
+                             paste(c(names(data.aux)[-c(1,p+1)]), collapse=" + "))
+
+        options(warn=-1)
+        lmer.fit <- lmer(formula.aux,data=data.aux)
+        options(warn=0)
+        sigma2.hat <- lmer.fit@theta
+        out$mode.rand.effects <- as.numeric(ranef(lmer.fit)$ID[,1])
+      } else {
+        data.aux <- data.frame(response.variable=y,D[,-1])
+        lm.fit <- lm(response.variable~.,data=data.aux)
+        sigma2.hat <- mean(lm.fit$residuals^2)
+        out$mode.rand.effects <- lm.fit$residuals
+      }
+
+    }
+  }
+
+  d.coords.class <- cut(d.coords,uvec,include.lowest=TRUE)
+  na.remove <- which(is.na(d.coords.class))
+  d.coords <- d.coords[-na.remove]
+  d.coords.class <- d.coords.class[-na.remove]
+  xy.set <- xy.set[-na.remove,]
+
+  re.sq.diff <- 0.5*(out$mode.rand.effects[xy.set[,1]]-
+                       out$mode.rand.effects[xy.set[,2]])^2
+
+  out$obs.variogram <- 0.5*tapply(re.sq.diff,d.coords.class,mean)
+  out$distance.bins <- d.coords.class.mean <- tapply(d.coords,d.coords.class,mean)
+  out$n.bins <- as.numeric(table(d.coords.class))
+
+  variogram.sim <- matrix(NA,nrow=n.sim,ncol=length(out$obs.variogram))
+  if(which.test=="both" | which.test=="test statistic") test.stat <- rep(NA,n.sim)
+  for(i in 1:n.sim) {
+    d.coords.class.i <- d.coords.class[sample(1:length(d.coords.class))]
+    variogram.sim[i,] <- 0.5*tapply(re.sq.diff,d.coords.class.i,mean)
+    if(which.test=="both" | which.test=="test statistic") test.stat[i] <- sum(out$n.bins*(variogram.sim[i,]-sigma2.hat)^2)
+  }
+
+  if(which.test=="both" | which.test=="variogram") out$lower.lim <- apply(variogram.sim,2,function(x) quantile(x,0.025))
+  if(which.test=="both" | which.test=="variogram") out$upper.lim <- apply(variogram.sim,2,function(x) quantile(x,0.975))
+
+  if(which.test=="both" | which.test=="test statistic") obs.test.stat <- sum(out$n.bins*(out$obs.variogram-sigma2.hat)^2)
+  if(which.test=="both" | which.test=="test statistic") out$p.value <- mean(test.stat > obs.test.stat)
+
+  if(lse.variogram) {
+
+    lse <- function(theta) {
+      sigma2 <- exp(theta[1])
+      phi <- exp(theta[2])
+      tau2 <- exp(theta[3])
+      f <- out$n.bins*((out$obs.variogram-
+                          (tau2+sigma2*(1-matern(d.coords.class.mean,phi,kappa))))^2)
+      sum(f)
+    }
+    u.range <- range(d.coords)
+    if(is.null(theta.start)) theta.start <- c(log(sigma2.hat),
+                                              log((u.range[1]+u.range[2])/4),
+                                              log(out$obs.variogram[1]))
+    estim.variogram <- nlminb(theta.start, lse)
+    out$lse.variogram <- exp(estim.variogram$par)
+    names(out$lse.variogram) <- c("sigma^2", "phi", "tau^2")
+    cat("Least square fit to the empirical variogram \n")
+    cat("sigma^2 = ",out$lse.variogram[1]," (Variance of the Gaussian process) \n",sep="")
+    cat("phi = ",out$lse.variogram[2]," (Scale of the spatial correlation) \n",sep="")
+    cat("tau^2 = ",out$lse.variogram[3]," (Variance of the nugget effect) \n",sep="")
+  }
+
+  if(plot.results) {
+    if(which.plot=="both" | which.plot=="variogram") {
+      if(which.plot=="both") par(mfrow=c(1,2))
+      matplot(d.coords.class.mean,
+              cbind(out$lower.lim,out$upper.lim,out$obs.variogram),type="n",
+              xlab="Spatial distance",ylab="Variogram")
+      polygon(c(d.coords.class.mean,
+                d.coords.class.mean[length(d.coords.class.mean):1]),
+              c(out$lower.lim,out$upper.lim[length(out$upper.lim):1]),
+              border="white",col="light grey")
+      lines(d.coords.class.mean,out$obs.variogram)
+      if(lse.variogram) {
+        u.set <- seq(uvec[1],uvec[length(uvec)],length=200)
+        u.val <- out$lse.variogram[3]+out$lse.variogram[1]*
+          (1-matern(u.set,out$lse.variogram[2],kappa))
+        lines(u.set,u.val,lty="dashed")
+      }
+    }
+    if(which.test=="both" | which.test=="test statistic") {
+      hist(test.stat,prob=TRUE,main=paste("p-value = ",round(out$p.value,3),sep=""),
+           xlab="")
+      points(obs.test.stat,0,pch=20,cex=2)
+      abline(v=obs.test.stat,lty="dashed")
+    }
+  }
+
+  par(mfrow=c(1,1))
+  class(out) <- "PrevMap.diagnostic"
+
+  return(out)
+}
+
+
+##' @title Variogram-based validation for linear geostatistical model fits
+##' @description This function performs model validation for linear geostatistical model
+##' using Monte Carlo methods based on the variogram.
+##' @param object an object of class "PrevMap" obtained as an output from \code{\link{linear.model.MLE}}.
+##' @param n.sim integer indicating the number of simulations used for the variogram-based diagnostics.
+##' Defeault is \code{n.sim=1000}.
+##' @param uvec a vector with values used to define the variogram binning. If \code{uvec=NULL}, then \code{uvec} is then set to \code{seq(MIN_DIST,(MAX_DIST-MIN_DIST)/2,length=15)}
+##' @param plot.results if \code{plot.results=TRUE}, a plot is returned showing the results for the selected test(s) for spatial correlation. By default \code{plot.results=TRUE}.
+##' @param range.fact a value between 0 and 1 used to disregard all distance bins provided through \code{uvec} that are larger than the (pr)x\code{range.fact}, where pr is the practical range,
+##' defined as the distance at which the fitted spatial correlation is no less than 0.05. Default is \code{range.fact=1}
+##' @param which.test a character specifying which test for residual spatial correlation is to be performed: "variogram", "test statistic" or "both". The default is \code{which.test="both"}. See 'Details.'
+##' @param param.uncertainty a logical indicating whether uncertainty in the model parameters should be incorporated in the selected diagnostic tests. Default is \code{param.uncertainty=FALSE}. See 'Details.'
+##'
+##' @details The function takes as an input through the argument \code{object} a fitted
+##' linear geostaistical model for an outcome \eqn{Y_i}, which is expressed as
+##' \deqn{Y_i=d_i'\beta+S(x_i)+Z_i}
+##' where \eqn{d_i} is a vector of covariates which are specified through \code{formula}, \eqn{S(x_i)} is a spatial Gaussian process and the \eqn{Z_i} are assumed to be zero-mean Gaussian.
+##' The model validation is performed on the adopted satationary and isotropic Matern covariance function used for \eqn{S(x_i)}.
+##' More specifically, the function allows the users to select either of the following validation procedures.
+##'
+##' @details \bold{Variogram-based graphical validation}
+##' @details This graphical diagnostic is performed by setting \code{which.test="both"} or \code{which.test="variogram"}. The output are 95% confidence intervals
+##' (see below \code{lower.lim} and \code{upper.lim}) that are generated under the assumption that the fitted model did generate the analysed data-set.
+##' This validation procedure proceed through the following steps.
+##'
+##' @details 1. Obtain the mean, say \eqn{\hat{Z}_i}, of the \eqn{Z_i} conditioned on the data \eqn{Y_i}.
+##' @details 2. Compute the empirical variogram using \eqn{\hat{Z}_i}
+##' @details 3. Simulate \code{n.sim} data-sets under the fitted geostatistical model.
+##' @details 4. For each of the simulated data-sets and obtain \eqn{\hat{Z}_i} as in Step 1.
+##' Finally, compute the empirical variogram based on the resulting \eqn{\hat{Z}_i}.
+##' @details 5. From the \code{n.sim} variograms obtained in the previous step, compute the 95% confidence interval.
+##'
+##' @details If the observed variogram (\code{obs.variogram} below), based on the \eqn{\hat{Z}_i} from Step 2, falls within the 95% confidence interval, we interpret this as evidence that the data do not show
+##' evidence against the fitted spatial correlation model; if, instead, that partly falls outside the 95% confidence intervals, we interpret this as evidence that the fitted model does not adequately capture the residual spatial
+##' correlation in the data.
+##'
+##' @details \bold{Test for suitability of the adopted correlation function}
+##' @details This diagnostic test is performed if \code{which.test="both"} or \code{which.test="test statistic"}. Let \eqn{v_{E}(B)} and \eqn{v_{T}(B)} denote the empirical and theoretical variograms based on \eqn{\hat{Z}_i} for the distance bin \eqn{B}.
+##' The test statistic used for testing residual spatial correlation is
+##' \deqn{T = \sum_{B} N(B) \{v_{E}(B)-v_{T}(B)\}}
+##' where \eqn{N(B)} is the number of pairs of data-points falling within the distance bin \eqn{B} (\code{n.bins} below).
+##' @details To obtain the distribution of the test statistic \eqn{T} under the null hypothesis that the fitted model did generate the analysed data-set, we use the simulated empirical variograms as obtained in step 5 of the iterative procedure described in "Variogram-based graphical validation."
+##' The p-value for the test of suitability of the fitted spatial correlation function is then computed by taking the proportion of simulated values for \eqn{T} that are larger than the value of \eqn{T} based on the original \eqn{\hat{Z}_i} in Step 1.
+##' @return An object of class "PrevMap.diagnostic" which is a list containing the following components:
+##' @return \code{obs.variogram}: a vector of length \code{length(uvec)-1} containing the values of the variogram for each of
+##' the distance bins defined through \code{uvec}.
+##' @return \code{distance.bins}: a vector of length \code{length(uvec)-1} containing the average distance within each of the distance bins
+##' defined through \code{uvec}.
+##' @return \code{n.bins}: a vector of length \code{length(uvec)-1} containing the number of pairs of data-points falling within each distance bin.
+##' @return \code{lower.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the lower limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of suitability of the fitted model  at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{upper.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the upper limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of suitability of the fitted model at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{mode.rand.effects}: the predictive mode of the random effects from the fitted non-spatial generalized linear mixed model.
+##' @return \code{p.value}: (available only if \code{which.test="both"} or \code{which.test="test statistic"}) p-value of the test for residual spatial correlation.
+##' @return \code{lse.variogram}: (available only if \code{lse.variogram=TRUE}) a vector of length \code{length(uvec)-1} containing the values of the estimated Matern variogram via a weighted least square fit.
+##' @importFrom lme4 glmer
+##' @importFrom lme4 ranef
+##' @importFrom geoR matern
+##' @export
+variog.diagnostic.lm <- function(object,
+                                 n.sim=1000,
+                                 uvec=NULL,plot.results=TRUE,
+                                 range.fact = 1,
+                                 which.test="both",
+                                 param.uncertainty=FALSE) {
+  which.plot <- which.test
+  if(class(object)!="PrevMap") stop("'object' must be a fitted geostatisical linear model as an output from 'linear.model.MLE'.")
+  if(which.plot=="both" & which.test!=which.plot) stop("the input for 'which.plot' is not valid.")
+  if(which.test!="both" & (which.test != which.plot)) stop("the input for 'which.plot' is not valid.")
+  if(any(which.test==c("both","variogram","test statistic"))==FALSE) stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
+  if(any(which.plot==c("both","variogram","test statistic"))==FALSE) stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
+  if(range.fact > 1 | range.fact < 0) stop("'range.fact' must be between 0 and 1.")
+
+  D <- object$D
+  p <- ncol(D)
+
+  y <- object$y
+
+  coords <-  object$coords
+
+  multiple.obs <- !is.null(object$ID.coords)
+  n.x <- nrow(coords)
+
+  if(multiple.obs) {
+    ID.coords <- object$ID.coords
+  } else {
+    ID.coords <- 1:n.x
+  }
+
+  xy.set <- expand.grid(1:n.x,1:n.x)
+  xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
+
+
+  d.coords <- as.numeric(sqrt((coords[xy.set[,1],1]-coords[xy.set[,2],1])^2+
+                                (coords[xy.set[,1],2]-coords[xy.set[,2],2])^2))
+
+
+  if(is.null(uvec)) {
+    u.range <- range(d.coords)
+    uvec <- seq(u.range[1],(u.range[1]+u.range[2])/2,length=15)
+  }
+  out <- list()
+
+  if(multiple.obs) {
+    beta <- object$estimate[1:p]
+    mu <- as.numeric(D%*%beta)
+    sigma2.hat <- as.numeric(exp(object$estimate["log(sigma^2)"]))
+    if(length(object$fixed.rel.nugget)>0) {
+      tau2.hat <- object$fixed.rel.nugget*sigma2.hat
+    } else {
+      tau2.hat <- as.numeric(exp(object$estimate["log(nu^2)"]))*sigma2.hat
+    }
+    sigma2.tot <- sigma2.hat+tau2.hat
+    omega2.hat <- as.numeric(exp(object$estimate["log(nu.star^2)"]))*sigma2.hat
+    OmegaS <- 1/(as.numeric(tapply(ID.coords,ID.coords,length))/omega2.hat+1/sigma2.tot)
+    obs.resid.hat <- OmegaS*tapply((y-mu)/omega2.hat,ID.coords,sum)
+  } else {
+    beta <- object$estimate[1:p]
+    mu <- as.numeric(D%*%beta)
+    obs.resid.hat <- y-mu
+  }
+
+  d.coords.class <- cut(d.coords,uvec,include.lowest=TRUE)
+  na.remove <- which(is.na(d.coords.class))
+  d.coords <- d.coords[-na.remove]
+  d.coords.class <- d.coords.class[-na.remove]
+  d.coords.class <- droplevels(d.coords.class)
+  xy.set <- xy.set[-na.remove,]
+
+  re.sq.diff <- (obs.resid.hat[xy.set[,1]]-
+                   obs.resid.hat[xy.set[,2]])^2
+  d.coords.class.mean <- tapply(d.coords,d.coords.class,mean)
+  if(which.test=="test statistic" | which.test=="both") {
+    if(prod(is.na(d.coords.class.mean))==1) stop("The distances provided through 'uvec' could not be found.")
+    if(any(is.na(d.coords.class.mean))) d.coords.class.mean <-
+        d.coords.class.mean[!is.na(d.coords.class.mean)]
+  }
+  out$obs.variogram <- 0.5*tapply(re.sq.diff,d.coords.class,mean)
+
+  variogram.sim <- matrix(NA,nrow=n.sim,ncol=length(out$obs.variogram))
+  if(which.test=="test statistic" | which.test=="both") test.stat <- rep(NA,n.sim)
+
+  if(param.uncertainty) {
+    if(which.test=="both" | which.test=="test statistic") {
+      stop("Incorporation of parameter uncertainty in the test statistic is not implemented; set which.test='variogram'")
+    }
+    par.hat <- object$estimate
+    Sigma.par.hat <- object$covariance
+    Sigma.par.hat.sroot <- t(chol(Sigma.par.hat))
+    par.sim <- t(sapply(1:n.sim,function(i) as.numeric(par.hat+
+                                                         Sigma.par.hat.sroot%*%
+                                                         rnorm(length(object$estimate)))))
+  }
+
+  if(length(object$fixed.rel.nugget)>0) {
+    fixed.rel.nugget <-object$fixed.rel.nugget
+  } else{
+    fixed.rel.nugget<- as.numeric(exp(object$estimate["log(nu^2)"]))
+  }
+
+  if(param.uncertainty) {
+    sigma2 <- exp(par.sim[,p+1])
+    phi <- exp(par.sim[,p+2])
+    if(length(object$fixed.rel.nugget)>0) {
+      tau2 <- sigma2*fixed.rel.nugget
+    } else {
+      tau2 <- sigma2*exp(par.sim[,p+3])
+    }
+
+  } else {
+    sigma2 <- as.numeric(exp(object$estimate["log(sigma^2)"]))
+    phi <- as.numeric(exp(object$estimate["log(phi)"]))
+    tau2 <- fixed.rel.nugget*sigma2
+  }
+
+  if(multiple.obs) {
+    omega2 <- as.numeric(exp(object$estimate["log(nu.star^2)"]))*sigma2
+  } else {
+    omega2 <- 0
+  }
+
+
+  U <- dist(coords)
+
+  if(!param.uncertainty) {
+    Sigma.spat <- varcov.spatial(dists.lowertri = U,
+                                 kappa=object$kappa,
+                                 cov.pars = c(sigma2,phi))$varcov
+    Sigma.spat.sroot <- t(chol(Sigma.spat))
+  }
+
+  n <- length(y)
+  if(param.uncertainty) {
+    beta <- as.matrix(par.sim[,1:p])
+  } else {
+    beta <- object$estimate[1:p]
+    mu <- as.numeric(D%*%beta)
+  }
+
+  n.bins <- as.numeric(table(d.coords.class))
+
+  phi.estim <- exp(object$estimate["log(phi)"])
+  pr <- uniroot(function(x) matern(x,phi.estim,object$kappa)-0.05,
+                lower=0,upper=10*phi.estim)$root
+  if(which.test=="both" | which.test=="test statistic") {
+    which.dist.test <- which(d.coords.class.mean < range.fact*pr)
+    if(length(which.dist.test)==0) stop("The provided vector of 'uvec' does not contain distances below (practical range)*range.fact. Change 'uvec' or 'range.fact'.")
+    dist.test <- d.coords.class.mean[which.dist.test]
+  }
+  n.coords <- nrow(coords)
+  for(i in 1:n.sim) {
+    if(param.uncertainty) {
+      Sigma.spat <- varcov.spatial(dists.lowertri = U,
+                                   kappa=object$kappa,
+                                   cov.pars = c(sigma2[i],phi[i]))$varcov
+      Sigma.spat.sroot <- t(chol(Sigma.spat))
+      mu <- D%*%beta[i,]
+      Z.sim <- sqrt(tau2[i])*rnorm(n.coords)
+      S.sim <- as.numeric(Sigma.spat.sroot%*%rnorm(n.coords)+Z.sim)
+    } else {
+      Z.sim <- sqrt(tau2)*rnorm(n.coords)
+      S.sim <- as.numeric(Sigma.spat.sroot%*%rnorm(n.coords)+Z.sim)
+    }
+
+
+    if(multiple.obs) {
+      if(param.uncertainty) {
+        V.sim <- sqrt(omega2[i])*rnorm(n)
+        res.sim <- S.sim[ID.coords]+V.sim
+      } else {
+        V.sim <- sqrt(omega2)*rnorm(n)
+        res.sim <- S.sim[ID.coords]+V.sim
+      }
+    } else {
+      res.sim <- S.sim[ID.coords]
+    }
+
+    if(multiple.obs) {
+      obs.resid.hat.sim <- as.numeric(OmegaS*tapply(res.sim/omega2.hat,ID.coords,sum))
+    } else {
+      obs.resid.hat.sim <- res.sim
+    }
+
+    re.sq.diff.sim <- (obs.resid.hat.sim[xy.set[,1]]-
+                         obs.resid.hat.sim[xy.set[,2]])^2
+    variogram.sim[i,] <- as.numeric(0.5*tapply(re.sq.diff.sim,d.coords.class,mean))
+    if(which.test=="test statistic" | which.test=="both") {
+      test.stat[i] <- sum(n.bins[which.dist.test]*
+                            (variogram.sim[i,which.dist.test]-
+                               (omega2+tau2+sigma2*
+                                  (1-matern(dist.test,phi,object$kappa))))^2)
+    }
+  }
+
+  if(which.test=="variogram" | which.test=="both") {
+    out$lower.lim <- apply(variogram.sim,2,function(x) quantile(x,0.025))
+    out$upper.lim <- apply(variogram.sim,2,function(x) quantile(x,0.975))
+  }
+
+  if(which.test=="test statistic" | which.test=="both") {
+    obs.test.stat <- sum(n.bins[which.dist.test]*
+                           (out$obs.variogram[which.dist.test]-
+                              (omega2+tau2+sigma2*
+                                 (1-matern(dist.test,phi,object$kappa))))^2)
+    out$p.value <- mean(test.stat > obs.test.stat)
+  }
+
+  out$distance.bins <- d.coords.class.mean
+  if(plot.results) {
+    if(which.plot=="both") {
+      par(mfrow=c(1,2))
+    }
+
+    if(which.plot=="both" | which.plot=="variogram") {
+      matplot(d.coords.class.mean,
+              cbind(out$lower.lim,out$upper.lim,out$obs.variogram),type="n",
+              xlab="Spatial distance",ylab="Variogram")
+      polygon(c(d.coords.class.mean,
+                d.coords.class.mean[length(d.coords.class.mean):1]),
+              c(out$lower.lim,out$upper.lim[length(out$upper.lim):1]),
+              border="white",col="light grey")
+      lines(d.coords.class.mean,out$obs.variogram)
+    }
+
+    if(which.plot=="both" | which.plot=="test statistic") {
+      hist(test.stat,prob=TRUE,main=paste("p-value = ",round(out$p.value,3),sep=""),
+           xlab="")
+      points(obs.test.stat,0,pch=20,cex=2)
+      abline(v=obs.test.stat,lty="dashed")
+    }
+  }
+
+  par(mfrow=c(1,1))
+  class(out) <- "PrevMap.diagnostic"
+
+  return(out)
+}
+
+
+##' @title Plot of the variogram-based diagnostics
+##' @description Displays the results from a call to \code{\link{variog.diagnostic.lm}} and \code{\link{variog.diagnostic.glgm}}.
+##' @param x an object of class "PrevMap.diagnostic".
+##' @param ... further arguments passed to \code{\link{plot}} of the 'raster' package.
+##' @method plot PrevMap.diagnostic
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##'
+##' @seealso \code{\link{variog.diagnostic.lm}}, \code{\link{variog.diagnostic.glgm}}
+##' @export
+plot.PrevMap.diagnostic <- function(x,...) {
+  if(class(x)!="PrevMap.diagnostic") stop("x must be of class PrevMap.diagnostic")
+  matplot(x$distance.bins,
+          cbind(x$lower.lim,x$upper.lim,x$obs.variogram),type="n",...)
+  polygon(c(x$distance.bins,
+            x$distance.bins[length(x$distance.bins):1]),
+          c(x$lower.lim,x$upper.lim[length(x$upper.lim):1]),
+          border="white",col="light grey")
+  lines(x$distance.bins,x$obs.variogram)
+}
+
+
+##' @title Monte Carlo Maximum Likelihood estimation for the binomial logistic model
+##' @description This function performs Monte Carlo maximum likelihood (MCML) estimation for the geostatistical binomial logistic model.
+##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
+##' @param units.m an object of class \code{\link{formula}} indicating the binomial denominators in the data.
+##' @param coords an object of class \code{\link{formula}} indicating the spatial coordinates in the data.
+##' @param times an object of class \code{\link{formula}} indicating the times in the data, used in the spatio-temporal model.
+##' @param data a data frame containing the variables in the model.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param kappa fixed value for the shape parameter of the Matern covariance function.
+##' @param kappa.t fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
+##' @param fixed.rel.nugget fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.
+##' @param start.cov.pars a vector of length two with elements corresponding to the starting values of \code{phi} and the relative variance of the nugget effect \code{nu2}, respectively, that are used in the optimization algorithm. If \code{nu2} is fixed through \code{fixed.rel.nugget}, then \code{start.cov.pars} represents the starting value for \code{phi} only.
+##' @param method method of optimization. If \code{method="BFGS"} then the \code{\link{maxBFGS}} function is used; otherwise \code{method="nlminb"} to use the \code{\link{nlminb}} function. Default is \code{method="BFGS"}.
+##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
+##' @param family character, indicating the conditional distribution of the outcome. This should be \code{"Gaussian"}, \code{"Binomial"} or \code{"Poisson"}.
+##' @param return.covariance logical; if \code{return.covariance=TRUE} then a numerical estimation of the covariance function for the model parameters is returned. Default is \code{return.covariance=TRUE}.
+##' @details
+##' This function performs parameter estimation for a generealized linear geostatistical model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a GLM
+##' with link function \eqn{g(.)} and linear predictor
+##' \deqn{\eta = d'\beta + S(x) + Z,}
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' The shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
+##'
+##' \bold{Laplace Approximation}
+##' The Laplace approximation (LA) method uses a second-order Taylor expansion of the integrand expressing the likelihood function. The resulting approximation of the likelihood is then maximized by a numerical optimization as defined through the argument \code{method}.
+##'
+##' \bold{Using a two-level model to include household-level and individual-level information.}
+##' When analysing data from household sruveys, some of the avilable information information might be at household-level (e.g. material of house, temperature) and some at individual-level (e.g. age, gender). In this case, the Gaussian spatial process \eqn{S(x)} and the nugget effect \eqn{Z} are defined at hosuehold-level in order to account for extra-binomial variation between and within households, respectively.
+##'
+##' @return An object of class "PrevMap".
+##' The function \code{\link{summary.PrevMap}} is used to print a summary of the fitted model.
+##' The object is a list with the following components:
+##' @return \code{estimate}: estimates of the model parameters; use the function \code{\link{coef.PrevMap}} to obtain estimates of covariance parameters on the original scale.
+##' @return \code{covariance}: covariance matrix of the MCML estimates.
+##' @return \code{log.lik}: maximum value of the log-likelihood.
+##' @return \code{y}: binomial observations.
+##' @return \code{units.m}: binomial denominators.
+##' @return \code{D}: matrix of covariates.
+##' @return \code{coords}: matrix of the observed sampling locations.
+##' @return \code{times}: vector of the time points used in a spatio-temporal model.
+##' @return \code{method}: method of optimization used.
+##' @return \code{ID.coords}: set of ID values defined through the argument \code{ID.coords}.
+##' @return \code{kappa}: fixed value of the shape parameter of the Matern function.
+##' @return \code{kappa.t}: fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
+##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
+##' @return \code{call}: the matched call.
+##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
+##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
+##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
+##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
+##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
+##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
+##' @export
+glgm.LA <- function(formula,units.m=NULL,coords,times=NULL,
+                    data,ID.coords=NULL,
+                    kappa,kappa.t=0.5,fixed.rel.nugget=NULL,
+                    start.cov.pars,
+                    method="nlminb",
+                    messages=TRUE,
+                    family,return.covariance=TRUE) {
+  if(!any(family==c("Binomial","Poisson"))) stop("'family' must be 'Binomial' or 'Poisson'")
+  if(class(formula)!="formula") stop("'formula' must be a 'formula' object indicating the variables of the model to be fitted.")
+  if(class(coords)!="formula") stop("'coords' must be a 'formula' object indicating the spatial coordinates.")
+  if(!is.null(units.m) & class(units.m)!="formula") stop("units.m must be a 'formula' object indicating an offset.")
+  if(kappa < 0) stop("kappa must be positive.")
+  if(method != "BFGS" & method != "nlminb") stop("'method' must be either 'BFGS' or 'nlminb'.")
+
+
+  start.cov.pars <- as.numeric(start.cov.pars)
+
+  st <- length(times)>0
+
+  if(any(start.cov.pars < 0)) stop("start.cov.pars must be positive")
+  if((length(fixed.rel.nugget)==0 & length(start.cov.pars)!=(2+1*st)) |
+     (length(fixed.rel.nugget)>0 & length(start.cov.pars)!=(1+1*st))) stop("wrong values for start.cov.pars")
+
+  kappa <- as.numeric(kappa)
+
+  if(st) {
+    coords <- as.matrix(model.frame(coords,data))
+    times <- as.matrix(model.frame(times,data))
+
+    coords.time.unique <- unique(cbind(coords,times))
+    coords <- coords.time.unique[,1:2]
+    times <- coords.time.unique[,3]
+  } else {
+    coords <- unique(as.matrix(model.frame(coords,data)))
+  }
+  if(is.matrix(coords)==FALSE || dim(coords)[2] !=2) stop("wrong set of coordinates.")
+
+  if(is.null(ID.coords)) ID.coords <- 1:nrow(coords)
+
+  if(any(is.na(data))) stop("missing values are not accepted")
+
+  mf <- model.frame(formula,data=data)
+  y <- as.numeric(model.response(mf))
+  n <- length(y)
+  if(is.null(units.m)) {
+    units.m <- rep(1,n)
+  } else {
+    units.m <-  as.numeric(model.frame(units.m,data)[,1])
+  }
+  n.x <- nrow(coords)
+  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
+  p <- ncol(D)
+
+  if(length(fixed.rel.nugget)>0){
+    tau2 <- fixed.rel.nugget
+    cat("Fixed relative variance of the nugget effect:",tau2,"\n")
+  }
+  U <- dist(coords)
+  if(length(times)>0)U.t <- dist(times)
+  #par <- c(0,1,log(c(1,0.1,1)))
+  poisson.llik <- family=="Poisson"
+
+  la <- function(par) {
+    beta <- par[1:p]
+    sigma2 <- exp(par[p+1])
+    phi <- exp(par[p+2])
+    if(!is.null(fixed.rel.nugget)) {
+      nu2 <- fixed.rel.nugget
+      if(st) psi <- exp(par[p+3])
+
+    } else {
+      nu2 <- exp(par[p+3])
+      if(st) psi <- exp(par[p+4])
+    }
+
+    mu <- as.numeric(D%*%beta)
+
+    R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+                        cov.pars=c(1,phi),
+                        nugget=0,kappa=kappa)$varcov
+    if(st) {
+      options(warn=-1)
+      R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+                            cov.pars=c(1,psi),
+                            nugget=0,kappa=kappa)$varcov
+      options(warn=0)
+      R <- R*R.t
+    }
+    diag(R) <- diag(R)+nu2
+    Sigma <- sigma2*R
+
+    compute.mode <- maxim.integrand(y,units.m,mu,Sigma,ID.coords,poisson.llik,
+                                    hessian=TRUE)
+
+    S.hat <- compute.mode$mode
+    H.neg <- -compute.mode$hessian
+
+    l.det.Sigma <- determinant(Sigma)$modulus
+    Sigma.inv <- solve(Sigma)
+    eta.hat <- mu+S.hat[ID.coords]
+    lik.S <- -0.5*(l.det.Sigma+t(S.hat)%*%Sigma.inv%*%S.hat)
+
+    if(poisson.llik) {
+      lik.data <- sum(y*eta.hat-units.m*exp(eta.hat))
+    } else {
+      lik.data <- sum(y*eta.hat-units.m*log(1+exp(eta.hat)))
+    }
+    lik.tot <- lik.S+lik.data
+
+    as.numeric(lik.tot-0.5*determinant(H.neg)$modulus)
+
+  }
+  if(poisson.llik) {
+    t.data <- log((y+1)/units.m)
+  } else {
+    t.data <- log((y+0.5)/(units.m-y+0.5))
+  }
+
+  beta.start <- as.numeric(solve(t(D)%*%D)%*%t(D)%*%t.data)
+  mu.start <- as.numeric(D%*%beta.start)
+  sigma2.start <- mean((t.data-D%*%beta.start)^2)
+
+  start.par <- c(beta.start,log(c(sigma2.start,start.cov.pars)))
+
+  estim <- list()
+  if(return.covariance==FALSE) method="nlminb"
+  if(method=="BFGS") {
+    estimBFGS <- maxBFGS(la,
+                         start=start.par,print.level=1*messages)
+    estim$estimate <- estimBFGS$estimate
+    estim$covariance <- solve(-estimBFGS$hessian)
+    estim$log.lik <- estimBFGS$maximum
+  } else if(method=="nlminb") {
+    estimNLMINB <- nlminb(start.par,function(x) -la(x),
+                          control=list(trace=1*messages))
+    estim$estimate <- estimNLMINB$par
+    if(return.covariance) {
+      if(messages) cat("Computation of the hessian matrix: this step might be demanding")
+      hessian.hat <- numDeriv::hessian(la,estim$estimate)
+      estim$covariance <- solve(-hessian.hat)
+    } else {
+      estim$covariance <- matrix(NA,length(estim$estimate),
+                                 length(estim$estimate))
+    }
+    estim$log.lik <- -estimNLMINB$objective
+  }
+  names(estim$estimate)[1:p] <- colnames(D)
+  names(estim$estimate)[(p+1):(p+2)] <- c("log(sigma^2)","log(phi)")
+  if(length(fixed.rel.nugget)==0) {
+    names(estim$estimate)[p+3] <- "log(nu^2)"
+    if(st) names(estim$estimate)[p+4] <- "log(psi)"
+  } else {
+    if(st) names(estim$estimate)[p+3] <- "log(psi)"
+  }
+
+  rownames(estim$covariance) <- colnames(estim$covariance) <- names(estim$estimate)
+
+  estim$y <- y
+  estim$units.m <- units.m
+  estim$family <- family
+  estim$D <- D
+  estim$coords <- coords
+  if(st) estim$times <- times
+  estim$ID.coords <- ID.coords
+  estim$method <- method
+  estim$kappa <- kappa
+  if(st) estim$kappa.t <- kappa.t
+  if(!is.null(fixed.rel.nugget)) {
+    estim$fixed.rel.nugget <- fixed.rel.nugget
+  } else {
+    estim$fixed.rel.nugget <- NULL
+  }
+  class(estim) <- "PrevMap"
+
+  res <- estim
+  res$call <- match.call()
+  return(res)
+}
+
+
+##' @title Variogram-based validation for generalized linear geostatistical model fits (Binomial and Poisson)
+##' @description This function performs model validation for generalized linear geostatistical models (Binomial and Poisson)
+##' using Monte Carlo methods based on the variogram.
+##' @param object an object of class "PrevMap" obtained as an output from \code{\link{binomial.logistic.MCML}} and \code{\link{poisson.log.MCML}}.
+##' @param n.sim integer indicating the number of simulations used for the variogram-based diagnostics.
+##' Defeault is \code{n.sim=1000}.
+##' @param uvec a vector with values used to define the variogram binning. If \code{uvec=NULL}, then \code{uvec} is then set to \code{seq(MIN_DIST,(MAX_DIST-MIN_DIST)/2,length=15)}
+##' @param plot.results if \code{plot.results=TRUE}, a plot is returned showing the results for the selected test(s) for spatial correlation. By default \code{plot.results=TRUE}.
+##' defined as the distance at which the fitted spatial correlation is no less than 0.05. Default is \code{range.fact=1}
+##' @param which.test a character specifying which test for residual spatial correlation is to be performed: "variogram", "test statistic" or "both". The default is \code{which.test="both"}. See 'Details.'
+##'
+##' @details The function takes as an input through the argument \code{object} a fitted
+##' generalized linear geostaistical model for an outcome \eqn{Y_i}, with linear predictor
+##' \deqn{\eta_i=d_i'\beta+S(x_i)+Z_i}
+##' where \eqn{d_i} is a vector of covariates which are specified through \code{formula}, \eqn{S(x_i)} is a spatial Gaussian process and the \eqn{Z_i} are assumed to be zero-mean Gaussian.
+##' The model validation is performed on the adopted satationary and isotropic Matern covariance function used for \eqn{S(x_i)}.
+##' More specifically, the function allows the users to select either of the following validation procedures.
+##'
+##' @details \bold{Variogram-based graphical validation}
+##' @details This graphical diagnostic is performed by setting \code{which.test="both"} or \code{which.test="variogram"}. The output are 95% confidence intervals
+##' (see below \code{lower.lim} and \code{upper.lim}) that are generated under the assumption that the fitted model did generate the analysed data-set.
+##' This validation procedure proceed through the following steps.
+##'
+##' @details 1. Obtain the mean, say \eqn{\hat{Z}_i}, of the \eqn{Z_i} conditioned on the data \eqn{Y_i} and by setting \eqn{S(x_i)=0} in the equation above.
+##' @details 2. Compute the empirical variogram using \eqn{\hat{Z}_i}
+##' @details 3. Simulate \code{n.sim} data-sets under the fitted geostatistical model.
+##' @details 4. For each of the simulated data-sets and obtain \eqn{\hat{Z}_i} as in Step 1.
+##' Finally, compute the empirical variogram based on the resulting \eqn{\hat{Z}_i}.
+##' @details 5. From the \code{n.sim} variograms obtained in the previous step, compute the 95% confidence interval.
+##'
+##' @details If the observed variogram (\code{obs.variogram} below), based on the \eqn{\hat{Z}_i} from Step 2, falls within the 95% confidence interval, we interpret this as evidence that the data do not show
+##' evidence against the fitted spatial correlation model; if, instead, that partly falls outside the 95% confidence intervals, we interpret this as evidence that the fitted model does not adequately capture the residual spatial
+##' correlation in the data.
+##'
+##' @details \bold{Test for suitability of the adopted correlation function}
+##' @details This diagnostic test is performed if \code{which.test="both"} or \code{which.test="test statistic"}. Let \eqn{v_{E}(B)} and \eqn{v_{T}(B)} denote the empirical and theoretical variograms based on \eqn{\hat{Z}_i} for the distance bin \eqn{B}.
+##' The test statistic used for testing residual spatial correlation is
+##' \deqn{T = \sum_{B} N(B) \{v_{E}(B)-v_{T}(B)\}}
+##' where \eqn{N(B)} is the number of pairs of data-points falling within the distance bin \eqn{B} (\code{n.bins} below).
+##' @details To obtain the distribution of the test statistic \eqn{T} under the null hypothesis that the fitted model did generate the analysed data-set, we use the simulated empirical variograms as obtained in step 5 of the iterative procedure described in "Variogram-based graphical validation."
+##' The p-value for the test of suitability of the fitted spatial correlation function is then computed by taking the proportion of simulated values for \eqn{T} that are larger than the value of \eqn{T} based on the original \eqn{\hat{Z}_i} in Step 1.
+##' @return An object of class "PrevMap.diagnostic" which is a list containing the following components:
+##' @return \code{obs.variogram}: a vector of length \code{length(uvec)-1} containing the values of the variogram for each of
+##' the distance bins defined through \code{uvec}.
+##' @return \code{distance.bins}: a vector of length \code{length(uvec)-1} containing the average distance within each of the distance bins
+##' defined through \code{uvec}.
+##' @return \code{n.bins}: a vector of length \code{length(uvec)-1} containing the number of pairs of data-points falling within each distance bin.
+##' @return \code{lower.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the lower limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of suitability of the fitted model  at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{upper.lim}: (available only if \code{which.test="both"} or \code{which.test="variogram"}) a vector of length \code{length(uvec)-1} containing the upper limits of the 95% confidence interval for the empirical variogram
+##' generated under the assumption of absence of suitability of the fitted model at each fo the distance bins  defined through \code{uvec}.
+##' @return \code{mode.rand.effects}: the predictive mode of the random effects from the fitted non-spatial generalized linear mixed model.
+##' @return \code{p.value}: (available only if \code{which.test="both"} or \code{which.test="test statistic"}) p-value of the test for residual spatial correlation.
+##' @return \code{lse.variogram}: (available only if \code{lse.variogram=TRUE}) a vector of length \code{length(uvec)-1} containing the values of the estimated Matern variogram via a weighted least square fit.
+##' @importFrom lme4 glmer
+##' @importFrom lme4 ranef
+##' @importFrom geoR matern
+##' @export
+variog.diagnostic.glgm  <- function(object,
+                                    n.sim=200,
+                                    uvec=NULL,plot.results=TRUE,
+                                    which.test="both") {
+  which.plot <- which.test
+  if(class(object)!="PrevMap") stop("'object' must be an object of class 'PrevMap' indicating the model to be fitted.")
+
+  if(!is.null(object$family)) {
+    likelihood <- object$family
+  } else {
+    if(substr(object$call[1],1,3)=="bin") {
+      likelihood <- "Binomial"
+    } else if(substr(object$call[1],1,3)=="poi") {
+      likelihood <- "Poisson"
+    }
+  }
+
+  if(which.plot=="both" & which.test!=which.plot) stop("the input for 'which.plot' is not valid.")
+  if(which.test!="both" & (which.test != which.plot)) stop("the input for 'which.plot' is not valid.")
+  if(any(which.test==c("both","variogram","test statistic"))==FALSE) stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
+  if(any(which.plot==c("both","variogram","test statistic"))==FALSE) stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
+
+  D <- object$D
+
+  p <- ncol(D)
+
+  y <- object$y
+
+  units.m <- object$units.m
+
+  coords <- object$coords
+
+  ID.coords <- object$ID.coords
+
+  if(is.null(ID.coords)) {
+    ID.coords <- 1:nrow(coords)
+  }
+
+
+  n.x <- length(unique(ID.coords))
+  xy.set <- expand.grid(1:n.x,1:n.x)
+  xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
+  d.coords <- as.numeric(sqrt((coords[xy.set[,1],1]-coords[xy.set[,2],1])^2+
+                                (coords[xy.set[,1],2]-coords[xy.set[,2],2])^2))
+
+
+  if(is.null(uvec)) {
+    u.range <- range(d.coords)
+    uvec <- seq(u.range[1],(u.range[1]+u.range[2])/2,length=15)
+  }
+
+  out <- list()
+
+  beta.hat <- object$estimate[1:p]
+  mu.hat <- as.numeric(D%*%beta.hat)
+
+  sigma2.hat <- exp(object$estimate["log(sigma^2)"])
+  phi.hat <- exp(object$estimate["log(phi)"])
+  if(!is.null(object$fixed.rel.nugget)) {
+    tau2.hat <- object$fixed.rel.nugget*sigma2.hat
+  } else {
+    tau2.hat <- exp(object$estimate["log(nu^2)"])*sigma2.hat
+  }
+  kappa.matern <- object$kappa
+
+  Sigma.aux <- diag(rep(sigma2.hat+tau2.hat),n.x)
+  out$mode.rand.effects <- maxim.integrand(y,units.m,mu.hat,Sigma.aux,ID.coords,
+                                           poisson.llik = likelihood=="Poisson")$mode
+
+  d.coords.class <- cut(d.coords,uvec,include.lowest=TRUE)
+  na.remove <- which(is.na(d.coords.class))
+  d.coords <- d.coords[-na.remove]
+  d.coords.class <- d.coords.class[-na.remove]
+  xy.set <- xy.set[-na.remove,]
+
+  re.sq.diff <- (out$mode.rand.effects[xy.set[,1]]-
+                   out$mode.rand.effects[xy.set[,2]])^2
+
+  out$obs.variogram <- 0.5*tapply(re.sq.diff,d.coords.class,mean)
+  out$distance.bins <- d.coords.class.mean <- tapply(d.coords,d.coords.class,mean)
+  out$n.bins <- as.numeric(table(d.coords.class))
+
+  variogram.sim <- matrix(NA,nrow=n.sim,ncol=length(out$obs.variogram))
+  if(which.test=="both" | which.test=="test statistic") test.stat <- rep(NA,n.sim)
+
+  U <- dist(object$coords)
+  Sigma <- geoR::varcov.spatial(dists.lowertri = U,
+                                kappa=kappa.matern,nugget=tau2.hat,
+                                cov.pars = c(sigma2.hat,phi.hat))$varcov
+  Sigma.sroot <- t(chol(Sigma))
+
+  n <- length(y)
+  variog.th <- tau2.hat+sigma2.hat*(1-geoR::matern(d.coords.class.mean,phi.hat,kappa.matern))
+
+  for(i in 1:n.sim) {
+    eta.i <- as.numeric(mu.hat)+as.numeric(Sigma.sroot%*%rnorm(n.x))[ID.coords]
+
+    if(likelihood=="Binomial") {
+      y.i <- rbinom(n,size=units.m,prob = 1/(1+exp(-eta.i)))
+    } else if(likelihood=="Poisson") {
+      y.i <- rpois(n,lambda=units.m*exp(eta.i))
+    }
+    Z.hat <- maxim.integrand(y.i,units.m,mu.hat,Sigma.aux,ID.coords,poisson.llik = likelihood=="Poisson")$mode
+
+    re.sq.diff.sim <- (Z.hat[xy.set[,1]]-
+                         Z.hat[xy.set[,2]])^2
+    variogram.sim[i,] <- 0.5*tapply(re.sq.diff.sim,d.coords.class,mean)
+    if(which.test=="both" | which.test=="test statistic") {
+      test.stat[i] <- sum(out$n.bins*(variogram.sim[i,]-variog.th)^2)
+    }
+  }
+
+  if(which.test=="both" | which.test=="variogram") out$lower.lim <- apply(variogram.sim,2,function(x) quantile(x,0.025))
+  if(which.test=="both" | which.test=="variogram") out$upper.lim <- apply(variogram.sim,2,function(x) quantile(x,0.975))
+
+  if(which.test=="both" | which.test=="test statistic") obs.test.stat <- sum(out$n.bins*(out$obs.variogram-variog.th)^2)
+  if(which.test=="both" | which.test=="test statistic") out$p.value <- mean(test.stat > obs.test.stat)
+
+  if(plot.results) {
+    if(which.plot=="both" | which.plot=="variogram") {
+      if(which.plot=="both") par(mfrow=c(1,2))
+      matplot(d.coords.class.mean,
+              cbind(out$lower.lim,out$upper.lim,out$obs.variogram),type="n",
+              xlab="Spatial distance",ylab="Variogram")
+      polygon(c(d.coords.class.mean,
+                d.coords.class.mean[length(d.coords.class.mean):1]),
+              c(out$lower.lim,out$upper.lim[length(out$upper.lim):1]),
+              border="white",col="light grey")
+      lines(d.coords.class.mean,out$obs.variogram)
+    }
+    if(which.test=="both" | which.test=="test statistic") {
+      hist(test.stat,prob=TRUE,main=paste("p-value = ",round(out$p.value,3),sep=""),
+           xlab="")
+      points(obs.test.stat,0,pch=20,cex=2)
+      abline(v=obs.test.stat,lty="dashed")
+    }
+  }
+
+  class(out) <- "PrevMap.diagnostic"
+
+  return(out)
 }
 

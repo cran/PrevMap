@@ -5,9 +5,9 @@
 \title{Bayesian spatial predictions for the geostatistical Linear Gaussian model}
 \usage{
 spatial.pred.linear.Bayes(object, grid.pred, predictors = NULL,
-  type = "marginal", scale.predictions = c("logit", "prevalence", "odds"),
-  quantiles = c(0.025, 0.975), standard.errors = FALSE, thresholds = NULL,
-  scale.thresholds = NULL, messages = TRUE)
+  type = "marginal", scale.predictions = c("logit", "prevalence",
+  "odds"), quantiles = c(0.025, 0.975), standard.errors = FALSE,
+  thresholds = NULL, scale.thresholds = NULL, messages = TRUE)
 }
 \arguments{
 \item{object}{an object of class "Bayes.PrevMap" obtained as result of a call to \code{\link{linear.model.Bayes}}.}

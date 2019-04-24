@@ -100,15 +100,16 @@ n.subset <- 50
 data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
 # Set the MCMC control parameters
 control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-                           h.theta1=0.05,h.theta2=0.05,
-                           L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
-                           start.beta=0,start.sigma2=1,start.phi=0.15,
-                           start.nugget=NULL,
-                           start.S=rep(0,n.subset))
+                                  h.theta1=0.05,h.theta2=0.05,
+                                  L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
+                                  start.beta=0,start.sigma2=1,start.phi=0.15,
+                                  start.nugget = 1,
+                                  start.S=rep(0,n.subset))
 
 cp <- control.prior(beta.mean=0,beta.covar=1,
-                    log.normal.phi=c(log(0.15),0.05),
-                    log.normal.sigma2=c(log(1),0.1))
+                   log.normal.phi=c(log(0.15),0.05),
+                   log.normal.sigma2=c(log(1),0.1),
+                   log.normal.nugget =c(log(1),0.1))
 
 fit.Bayes <- binomial.logistic.Bayes(formula=y~1,coords=~x1+x2,units.m=~units.m,
                                      data=data_subset,control.prior=cp,
@@ -126,6 +127,8 @@ trace.plot(fit.Bayes,param="sigma2")
 trace.plot(fit.Bayes,param="phi")
 }
 \references{
+Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
+
 Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 
 Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.

@@ -4,9 +4,10 @@
 \alias{spatial.pred.binomial.MCML}
 \title{Spatial predictions for the binomial logistic model using plug-in of MCML estimates}
 \usage{
-spatial.pred.binomial.MCML(object, grid.pred, predictors = NULL, control.mcmc,
-  type = "marginal", scale.predictions = c("logit", "prevalence", "odds"),
-  quantiles = c(0.025, 0.975), standard.errors = FALSE, thresholds = NULL,
+spatial.pred.binomial.MCML(object, grid.pred, predictors = NULL,
+  control.mcmc, type = "marginal", scale.predictions = c("logit",
+  "prevalence", "odds"), quantiles = c(0.025, 0.975),
+  standard.errors = FALSE, thresholds = NULL,
   scale.thresholds = NULL, plot.correlogram = FALSE, messages = TRUE)
 }
 \arguments{

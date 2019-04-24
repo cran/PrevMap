@@ -4,8 +4,8 @@
 \alias{plot.pred.PrevMap.ps}
 \title{Plot of a predicted surface of geostatistical linear fits with preferentially sampled locations}
 \usage{
-\method{plot}{pred.PrevMap.ps}(x, target = NULL, summary = "predictions",
-  ...)
+\method{plot}{pred.PrevMap.ps}(x, target = NULL,
+  summary = "predictions", ...)
 }
 \arguments{
 \item{x}{an object of class "PrevMap".}

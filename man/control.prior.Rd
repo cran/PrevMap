@@ -5,9 +5,10 @@
 \title{Priors specification}
 \usage{
 control.prior(beta.mean, beta.covar, log.prior.sigma2 = NULL,
-  log.prior.phi = NULL, log.prior.nugget = NULL, uniform.sigma2 = NULL,
-  log.normal.sigma2 = NULL, uniform.phi = NULL, log.normal.phi = NULL,
-  uniform.nugget = NULL, log.normal.nugget = NULL)
+  log.prior.phi = NULL, log.prior.nugget = NULL,
+  uniform.sigma2 = NULL, log.normal.sigma2 = NULL,
+  uniform.phi = NULL, log.normal.phi = NULL, uniform.nugget = NULL,
+  log.normal.nugget = NULL)
 }
 \arguments{
 \item{beta.mean}{mean vector of the Gaussian prior for the regression coefficients.}

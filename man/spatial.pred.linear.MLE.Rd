@@ -5,10 +5,11 @@
 \title{Spatial predictions for the geostatistical Linear Gaussian model using plug-in of ML estimates}
 \usage{
 spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
-  type = "marginal", scale.predictions = c("logit", "prevalence", "odds"),
-  quantiles = c(0.025, 0.975), n.sim.prev = 0, standard.errors = FALSE,
-  thresholds = NULL, scale.thresholds = NULL, messages = TRUE,
-  include.nugget = FALSE)
+  predictors.samples = NULL, type = "marginal",
+  scale.predictions = c("logit", "prevalence", "odds"),
+  quantiles = c(0.025, 0.975), n.sim.prev = 0,
+  standard.errors = FALSE, thresholds = NULL,
+  scale.thresholds = NULL, messages = TRUE, include.nugget = FALSE)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.}
@@ -17,13 +18,16 @@ spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
 
 \item{predictors}{a data frame of the values of the explanatory variables at each of the locations in \code{grid.pred}; each column correspond to a variable and each row to a location. \bold{Warning:} the names of the columns in the data frame must match those in the data used to fit the model. Default is \code{predictors=NULL} for models with only an intercept.}
 
+\item{predictors.samples}{a list of data frame objects. This argument is used to average over repeated simulations of the predictor variables in order to obtain an "average" map over the distribution of the explanatory variables in the model.
+Each component of the list is a simulation. The number of simulations passed through \code{predictors.samples} must be the same as \code{n.sim.prev}. NOTE: This argument can currently only be used only for a linear regression model that does not use any approximation of the spatial Gaussian process.}
+
 \item{type}{a character indicating the type of spatial predictions: \code{type="marginal"} for marginal predictions or \code{type="joint"} for joint predictions. Default is \code{type="marginal"}. In the case of a low-rank approximation only marginal predictions are available.}
 
 \item{scale.predictions}{a character vector of maximum length 3, indicating the required scale on which spatial prediction is carried out: "logit", "prevalence" and "odds". Default is \code{scale.predictions=c("logit","prevalence","odds")}.}
 
 \item{quantiles}{a vector of quantiles used to summarise the spatial predictions.}
 
-\item{n.sim.prev}{number of simulation for predictions of prevalence. Default is \code{n.sim.prev=0}.}
+\item{n.sim.prev}{number of simulation for non-linear predictive targets. Default is \code{n.sim.prev=0}.}
 
 \item{standard.errors}{logical; if \code{standard.errors=TRUE}, then standard errors for each \code{scale.predictions} are returned. Default is \code{standard.errors=FALSE}.}
 
