@@ -1,7 +1,7 @@
-8cdd4de5a81a8c7a41d69c61121d6dde *DESCRIPTION
+3b4dcf9c1ea1fb5326a7f003535739c6 *DESCRIPTION
 7ca597c563cfe1633fdae8cd2ea8b6c4 *NAMESPACE
 b7c4e4253c6dbe9a6c9cf60733c71570 *R/data_sim.R
-011635c08417f88edf191a6413556d97 *R/foo.R
+57e0033903777002ad3682ee5f637d80 *R/foo.R
 356627d6d1fcfec2e76d542b362cf330 *R/galicia.R
 35153986b855b4e58bc7f2cfc858c6cf *R/galicia.boundary.R
 8b88e3fa47b7e95ccaf7db778269c45f *R/loaloa.R
@@ -11,7 +11,7 @@ ca1609ec395aa76e5edf8f9eac98adbf *data/galicia.boundary.rdata
 dac0b83e1c8d0bd7abf29213baffe4af *data/galicia.rdata
 5857e24e574d7e962b2ab17777928b32 *data/loaloa.rdata
 6ddacaadab6b55171e09f7b5a576bb08 *inst/doc/PrevMap.ltx
-99f7da4b93e326d0c7b80402af48c524 *inst/doc/PrevMap.pdf
+d83f74eeeced3b5cbca8ee2fc9b8dd0e *inst/doc/PrevMap.pdf
 9e325333fbef654a36be4cf1efbad783 *man/Laplace.sampling.Rd
 32a46f4d9a319a6b36edc747240df6e7 *man/Laplace.sampling.SPDE.Rd
 ca56a13a677cb41dad1db04c41f77961 *man/Laplace.sampling.lr.Rd
@@ -35,7 +35,7 @@ bad8c952a416ac39dad5055c1b6fc78a *man/data_sim.Rd
 8eede9407a4f65f63d28bd7389da33e5 *man/discrete.sample.Rd
 d239b5ea946ba6f325a20fa833eb2e6d *man/galicia.Rd
 673216622c751a8308a9d035afa0e143 *man/galicia.boundary.Rd
-5e9b7f7f9ca4498ead628ec30b8cddfd *man/glgm.LA.Rd
+8a23c0ecef71337b84d8f660f827132f *man/glgm.LA.Rd
 db16e288b15c404c8d38d905b0c2f3a5 *man/linear.model.Bayes.Rd
 2f629419842b4879460c4730811e4c19 *man/linear.model.MLE.Rd
 7bab5cbf2d43d3e2a33f584e33e71682 *man/lm.ps.MCML.Rd

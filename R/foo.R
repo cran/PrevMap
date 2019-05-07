@@ -11617,6 +11617,7 @@ spat.corr.diagnostic <- function(formula,
                                  nAGQ=1,uvec=NULL,plot.results=TRUE,
                                  lse.variogram=FALSE,kappa=0.5,
                                  which.test="both") {
+  theta.start <- NULL
   if(class(formula)!="formula") stop("'formula' must be an object of class 'formula' indicating the model to be fitted.")
   if(!is.null(units.m) & class(units.m)!="formula") stop("'units.m' must be an object of class 'formula'.")
   if(class(data)!="data.frame") stop("'data' must be a 'data.frame' object.")
@@ -11632,8 +11633,6 @@ spat.corr.diagnostic <- function(formula,
   mf <- model.frame(formula,data=data)
   D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
   p <- ncol(D)
-
-  theta.start=NULL
 
   y <- model.response(mf)
   if(is.factor(y)) {
@@ -11730,7 +11729,7 @@ spat.corr.diagnostic <- function(formula,
   re.sq.diff <- 0.5*(out$mode.rand.effects[xy.set[,1]]-
                        out$mode.rand.effects[xy.set[,2]])^2
 
-  out$obs.variogram <- 0.5*tapply(re.sq.diff,d.coords.class,mean)
+  out$obs.variogram <- tapply(re.sq.diff,d.coords.class,mean)
   out$distance.bins <- d.coords.class.mean <- tapply(d.coords,d.coords.class,mean)
   out$n.bins <- as.numeric(table(d.coords.class))
 
@@ -11738,7 +11737,7 @@ spat.corr.diagnostic <- function(formula,
   if(which.test=="both" | which.test=="test statistic") test.stat <- rep(NA,n.sim)
   for(i in 1:n.sim) {
     d.coords.class.i <- d.coords.class[sample(1:length(d.coords.class))]
-    variogram.sim[i,] <- 0.5*tapply(re.sq.diff,d.coords.class.i,mean)
+    variogram.sim[i,] <- tapply(re.sq.diff,d.coords.class.i,mean)
     if(which.test=="both" | which.test=="test statistic") test.stat[i] <- sum(out$n.bins*(variogram.sim[i,]-sigma2.hat)^2)
   }
 
@@ -12126,8 +12125,8 @@ plot.PrevMap.diagnostic <- function(x,...) {
 }
 
 
-##' @title Monte Carlo Maximum Likelihood estimation for the binomial logistic model
-##' @description This function performs Monte Carlo maximum likelihood (MCML) estimation for the geostatistical binomial logistic model.
+##' @title Maximum Likelihood estimation for generalised linear geostatistical models via the Laplace approximation
+##' @description This function performs the Laplace method for maximum likelihood estimation of a generalised linear geostatistical model.
 ##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
 ##' @param units.m an object of class \code{\link{formula}} indicating the binomial denominators in the data.
 ##' @param coords an object of class \code{\link{formula}} indicating the spatial coordinates in the data.

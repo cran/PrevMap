@@ -1,8 +1,8 @@
 Package: PrevMap
 Type: Package
 Title: Geostatistical Modelling of Spatially Referenced Prevalence Data
-Version: 1.5
-Date: 2019-04-24
+Version: 1.5.1
+Date: 2019-05-07
 Author: Emanuele Giorgi, Peter J. Diggle
 Maintainer: Emanuele Giorgi <e.giorgi@lancaster.ac.uk>
 Imports: splancs, lme4, truncnorm, methods, numDeriv
@@ -18,6 +18,6 @@ Additional_repositories: https://inla.r-inla-download.org/R/testing/
 RoxygenNote: 6.1.1
 VignetteBuilder: R.rsp
 NeedsCompilation: no
-Packaged: 2019-04-24 10:36:58 UTC; emanuele
+Packaged: 2019-05-07 15:42:25 UTC; emanuele
 Repository: CRAN
-Date/Publication: 2019-04-24 11:50:10 UTC
+Date/Publication: 2019-05-07 22:30:03 UTC

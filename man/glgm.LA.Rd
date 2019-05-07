@@ -2,7 +2,7 @@
 % Please edit documentation in R/foo.R
 \name{glgm.LA}
 \alias{glgm.LA}
-\title{Monte Carlo Maximum Likelihood estimation for the binomial logistic model}
+\title{Maximum Likelihood estimation for generalised linear geostatistical models via the Laplace approximation}
 \usage{
 glgm.LA(formula, units.m = NULL, coords, times = NULL, data,
   ID.coords = NULL, kappa, kappa.t = 0.5, fixed.rel.nugget = NULL,
@@ -72,7 +72,7 @@ The object is a list with the following components:
 \code{call}: the matched call.
 }
 \description{
-This function performs Monte Carlo maximum likelihood (MCML) estimation for the geostatistical binomial logistic model.
+This function performs the Laplace method for maximum likelihood estimation of a generalised linear geostatistical model.
 }
 \details{
 This function performs parameter estimation for a generealized linear geostatistical model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a GLM
