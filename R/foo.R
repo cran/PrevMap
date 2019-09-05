@@ -11611,196 +11611,200 @@ variogram <- function(data,var.name,coords,...) {
 ##' @importFrom lme4 ranef
 ##' @importFrom geoR matern
 ##' @export
-spat.corr.diagnostic <- function(formula,
-                                 units.m=NULL, coords,data,likelihood, ID.coords=NULL,
-                                 n.sim=200,
-                                 nAGQ=1,uvec=NULL,plot.results=TRUE,
-                                 lse.variogram=FALSE,kappa=0.5,
-                                 which.test="both") {
-  theta.start <- NULL
-  if(class(formula)!="formula") stop("'formula' must be an object of class 'formula' indicating the model to be fitted.")
-  if(!is.null(units.m) & class(units.m)!="formula") stop("'units.m' must be an object of class 'formula'.")
-  if(class(data)!="data.frame") stop("'data' must be a 'data.frame' object.")
-  if(!any(likelihood==c("Gaussian","Binomial","Poisson"))) stop("'likelihood' must be either 'Gaussian', 'Binomial' or 'Poisson'.")
-  which.plot <- which.test
-  if(which.plot=="both" & which.test!=which.plot) stop("the input for 'which.plot' is not valid.")
-  if(which.test!="both" & (which.test != which.plot)) stop("the input for 'which.plot' is not valid.")
-  if(any(which.test==c("both","variogram","test statistic"))==FALSE) stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
-  if(any(which.plot==c("both","variogram","test statistic"))==FALSE) stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
-
-  if(!is.null(theta.start) & length(theta.start)!=3) stop("'theta.start' must be a numeric vector of length 3, providing the initial values for 'sigma2', 'phi' and 'nugget' for the least square fit to the empirical variogram")
-
-  mf <- model.frame(formula,data=data)
-  D <- as.matrix(model.matrix(attr(mf,"terms"),data=data))
-  p <- ncol(D)
-
-  y <- model.response(mf)
-  if(is.factor(y)) {
-    y <- 1*(y==levels(y)[2])
-  }
-
-  if(is.null(units.m)) {
-    units.m <- rep(1,nrow(data))
-  } else {
-    units.m <-  as.numeric(model.frame(units.m,data)[,1])
-  }
-
-  coords <-  as.matrix(model.frame(coords,data)[,1:2])
-
-  if(!is.null(ID.coords)) {
-    coords <- unique(coords)
-  } else {
-    ID.coords <- 1:nrow(data)
-  }
-
-
-  if((length(ID.coords)!=nrow(coords))) {
-    n.x <- length(unique(ID.coords))
-    xy.set <- expand.grid(1:n.x,1:n.x)
-    xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
-    d.coords <- as.numeric(sqrt((coords[ID.coords[xy.set[,1]],1]-
-                                   coords[ID.coords[xy.set[,2]],1])^2+
-                                  (coords[ID.coords[xy.set[,1]],2]-
-                                     coords[ID.coords[xy.set[,2]],2])^2))
-  } else {
-    n.x <- length(ID.coords)
-    xy.set <- expand.grid(1:n.x,1:n.x)
-    xy.set <- xy.set[xy.set[,1]>xy.set[,2],]
-    d.coords <- as.numeric(sqrt((coords[xy.set[,1],1]-coords[xy.set[,2],1])^2+
-                                  (coords[xy.set[,1],2]-coords[xy.set[,2],2])^2))
-  }
-
-  if(is.null(uvec)) {
-    u.range <- range(d.coords)
-    uvec <- seq(u.range[1],(u.range[1]+u.range[2])/2,length=15)
-  }
-  out <- list()
-  if(likelihood=="Binomial") {
-    data.aux <- data.frame(response.variable=y,units.m=units.m,D[,-1],ID=ID.coords)
-    formula.aux <- paste("cbind(response.variable,units.m-response.variable)", "~",
-                         paste(c(names(data.aux)[-c(1,2,p+2)],"(1|ID)"), collapse=" + "))
-    options(warn=-1)
-    glmer.fit <- glmer(formula.aux,data=data.aux,family = binomial,nAGQ=nAGQ)
-    options(warn=0)
-    sigma2.hat <- sqrt(glmer.fit@theta)
-    out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,1])
-  } else if(likelihood=="Poisson") {
-    data.aux <- data.frame(response.variable=y,units.m=units.m,D[,-1],ID=ID.coords)
-    formula.aux <- paste("response.variable", "~","offset(log(units.m)) +",
-                         paste(c(names(data.aux)[-c(1,2,p+2)],"(1|ID)"), collapse=" + "))
-    options(warn=-1)
-    glmer.fit <- glmer(formula.aux,data=data.aux,family = poisson,nAGQ=nAGQ)
-    options(warn=0)
-    sigma2.hat <- sqrt(glmer.fit@theta)
-    out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,1])
-  } else {
-    if(length(ID.coords)!=nrow(coords)) {
-      lm.fit <- lm(formula,data=data)
-      sigma2.hat <- mean(lm.fit$residuals^2)
-      out$mode.rand.effects <- lm.fit$residuals
+spat.corr.diagnostic <- 
+  function(formula, units.m = NULL, coords, data, likelihood, 
+           ID.coords = NULL, n.sim = 200, nAGQ = 1, uvec = NULL, plot.results = TRUE, 
+           lse.variogram = FALSE, kappa = 0.5, which.test = "both") {
+    theta.start <- NULL
+    if (class(formula) != "formula") 
+      stop("'formula' must be an object of class 'formula' indicating the model to be fitted.")
+    if (!is.null(units.m) & class(units.m) != "formula") 
+      stop("'units.m' must be an object of class 'formula'.")
+    if (class(data) != "data.frame") 
+      stop("'data' must be a 'data.frame' object.")
+    if (!any(likelihood == c("Gaussian", "Binomial", "Poisson"))) 
+      stop("'likelihood' must be either 'Gaussian', 'Binomial' or 'Poisson'.")
+    which.plot <- which.test
+    if (which.plot == "both" & which.test != which.plot) 
+      stop("the input for 'which.plot' is not valid.")
+    if (which.test != "both" & (which.test != which.plot)) 
+      stop("the input for 'which.plot' is not valid.")
+    if (any(which.test == c("both", "variogram", "test statistic")) == 
+        FALSE) 
+      stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
+    if (any(which.plot == c("both", "variogram", "test statistic")) == 
+        FALSE) 
+      stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
+    if (!is.null(theta.start) & length(theta.start) != 3) 
+      stop("'theta.start' must be a numeric vector of length 3, providing the initial values for 'sigma2', 'phi' and 'nugget' for the least square fit to the empirical variogram")
+    mf <- model.frame(formula, data = data)
+    D <- as.matrix(model.matrix(attr(mf, "terms"), data = data))
+    p <- ncol(D)
+    y <- model.response(mf)
+    if (is.factor(y)) {
+      y <- 1 * (y == levels(y)[2])
+    }
+    if (is.null(units.m)) {
+      units.m <- rep(1, nrow(data))
+    }  else {
+      units.m <- as.numeric(model.frame(units.m, data)[, 1])
+    }
+    coords <- as.matrix(model.frame(coords, data)[, 1:2])
+    if (!is.null(ID.coords)) {
+      coords <- unique(coords)
     } else {
-
-      if(length(ID.coords)!=nrow(coords)) {
-        data.aux <- data.frame(response.variable=y,D[,-1],ID=ID.coords)
-        formula.aux <- paste("response.variable", "~",
-                             paste(c(names(data.aux)[-c(1,p+1)]), collapse=" + "))
-
-        options(warn=-1)
-        lmer.fit <- lmer(formula.aux,data=data.aux)
-        options(warn=0)
-        sigma2.hat <- lmer.fit@theta
-        out$mode.rand.effects <- as.numeric(ranef(lmer.fit)$ID[,1])
-      } else {
-        data.aux <- data.frame(response.variable=y,D[,-1])
-        lm.fit <- lm(response.variable~.,data=data.aux)
+      ID.coords <- 1:nrow(data)
+    }
+    if ((length(ID.coords) != nrow(coords))) {
+      n.x <- length(unique(ID.coords))
+      xy.set <- expand.grid(1:n.x, 1:n.x)
+      xy.set <- xy.set[xy.set[, 1] > xy.set[, 2], ]
+      d.coords <- as.numeric(sqrt((coords[ID.coords[xy.set[, 
+                                                           1]], 1] - coords[ID.coords[xy.set[, 2]], 1])^2 + 
+                                    (coords[ID.coords[xy.set[, 1]], 2] - coords[ID.coords[xy.set[, 
+                                                                                                 2]], 2])^2))
+    } else {
+      n.x <- length(ID.coords)
+      xy.set <- expand.grid(1:n.x, 1:n.x)
+      xy.set <- xy.set[xy.set[, 1] > xy.set[, 2], ]
+      d.coords <- as.numeric(sqrt((coords[xy.set[, 1], 1] - 
+                                     coords[xy.set[, 2], 1])^2 + (coords[xy.set[, 1], 
+                                                                         2] - coords[xy.set[, 2], 2])^2))
+    }
+    if (is.null(uvec)) {
+      u.range <- range(d.coords)
+      uvec <- seq(u.range[1], (u.range[1] + u.range[2])/2, 
+                  length = 15)
+    }
+    out <- list()
+    if (likelihood == "Binomial") {
+      data.aux <- data.frame(response.variable = y, units.m = units.m, 
+                             D[, -1], ID = ID.coords)
+      formula.aux <- paste("cbind(response.variable,units.m-response.variable)", 
+                           "~", paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"), 
+                                      collapse = " + "))
+      options(warn = -1)
+      glmer.fit <- glmer(formula.aux, data = data.aux, family = binomial, 
+                         nAGQ = nAGQ)
+      options(warn = 0)
+      sigma2.hat <- sqrt(glmer.fit@theta)
+      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[, 
+                                                              1])
+    } else if (likelihood == "Poisson") {
+      data.aux <- data.frame(response.variable = y, units.m = units.m, 
+                             D[, -1], ID = ID.coords)
+      formula.aux <- paste("response.variable", "~", "offset(log(units.m)) +", 
+                           paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"), 
+                                 collapse = " + "))
+      options(warn = -1)
+      glmer.fit <- glmer(formula.aux, data = data.aux, family = poisson, 
+                         nAGQ = nAGQ)
+      options(warn = 0)
+      sigma2.hat <- sqrt(glmer.fit@theta)
+      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[, 
+                                                              1])
+    } else {
+      if (length(ID.coords) == nrow(coords)) {
+        lm.fit <- lm(formula, data = data)
         sigma2.hat <- mean(lm.fit$residuals^2)
         out$mode.rand.effects <- lm.fit$residuals
-      }
-
-    }
-  }
-
-  d.coords.class <- cut(d.coords,uvec,include.lowest=TRUE)
-  na.remove <- which(is.na(d.coords.class))
-  d.coords <- d.coords[-na.remove]
-  d.coords.class <- d.coords.class[-na.remove]
-  xy.set <- xy.set[-na.remove,]
-
-  re.sq.diff <- 0.5*(out$mode.rand.effects[xy.set[,1]]-
-                       out$mode.rand.effects[xy.set[,2]])^2
-
-  out$obs.variogram <- tapply(re.sq.diff,d.coords.class,mean)
-  out$distance.bins <- d.coords.class.mean <- tapply(d.coords,d.coords.class,mean)
-  out$n.bins <- as.numeric(table(d.coords.class))
-
-  variogram.sim <- matrix(NA,nrow=n.sim,ncol=length(out$obs.variogram))
-  if(which.test=="both" | which.test=="test statistic") test.stat <- rep(NA,n.sim)
-  for(i in 1:n.sim) {
-    d.coords.class.i <- d.coords.class[sample(1:length(d.coords.class))]
-    variogram.sim[i,] <- tapply(re.sq.diff,d.coords.class.i,mean)
-    if(which.test=="both" | which.test=="test statistic") test.stat[i] <- sum(out$n.bins*(variogram.sim[i,]-sigma2.hat)^2)
-  }
-
-  if(which.test=="both" | which.test=="variogram") out$lower.lim <- apply(variogram.sim,2,function(x) quantile(x,0.025))
-  if(which.test=="both" | which.test=="variogram") out$upper.lim <- apply(variogram.sim,2,function(x) quantile(x,0.975))
-
-  if(which.test=="both" | which.test=="test statistic") obs.test.stat <- sum(out$n.bins*(out$obs.variogram-sigma2.hat)^2)
-  if(which.test=="both" | which.test=="test statistic") out$p.value <- mean(test.stat > obs.test.stat)
-
-  if(lse.variogram) {
-
-    lse <- function(theta) {
-      sigma2 <- exp(theta[1])
-      phi <- exp(theta[2])
-      tau2 <- exp(theta[3])
-      f <- out$n.bins*((out$obs.variogram-
-                          (tau2+sigma2*(1-matern(d.coords.class.mean,phi,kappa))))^2)
-      sum(f)
-    }
-    u.range <- range(d.coords)
-    if(is.null(theta.start)) theta.start <- c(log(sigma2.hat),
-                                              log((u.range[1]+u.range[2])/4),
-                                              log(out$obs.variogram[1]))
-    estim.variogram <- nlminb(theta.start, lse)
-    out$lse.variogram <- exp(estim.variogram$par)
-    names(out$lse.variogram) <- c("sigma^2", "phi", "tau^2")
-    cat("Least square fit to the empirical variogram \n")
-    cat("sigma^2 = ",out$lse.variogram[1]," (Variance of the Gaussian process) \n",sep="")
-    cat("phi = ",out$lse.variogram[2]," (Scale of the spatial correlation) \n",sep="")
-    cat("tau^2 = ",out$lse.variogram[3]," (Variance of the nugget effect) \n",sep="")
-  }
-
-  if(plot.results) {
-    if(which.plot=="both" | which.plot=="variogram") {
-      if(which.plot=="both") par(mfrow=c(1,2))
-      matplot(d.coords.class.mean,
-              cbind(out$lower.lim,out$upper.lim,out$obs.variogram),type="n",
-              xlab="Spatial distance",ylab="Variogram")
-      polygon(c(d.coords.class.mean,
-                d.coords.class.mean[length(d.coords.class.mean):1]),
-              c(out$lower.lim,out$upper.lim[length(out$upper.lim):1]),
-              border="white",col="light grey")
-      lines(d.coords.class.mean,out$obs.variogram)
-      if(lse.variogram) {
-        u.set <- seq(uvec[1],uvec[length(uvec)],length=200)
-        u.val <- out$lse.variogram[3]+out$lse.variogram[1]*
-          (1-matern(u.set,out$lse.variogram[2],kappa))
-        lines(u.set,u.val,lty="dashed")
+      } else {
+        data.aux <- data.frame(response.variable = y, 
+                               D[, -1], ID = ID.coords)
+        formula.aux <- paste("response.variable", "~", 
+                             paste(c(names(data.aux)[-c(1, p + 1)],"(1|ID)"), collapse = " + "))
+        options(warn = -1)
+        lmer.fit <- lmer(formula.aux, data = data.aux)
+        options(warn = 0)
+        sigma2.hat <- lmer.fit@theta
+        out$mode.rand.effects <- as.numeric(ranef(lmer.fit)$ID[,1])
       }
     }
-    if(which.test=="both" | which.test=="test statistic") {
-      hist(test.stat,prob=TRUE,main=paste("p-value = ",round(out$p.value,3),sep=""),
-           xlab="")
-      points(obs.test.stat,0,pch=20,cex=2)
-      abline(v=obs.test.stat,lty="dashed")
+    d.coords.class <- cut(d.coords, uvec, include.lowest = TRUE)
+    na.remove <- which(is.na(d.coords.class))
+    d.coords <- d.coords[-na.remove]
+    d.coords.class <- d.coords.class[-na.remove]
+    xy.set <- xy.set[-na.remove, ]
+    re.sq.diff <- 0.5 * (out$mode.rand.effects[xy.set[, 1]] - 
+                           out$mode.rand.effects[xy.set[, 2]])^2
+    out$obs.variogram <- tapply(re.sq.diff, d.coords.class, mean)
+    out$distance.bins <- d.coords.class.mean <- tapply(d.coords, 
+                                                       d.coords.class, mean)
+    out$n.bins <- as.numeric(table(d.coords.class))
+    variogram.sim <- matrix(NA, nrow = n.sim, ncol = length(out$obs.variogram))
+    if (which.test == "both" | which.test == "test statistic") 
+      test.stat <- rep(NA, n.sim)
+    for (i in 1:n.sim) {
+      d.coords.class.i <- d.coords.class[sample(1:length(d.coords.class))]
+      variogram.sim[i, ] <- tapply(re.sq.diff, d.coords.class.i, 
+                                   mean)
+      if (which.test == "both" | which.test == "test statistic") 
+        test.stat[i] <- sum(out$n.bins * (variogram.sim[i,] - sigma2.hat)^2)
     }
+    if (which.test == "both" | which.test == "variogram") 
+      out$lower.lim <- apply(variogram.sim, 2, function(x) quantile(x, 
+                                                                    0.025))
+    if (which.test == "both" | which.test == "variogram") 
+      out$upper.lim <- apply(variogram.sim, 2, function(x) quantile(x, 
+                                                                    0.975))
+    if (which.test == "both" | which.test == "test statistic") 
+      obs.test.stat <- sum(out$n.bins * (out$obs.variogram - 
+                                           sigma2.hat)^2)
+    if (which.test == "both" | which.test == "test statistic") 
+      out$p.value <- mean(test.stat > obs.test.stat)
+    if (lse.variogram) {
+      lse <- function(theta) {
+        sigma2 <- exp(theta[1])
+        phi <- exp(theta[2])
+        tau2 <- exp(theta[3])
+        f <- out$n.bins * ((out$obs.variogram - (tau2 + sigma2 * 
+                                                   (1 - matern(d.coords.class.mean, phi, kappa))))^2)
+        sum(f)
+      }
+      u.range <- range(d.coords)
+      if (is.null(theta.start)) 
+        theta.start <- c(log(sigma2.hat), log((u.range[1] + 
+                                                 u.range[2])/4), log(out$obs.variogram[1]))
+      estim.variogram <- nlminb(theta.start, lse)
+      out$lse.variogram <- exp(estim.variogram$par)
+      names(out$lse.variogram) <- c("sigma^2", "phi", "tau^2")
+      cat("Least square fit to the empirical variogram \n")
+      cat("sigma^2 = ", out$lse.variogram[1], " (Variance of the Gaussian process) \n", 
+          sep = "")
+      cat("phi = ", out$lse.variogram[2], " (Scale of the spatial correlation) \n", 
+          sep = "")
+      cat("tau^2 = ", out$lse.variogram[3], " (Variance of the nugget effect) \n", 
+          sep = "")
+    }
+    if (plot.results) {
+      if (which.plot == "both" | which.plot == "variogram") {
+        if (which.plot == "both") 
+          par(mfrow = c(1, 2))
+        matplot(d.coords.class.mean, cbind(out$lower.lim, 
+                                           out$upper.lim, out$obs.variogram), type = "n", 
+                xlab = "Spatial distance", ylab = "Variogram")
+        polygon(c(d.coords.class.mean, d.coords.class.mean[length(d.coords.class.mean):1]), 
+                c(out$lower.lim, out$upper.lim[length(out$upper.lim):1]), 
+                border = "white", col = "light grey")
+        lines(d.coords.class.mean, out$obs.variogram)
+        if (lse.variogram) {
+          u.set <- seq(uvec[1], uvec[length(uvec)], length = 200)
+          u.val <- out$lse.variogram[3] + out$lse.variogram[1] * 
+            (1 - matern(u.set, out$lse.variogram[2], kappa))
+          lines(u.set, u.val, lty = "dashed")
+        }
+      }
+      if (which.test == "both" | which.test == "test statistic") {
+        hist(test.stat, prob = TRUE, main = paste("p-value = ", 
+                                                  round(out$p.value, 3), sep = ""), xlab = "")
+        points(obs.test.stat, 0, pch = 20, cex = 2)
+        abline(v = obs.test.stat, lty = "dashed")
+      }
+    }
+    par(mfrow = c(1, 1))
+    class(out) <- "PrevMap.diagnostic"
+    return(out)
   }
-
-  par(mfrow=c(1,1))
-  class(out) <- "PrevMap.diagnostic"
-
-  return(out)
-}
 
 
 ##' @title Variogram-based validation for linear geostatistical model fits
