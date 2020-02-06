@@ -13,10 +13,10 @@ variogram(data, var.name, coords, ...)
 
 \item{coords}{a \code{\link{formula}} object indicating the geographical coordinates.}
 
-\item{...}{additional arguments to be passed to \code{\link{variog}}.}
+\item{...}{additional arguments to be passed to \code{variog}.}
 }
 \value{
-An object of the class "variogram" which is list containing components as detailed in \code{\link{variog}}.
+An object of the class "variogram" which is list containing components as detailed in \code{variog}.
 }
 \description{
 This function computes sample (empirical) variograms with options for the classical or robust estimators. Output can be returned as a binned variogram, a variogram cloud or a smoothed variogram. Data transformation (Box-Cox) is allowed. “Trends” can be specified and are fitted by ordinary least squares in which case the variograms are computed using the residuals.

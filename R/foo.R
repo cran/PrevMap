@@ -257,7 +257,7 @@ create.ID.coords <- function(data,coords) {
 ##' @param y vector of binomial/Poisson observations.
 ##' @param units.m vector of binomial denominators, or offset if the Poisson model is used.
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param messages logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.
 ##' @param plot.correlogram logical; if \code{plot.correlogram=TRUE} the autocorrelation plot of the conditional simulations is displayed.
 ##' @param poisson.llik logical; if \code{poisson.llik=TRUE} a Poisson model is used or, if \code{poisson.llik=FALSE}, a binomial model is used.
@@ -281,7 +281,7 @@ create.ID.coords <- function(data,coords) {
 ##' n.subset <- 50
 ##' data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
 ##' mu <- rep(0,50)
-##' Sigma <- varcov.spatial(coords=data_subset[,c("x1","x2")],
+##' Sigma <- geoR::varcov.spatial(coords=data_subset[,c("x1","x2")],
 ##'               cov.pars=c(1,0.15),kappa=2)$varcov
 ##' control.mcmc <- control.mcmc.MCML(n.sim=1000,burnin=0,thin=1,
 ##'                            h=1.65/(n.subset^2/3))
@@ -777,7 +777,6 @@ matern.kernel <- function(u,rho,kappa) {
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @importFrom geoR varcov.spatial
 ##' @importFrom maxLik maxBFGS
 geo.MCML <- function(formula,units.m,coords,times=NULL,
                      data,ID.coords,par0,control.mcmc,kappa,
@@ -919,11 +918,11 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
     if(sst) U.t <- dist(times)
 
     if(sst) {
-      R0.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R0.s <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi0),
                              nugget=0,kappa=kappa)$varcov
       if(sst.model=="DM") {
-        suppressWarnings(R0.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+        suppressWarnings(R0.t <- geoR::varcov.spatial(dists.lowertri=U.t,cov.model="matern",
                                                 cov.pars=c(1,psi0),
                                                 nugget=0,kappa=kappa.t)$varcov)
       } else if(sst.model=="GN1") {
@@ -933,7 +932,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       Sigma0 <- sigma2.0*R0.s*R0.t
       diag(Sigma0) <- diag(Sigma0)+tau2.0
     } else {
-      Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      Sigma0 <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                cov.pars=c(sigma2.0,phi0),
                                nugget=tau2.0,kappa=kappa)$varcov
     }
@@ -973,11 +972,11 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       val$sigma2 <- exp(par[p+1])
       if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
         if(sst) {
-          R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+          R.s <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                 cov.pars=c(1,phi),
                                 nugget=0,kappa=kappa)$varcov
           if(sst.model=="DM") {
-            suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+            suppressWarnings(R.t <- geoR::varcov.spatial(dists.lowertri=U.t,cov.model="matern",
                                                    cov.pars=c(1,psi),
                                                    nugget=0,kappa=kappa.t)$varcov)
           } else if(sst.model=="GN1") {
@@ -987,7 +986,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
           R <- R.s*R.t
           diag(R) <- diag(R)+nu2
         } else {
-          R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+          R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                               cov.pars=c(1,phi),
                               nugget=nu2,kappa=kappa)$varcov
         }
@@ -1035,11 +1034,11 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       }
 
       if(sst) {
-        R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R.s <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                               cov.pars=c(1,phi),
                               nugget=0,kappa=kappa)$varcov
         if(sst.model=="DM") {
-          suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+          suppressWarnings(R.t <- geoR::varcov.spatial(dists.lowertri=U.t,cov.model="matern",
                                                  cov.pars=c(1,psi),
                                                  nugget=0,kappa=kappa.t)$varcov)
         } else if(sst.model=="GN1") {
@@ -1048,7 +1047,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
         R <- R.s*R.t
         diag(R) <- diag(R)+nu2
       } else {
-        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(1,phi),
                             nugget=nu2,kappa=kappa)$varcov
       }
@@ -1134,11 +1133,11 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       }
 
       if(sst) {
-        R.s <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R.s <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                               cov.pars=c(1,phi),
                               nugget=0,kappa=kappa)$varcov
         if(sst.model=="DM") {
-          suppressWarnings(R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+          suppressWarnings(R.t <- geoR::varcov.spatial(dists.lowertri=U.t,cov.model="matern",
                                                  cov.pars=c(1,psi),
                                                  nugget=0,kappa=kappa.t)$varcov)
         } else if(sst.model=="GN1") {
@@ -1147,7 +1146,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
         R <- R.s*R.t
         diag(R) <- diag(R)+nu2
       } else {
-        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(1,phi),
                             nugget=nu2,kappa=kappa)$varcov
       }
@@ -1374,7 +1373,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       tau2.0 <- par0[p+3]
     }
     U <- dist(coords)
-    Sigma0 <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    Sigma0 <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(sigma2.0,phi0),
                              nugget=tau2.0,kappa=kappa)$varcov
 
@@ -1411,7 +1410,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       val$sigma2 <- sigma2
       val$mu <- as.numeric(D%*%beta)
       if(is.na(ldetR) & is.na(as.numeric(R.inv)[1])) {
-        R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(1,phi),
                             nugget=nu2,kappa=kappa)$varcov
         val$ldetR <- determinant(R)$modulus
@@ -1440,7 +1439,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
         nu2 <- fixed.rel.nugget
       }
 
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                           cov.pars=c(1,phi),
                           nugget=nu2,kappa=kappa)$varcov
       R.inv <- solve(R)
@@ -1501,7 +1500,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
       }
       phi <- exp(par[p+2])
 
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                           cov.pars=c(1,phi),
                           nugget=nu2,kappa=kappa)$varcov
       R.inv <- solve(R)
@@ -1657,7 +1656,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @param coords an object of class \code{\link{formula}} indicating the spatial coordinates in the data.
 ##' @param times an object of class \code{\link{formula}} indicating the times in the data, used in the spatio-temporal model.
 ##' @param data a data frame containing the variables in the model.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param par0 parameters of the importance sampling distribution: these should be given in the following order \code{c(beta,sigma2,phi,tau2)}, where \code{beta} are the regression coefficients, \code{sigma2} is the variance of the Gaussian process, \code{phi} is the scale parameter of the spatial correlation and \code{tau2} is the variance of the nugget effect (if included in the model).
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param kappa fixed value for the shape parameter of the Matern covariance function.
@@ -1680,7 +1679,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @details
 ##' This function performs parameter estimation for a geostatistical binomial logistic model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. A canonical logistic link is used, thus the linear predictor assumes the form
 ##' \deqn{\log(p/(1-p)) = d'\beta + S(x) + Z,}
-##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 ##' In the \code{binomial.logistic.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 ##'
 ##' \bold{Monte Carlo Maximum likelihood.}
@@ -1712,7 +1711,7 @@ geo.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
-##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 ##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
@@ -1819,7 +1818,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{call}: the matched call.
-##' @seealso \code{\link{shape.matern}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{maxBFGS}}, \code{\link{nlminb}}.
+##' @seealso \code{\link{shape.matern}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{maxBFGS}}, \code{\link{nlminb}}.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -1933,7 +1932,7 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
 ##' @return \code{h2}: vector of values taken by the tuning parameter \code{h.theta2} at each iteration.
 ##' @return \code{h3}: vector of values taken by the tuning parameter \code{h.theta3} at each iteration.
 ##' @return \code{call}: the matched call.
-##' @seealso \code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
+##' @seealso \code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -2368,8 +2367,6 @@ print.summary.PrevMap <- function(x,...) {
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @export
 spatial.pred.binomial.MCML <- function(object,grid.pred,
                                        predictors=NULL,control.mcmc,
@@ -2466,10 +2463,10 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,
 
     U <- dist(coords)
     U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    Sigma <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
     Sigma.inv <- solve(Sigma)
-    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    C <- sigma2*geoR::matern(U.pred.coords,phi,kappa)
     A <- C%*%Sigma.inv
 
     mu.pred <- as.numeric(predictors%*%beta)
@@ -2495,7 +2492,7 @@ spatial.pred.binomial.MCML <- function(object,grid.pred,
       sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
     } else if (type=="joint") {
       if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
-      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+      Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,cov.model="matern",
                                     cov.pars=c(sigma2,phi),kappa=kappa)$varcov
       Sigma.cond <- Sigma.pred - A%*%t(C)
       sd.cond <- sqrt(diag(Sigma.cond))
@@ -2998,7 +2995,6 @@ gn1.hessian.psi <- function(U.t,psi) {
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @importFrom geoR varcov.spatial
 ##' @importFrom maxLik maxBFGS
 geo.linear.MLE <- function(formula,coords,data,ID.coords,
                            kappa,fixed.rel.nugget=NULL,start.cov.pars,
@@ -3040,10 +3036,10 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 
   if(length(ID.coords)==0) {
     if(length(fixed.rel.nugget)==0) {
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
                           cov.pars=c(1,start.cov.pars[1]),nugget=start.cov.pars[2])$varcov
     } else {
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",kappa=kappa,
                           cov.pars=c(1,start.cov.pars[1]),nugget=fixed.rel.nugget)$varcov
     }
 
@@ -3075,7 +3071,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
         nu2.1.start <- start.cov.pars[2]
         nu2.2.start <- start.cov.pars[3]
       }
-      R.start <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi.start),
+      R.start <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi.start),
                                 kappa=kappa)$varcov
       diag(R.start) <- diag(R.start)+nu2.1.start
       R.start.inv <- solve(R.start)
@@ -3124,7 +3120,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
           nu2.1 <- par[2]
           nu2.2 <- par[3]
         }
-        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
                             kappa=kappa)$varcov
         diag(R) <- diag(R)+nu2.1
         R.inv <- solve(R)
@@ -3161,7 +3157,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
           nu2.1 <- exp(est.profile$par[2])
           nu2.2 <- exp(est.profile$par[3])
         }
-        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
                             kappa=kappa)$varcov
         diag(R) <- diag(R)+nu2.1
         R.inv <- solve(R)
@@ -3407,7 +3403,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
         diff.y <- y-mu
         diff.y.tilde <- as.numeric(tapply(diff.y,ID.coords,sum))
 
-        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
                             kappa=kappa)$varcov
         diag(R) <- diag(R)+nu2.1
         R.inv <- solve(R)
@@ -3437,7 +3433,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
           nu2.1 <- exp(par[p+3])
           nu2.2 <- exp(par[p+4])
         }
-        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
                             kappa=kappa)$varcov
         diag(R) <- diag(R)+nu2.1
         R.inv <- solve(R)
@@ -3519,7 +3515,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
           nu2.1 <- exp(par[p+3])
           nu2.2 <- exp(par[p+4])
         }
-        R <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
+        R <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),
                             kappa=kappa)$varcov
         diag(R) <- diag(R)+nu2.1
         R.inv <- solve(R)
@@ -3751,7 +3747,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
       } else {
         nu2 <- exp(par[p+3])
       }
-      R <- varcov.spatial(dists.lowertri=U,kappa=kappa,
+      R <- geoR::varcov.spatial(dists.lowertri=U,kappa=kappa,
                           cov.pars=c(1,phi),nugget=nu2)$varcov
       R.inv <- solve(R)
       ldet.R <- determinant(R)$modulus
@@ -3772,7 +3768,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
         nu2 <- exp(par[p+3])
       }
 
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                           cov.pars=c(1,phi),
                           nugget=nu2,kappa=kappa)$varcov
 
@@ -3812,7 +3808,7 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
         nu2 <- exp(par[p+3])
       }
 
-      R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                           cov.pars=c(1,phi),
                           nugget=nu2,kappa=kappa)$varcov
 
@@ -3933,8 +3929,6 @@ geo.linear.MLE <- function(formula,coords,data,ID.coords,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @importFrom Matrix t solve chol diag
 ##' @export
 spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
@@ -4106,10 +4100,10 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
 
     U <- dist(coords)
     U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    Sigma <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
     Sigma.inv <- solve(Sigma)
-    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    C <- sigma2*geoR::matern(U.pred.coords,phi,kappa)
     if(linear.ID.coords) {
       nu2.2 <- omega2/sigma2
       n.coords <- as.numeric(tapply(object$ID.coords,object$ID.coords,length))
@@ -4167,11 +4161,11 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
     if(messages) cat("Type of prevalence predictions: joint (this step might be demanding) \n")
     if(linear.ID.coords) {
       if(include.nugget) {
-        Sigma.pred <-  varcov.spatial(coords=grid.pred,
+        Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,
                                       cov.model="matern",nugget=tau2,
                                       cov.pars=c(sigma2,phi),kappa=kappa)$varcov
       } else {
-        Sigma.pred <-  varcov.spatial(coords=grid.pred,
+        Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,
                                       cov.model="matern",nugget=0,
                                       cov.pars=c(sigma2,phi),kappa=kappa)$varcov
 
@@ -4182,7 +4176,7 @@ spatial.pred.linear.MLE <- function(object,grid.pred,predictors=NULL,
       sd.cond <- sqrt(diag(Sigma.cond))
     } else if(!spde) {
       A <- C%*%Sigma.inv
-      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+      Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,cov.model="matern",
                                     cov.pars=c(sigma2,phi),kappa=kappa)$varcov
       Sigma.cond <- Sigma.pred - A%*%t(C)
       sd.cond <- sqrt(diag(Sigma.cond))
@@ -5790,7 +5784,6 @@ binomial.geo.Bayes.SPDE <- function(formula,units.m,coords,data,
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @importFrom geoR varcov.spatial
 binomial.geo.Bayes <- function(formula,units.m,coords,data,
                                ID.coords,
                                control.prior,
@@ -5899,7 +5892,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
     S.curr <- control.mcmc$start.S
 
     # Compute log-posterior density
-    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.curr <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.curr),
                              kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
@@ -5917,7 +5910,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
       theta1.prop <- theta1.curr+h.theta1*rnorm(1)
       sigma2.prop <- exp(2*theta1.prop)
       phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                cov.pars=c(1,phi.prop),
                                kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
 
@@ -5941,7 +5934,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
       # Update theta2
       theta2.prop <- theta2.curr+h.theta2*rnorm(1)
       phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                cov.pars=c(1,phi.prop),
                                kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
@@ -5966,7 +5959,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
       if(!fixed.nugget) {
         theta3.prop <- theta3.curr+h.theta3*rnorm(1)
         tau2.prop <- exp(theta3.prop)
-        R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+        R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                  cov.pars=c(1,phi.curr),
                                  kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
 
@@ -6176,11 +6169,11 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
 
   # Compute the log-posterior density
   if(fixed.nugget) {
-    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.curr <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.curr),
                              kappa=kappa)$varcov
   } else {
-    R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.curr <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.curr),
                              kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
   }
@@ -6201,7 +6194,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
     theta1.prop <- theta1.curr+h.theta1*rnorm(1)
     sigma2.prop <- exp(2*theta1.prop)
     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
 
@@ -6225,7 +6218,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
     # Update theta2
     theta2.prop <- theta2.curr+h.theta2*rnorm(1)
     phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
@@ -6250,7 +6243,7 @@ binomial.geo.Bayes <- function(formula,units.m,coords,data,
     if(!fixed.nugget) {
       theta3.prop <- theta3.curr+h.theta3*rnorm(1)
       tau2.prop <- exp(theta3.prop)
-      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                cov.pars=c(1,phi.curr),
                                kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
 
@@ -6612,7 +6605,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @param units.m an object of class \code{\link{formula}} indicating the binomial denominators.
 ##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
 ##' @param data a data frame containing the variables in the model.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param control.prior output from \code{\link{control.prior}}.
 ##' @param control.mcmc output from \code{\link{control.mcmc.Bayes}}.
 ##' @param kappa value for the shape parameter of the Matern covariance function.
@@ -6624,7 +6617,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @details
 ##' This function performs Bayesian estimation for the parameters of the geostatistical binomial logistic model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the linear predictor assumes the form
 ##' \deqn{\log(p/(1-p)) = d'\beta + S(x) + Z,}
-##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 ##'
 ##' \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi,tau2)}; then each component of \eqn{\theta} has independent priors freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}.
 ##'
@@ -6656,7 +6649,7 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @return \code{acc.beta.S}: empirical acceptance rate for the regression coefficients and random effects (only if \code{SPDE=TRUE}).
 ##' @return \code{mesh}: the mesh used in the SPDE approximation.
 ##' @return \code{call}: the matched call.
-##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 ##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Markov Chain Monte Carlo (Chapter 5), Edited by Steve Brooks, Andrew Gelman, Galin Jones, and Xiao-Li Meng Chapman & Hall / CRC Press.
@@ -6749,8 +6742,6 @@ binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @export
 spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
                                         type="marginal",
@@ -6959,10 +6950,10 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
         tau2 <- 0
       }
       mu <- D%*%object$estimate[j,1:p]
-      Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      Sigma <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                               cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
       Sigma.inv <- solve(Sigma)
-      C <- sigma2*matern(U.pred.coords,phi,kappa)
+      C <- sigma2*geoR::matern(U.pred.coords,phi,kappa)
       A <- C%*%Sigma.inv
       mu.pred <- as.numeric(predictors%*%object$estimate[j,1:p])
       if(length(object$ID.coords)>0) {
@@ -6975,7 +6966,7 @@ spatial.pred.binomial.Bayes <- function(object,grid.pred,predictors=NULL,
         sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
         eta.sim[j,] <-  rnorm(n.pred,mu.cond[j,],sd.cond[j,])
       } else if (type=="joint") {
-        Sigma.pred <-  varcov.spatial(dists.lowertri=U.grid.pred,cov.model="matern",
+        Sigma.pred <-  geoR::varcov.spatial(dists.lowertri=U.grid.pred,cov.model="matern",
                                       cov.pars=c(sigma2,phi),kappa=kappa)$varcov
         Sigma.cond <- Sigma.pred - A%*%t(C)
         Sigma.cond.sroot <- t(chol(Sigma.cond))
@@ -7141,7 +7132,6 @@ control.profile <- function(phi=NULL,rel.nugget=NULL,
 ##' @return \code{profile.rel.nugget}: vector of the values of the likelihood function evaluated at \code{eval.points.rel.nugget}.
 ##' @return \code{profile.phi.rel.nugget}: matrix of the values of the likelihood function evaluated at \code{eval.points.phi} and \code{eval.points.rel.nugget}.
 ##' @return \code{fixed.par}: logical value; \code{TRUE} is the evaluation if the likelihood is carried out by fixing the other parameters, and \code{FALSE} if the computation of the profile-likelihood was performed instead.
-##' @importFrom geoR varcov.spatial
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -7165,7 +7155,7 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
 
   if(control.profile$fixed.par.phi | control.profile$fixed.par.rel.nugget) {
     log.lik <- function(beta,sigma2,phi,kappa,nu2) {
-      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+      V <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
                           nugget=nu2)$varcov
       V.inv <- solve(V)
       diff.beta <- y-D%*%beta
@@ -7233,7 +7223,7 @@ loglik.linear.model <- function(object,control.profile,plot.profile=TRUE,
     }
   } else  {
     log.lik.profile <- function(phi,kappa,nu2) {
-      V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+      V <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
                           nugget=nu2)$varcov
       V.inv <- solve(V)
       beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
@@ -7415,7 +7405,6 @@ loglik.ci <- function(object,coverage=0.95,plot.spline.profile=TRUE) {
 
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @importFrom geoR varcov.spatial
 geo.linear.Bayes <- function(formula,coords,data,
                              control.prior,
                              control.mcmc,
@@ -7535,7 +7524,7 @@ geo.linear.Bayes <- function(formula,coords,data,
   }
 
   # Compute the log-posterior density
-  R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+  R.curr <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                            cov.pars=c(1,phi.curr),
                            kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
@@ -7554,7 +7543,7 @@ geo.linear.Bayes <- function(formula,coords,data,
     theta1.prop <- theta1.curr+h.theta1*rnorm(1)
     sigma2.prop <- exp(2*theta1.prop)
     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=tau2.curr/sigma2.prop)$varcov
 
@@ -7578,7 +7567,7 @@ geo.linear.Bayes <- function(formula,coords,data,
     # Update theta2
     theta2.prop <- theta2.curr+h.theta2*rnorm(1)
     phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=tau2.curr/sigma2.curr)$varcov
 
@@ -7603,7 +7592,7 @@ geo.linear.Bayes <- function(formula,coords,data,
     if(!fixed.nugget) {
       theta3.prop <- theta3.curr+h.theta3*rnorm(1)
       tau2.prop <- exp(theta3.prop)
-      R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                                cov.pars=c(1,phi.curr),
                                kappa=kappa,nugget=tau2.prop/sigma2.curr)$varcov
 
@@ -7882,8 +7871,6 @@ geo.linear.Bayes.lr <- function(formula,coords,knots,data,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @export
 spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
                                       type="marginal",
@@ -7961,10 +7948,10 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
       flush.console()
       if(messages) cat("Iteration ",j," out of ",n.samples," \r",sep="")
     } else {
-      Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+      Sigma <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                               cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
       Sigma.inv <- solve(Sigma)
-      C <- sigma2*matern(U.pred.coords,phi,kappa)
+      C <- sigma2*geoR::matern(U.pred.coords,phi,kappa)
       A <- C%*%Sigma.inv
       mu <- object$D%*%beta
 
@@ -7973,7 +7960,7 @@ spatial.pred.linear.Bayes <- function(object,grid.pred,predictors=NULL,
         sd.cond[j,] <- sqrt(sigma2-diag(A%*%t(C)))
         predictions[j,] <- rnorm(n.pred,mu.cond[j,],sd.cond[j,])
       } else if(type=="joint" & any(scale.predictions!="logit")) {
-        Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+        Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,cov.model="matern",
                                       cov.pars=c(sigma2,phi),kappa=kappa)$varcov
         Sigma.cond <- Sigma.pred - A%*%t(C)
         Sigma.cond.sroot <- t(chol(Sigma.cond))
@@ -8360,7 +8347,6 @@ autocor.plot <- function(object,param,component.beta=NULL,component.S=NULL) {
 ##' @param param a character indicating for which component of the model the density plot is required: \code{param="beta"} for the regression coefficients; \code{param="sigma2"} for the variance of the spatial random effect; \code{param="phi"} for the scale parameter of the Matern correlation function; \code{param="tau2"} for the variance of the nugget effect; \code{param="S"} for the spatial random effect.
 ##' @param component.beta if \code{param="beta"}, \code{component.beta} is a numeric value indicating the component of the regression coefficients; default is \code{NULL}.
 ##' @param component.S if \code{param="S"}, \code{component.S} can be a numeric value indicating the component of the spatial random effect. Default is \code{NULL}.
-##' @param ... additional parameters to pass to \code{\link{density}}.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -8487,7 +8473,6 @@ dens.plot <- function(object,param,component.beta=NULL,
 ##' @return If a value for \code{coverage} is specified, the list also contains \code{lower}, \code{upper} and \code{kappa.hat} that correspond to the lower and upper limits of the confidence interval, and the maximum likelihood estimate for the shape parameter, respectively.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @importFrom geoR varcov.spatial
 ##' @export
 shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,start.par,
                          coverage=NULL,plot.profile=TRUE,messages=TRUE) {
@@ -8506,7 +8491,7 @@ shape.matern <- function(formula,coords,data,set.kappa,fixed.rel.nugget=NULL,sta
      (length(start.par)!= 1 & length(fixed.rel.nugget)>0)) stop("wrong length of start.cov.pars")
   if(any(set.kappa < 0)) stop("if log.kappa=FALSE, then set.kappa must have positive components.")
   log.lik.profile <- function(phi,kappa,nu2) {
-    V <- varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
+    V <- geoR::varcov.spatial(dists.lowertri=U,cov.pars=c(1,phi),kappa=kappa,
                         nugget=nu2)$varcov
     V.inv <- solve(V)
     beta.hat <- as.numeric(solve(t(D)%*%V.inv%*%D)%*%t(D)%*%V.inv%*%y)
@@ -8805,7 +8790,6 @@ continuous.sample<-function(poly,n,delta,k=0,rho=NULL) {
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom truncnorm rtruncnorm
-##' @importFrom geoR varcov.spatial
 binary.geo.Bayes <- function(formula,coords,data,
                              ID.coords,
                              control.prior,
@@ -8925,7 +8909,7 @@ binary.geo.Bayes <- function(formula,coords,data,
   W.curr <- rtruncnorm(n,a=lim.y[,1],b=lim.y[,2],
                        mean=S.curr[ID.coords]+mu.curr)
 
-  R.curr <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+  R.curr <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                            cov.pars=c(1,phi.curr),kappa=kappa,
                            nugget=0)$varcov
 
@@ -8944,7 +8928,7 @@ binary.geo.Bayes <- function(formula,coords,data,
     theta1.prop <- theta1.curr+h.theta1*rnorm(1)
     sigma2.prop <- exp(2*theta1.prop)
     phi.prop <- (exp(2*theta1.prop-theta2.curr))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=0)$varcov
 
@@ -8968,7 +8952,7 @@ binary.geo.Bayes <- function(formula,coords,data,
     # Update theta2
     theta2.prop <- theta2.curr+h.theta2*rnorm(1)
     phi.prop <- (exp(2*theta1.curr-theta2.prop))^(1/nu)
-    R.prop <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R.prop <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                              cov.pars=c(1,phi.prop),
                              kappa=kappa,nugget=0)$varcov
 
@@ -9230,7 +9214,7 @@ binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
 ##' @param formula an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.
 ##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
 ##' @param data a data frame containing the variables in the model.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to specify spatial random effects at household-level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to specify spatial random effects at household-level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param control.prior output from \code{\link{control.prior}}.
 ##' @param control.mcmc output from \code{\link{control.mcmc.Bayes}}.
 ##' @param kappa value for the shape parameter of the Matern covariance function.
@@ -9240,7 +9224,7 @@ binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
 ##' @details
 ##' This function performs Bayesian estimation for the parameters of the geostatistical binary probit model. Let \eqn{i} and \eqn{j} denote the indices of the \eqn{i}-th household and \eqn{j}-th individual within that household. The response variable \eqn{Y_{ij}} is a binary indicator taking value 1 if the individual has been tested positive for the disease of interest and 0 otherwise. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x_{i})}, \eqn{Y_{ij}} are mutually independent Bernoulli variables with probit link function \eqn{\Phi^{-1}(\cdot)}, i.e.
 ##' \deqn{\Phi^{-1}(p_{ij}) = d_{ij}'\beta + S(x_{i}),}
-##' where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-level, with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-level, with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 ##'
 ##' \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi)}; each component of \eqn{\theta} has independent priors that can be freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. The vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{beta.covar}.
 ##'
@@ -9265,7 +9249,7 @@ binary.geo.Bayes.lr <- function(formula,coords,data,ID.coords,knots,
 ##' @return \code{h1}: vector of values taken by the tuning parameter \code{h.theta1} at each iteration.
 ##' @return \code{h2}: vector of values taken by the tuning parameter \code{h.theta2} at each iteration.
 ##' @return \code{call}: the matched call.
-##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+##' @seealso  \code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 ##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applications.} Chapman & Hall, London.
@@ -9305,7 +9289,7 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 ##' @param units.m an object of class \code{\link{formula}} indicating the multiplicative offset for the mean of the Poisson model; if not specified this is then internally set as 1.
 ##' @param coords an object of class \code{\link{formula}} indicating the geographic coordinates.
 ##' @param data a data frame containing the variables in the model.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at location-level but some of the covariates are at individual level. \bold{Warning}: the spatial coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at location-level but some of the covariates are at individual level. \bold{Warning}: the spatial coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param par0 parameters of the importance sampling distribution: these should be given in the following order \code{c(beta,sigma2,phi,tau2)}, where \code{beta} are the regression coefficients, \code{sigma2} is the variance of the Gaussian process, \code{phi} is the scale parameter of the spatial correlation and \code{tau2} is the variance of the nugget effect (if included in the model).
 ##' @param control.mcmc output from \code{\link{control.mcmc.MCML}}.
 ##' @param kappa fixed value for the shape parameter of the Matern covariance function.
@@ -9319,7 +9303,7 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 ##' @details
 ##' This function performs parameter estimation for a geostatistical Poisson model with log link function. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a Poisson distribution with mean \eqn{m\lambda}, where \eqn{m} is an offset defined through the argument \code{units.m}. A canonical log link is used, thus the linear predictor assumes the form
 ##' \deqn{\log(\lambda) = d'\beta + S(x) + Z,}
-##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 ##' In the \code{poisson.log.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 ##'
 ##' \bold{Monte Carlo Maximum likelihood.}
@@ -9346,7 +9330,7 @@ binary.probit.Bayes <- function(formula,coords,data,ID.coords,
 ##' @return \code{samples}: matrix of the random effects samples from the importance sampling distribution used to approximate the likelihood function.
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
-##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
+##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}.
 ##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
@@ -9413,8 +9397,6 @@ poisson.log.MCML <- function(formula,units.m=NULL,coords,data,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @export
 
 spatial.pred.poisson.MCML <- function(object,grid.pred,predictors=NULL,control.mcmc,
@@ -9527,10 +9509,10 @@ spatial.pred.poisson.MCML <- function(object,grid.pred,predictors=NULL,control.m
 
     U <- dist(coords)
     U.pred.coords <- as.matrix(pdist(grid.pred,coords))
-    Sigma <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    Sigma <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                             cov.pars=c(sigma2,phi),nugget=tau2,kappa=kappa)$varcov
     Sigma.inv <- solve(Sigma)
-    C <- sigma2*matern(U.pred.coords,phi,kappa)
+    C <- sigma2*geoR::matern(U.pred.coords,phi,kappa)
     A <- C%*%Sigma.inv
     out <- list()
     mu.pred <- as.numeric(predictors%*%beta)
@@ -9553,7 +9535,7 @@ spatial.pred.poisson.MCML <- function(object,grid.pred,predictors=NULL,control.m
       sd.cond <- sqrt(sigma2-diag(A%*%t(C)))
     } else if (type=="joint") {
       if(messages) cat("Type of predictions: ",type," (this step might be demanding) \n")
-      Sigma.pred <-  varcov.spatial(coords=grid.pred,cov.model="matern",
+      Sigma.pred <-  geoR::varcov.spatial(coords=grid.pred,cov.model="matern",
                                     cov.pars=c(sigma2,phi),kappa=kappa)$varcov
       Sigma.cond <- Sigma.pred - A%*%t(C)
       sd.cond <- sqrt(diag(Sigma.cond))
@@ -10015,7 +9997,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
 
     U97 <- dist(coords97)
     kappa <- kappa2
-    R0 <- varcov.spatial(dists.lowertri = U97,
+    R0 <- geoR::varcov.spatial(dists.lowertri = U97,
                          cov.pars=c(1,phi2.0),nugget=nu2.0,kappa=kappa)$varcov
     R0.inv <- solve(R0)
 
@@ -10045,7 +10027,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu1.grid <- as.numeric(D1.grid%*%beta1)
       mu2.97 <- as.numeric(D2.97%*%beta2.97)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
-      R <- varcov.spatial(dists.lowertri = U97,
+      R <- geoR::varcov.spatial(dists.lowertri = U97,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       R.inv <- solve(R)
 
@@ -10082,7 +10064,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       phi2 <- exp(par[ind.phi2])
       nu2 <- exp(par[ind.nu2])
 
-      R <- varcov.spatial(dists.lowertri=U00,kappa=kappa,
+      R <- geoR::varcov.spatial(dists.lowertri=U00,kappa=kappa,
                           cov.pars=c(1,phi2),nugget=nu2)$varcov
       R.inv <- solve(R)
       ldet.R <- determinant(R)$modulus
@@ -10118,7 +10100,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu2.97 <- as.numeric(D2.97%*%beta2.97)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
       log.det.Q <- as.numeric(determinant(Q)$modulus)
-      R <- varcov.spatial(dists.lowertri = U97,
+      R <- geoR::varcov.spatial(dists.lowertri = U97,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       log.det.R <- as.numeric(determinant(R)$modulus)
       R.inv <- solve(R)
@@ -10190,7 +10172,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
 
       beta2.00 <- par[ind.beta2.00]
 
-      R <- varcov.spatial(dists.lowertri=U00,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U00,cov.model="matern",
                           cov.pars=c(1,phi2),
                           nugget=nu2,kappa=kappa)$varcov
 
@@ -10234,7 +10216,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu2.97 <- as.numeric(D2.97%*%beta2.97)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
       log.det.Q <- as.numeric(determinant(Q)$modulus)
-      R <- varcov.spatial(dists.lowertri = U97,
+      R <- geoR::varcov.spatial(dists.lowertri = U97,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       log.det.R <- as.numeric(determinant(R)$modulus)
       R.inv <- solve(R)
@@ -10374,7 +10356,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       grad <- rep(0,p.97+p.00+q+6)
       beta2.00 <- par[ind.beta2.00]
 
-      R <- varcov.spatial(dists.lowertri=U00,cov.model="matern",
+      R <- geoR::varcov.spatial(dists.lowertri=U00,cov.model="matern",
                           cov.pars=c(1,phi2),
                           nugget=nu2,kappa=kappa)$varcov
 
@@ -10530,7 +10512,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
 
     U <- dist(coords)
     kappa <- kappa2
-    R0 <- varcov.spatial(dists.lowertri = U,
+    R0 <- geoR::varcov.spatial(dists.lowertri = U,
                          cov.pars=c(1,phi2.0),nugget=nu2.0,kappa=kappa)$varcov
     R0.inv <- solve(R0)
 
@@ -10558,7 +10540,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu1.grid <- as.numeric(D1.grid%*%beta1)
       mu2 <- as.numeric(D2%*%beta2)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
-      R <- varcov.spatial(dists.lowertri = U,
+      R <- geoR::varcov.spatial(dists.lowertri = U,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       R.inv <- solve(R)
 
@@ -10609,7 +10591,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu2 <- as.numeric(D2%*%beta2)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
       log.det.Q <- as.numeric(determinant(Q)$modulus)
-      R <- varcov.spatial(dists.lowertri = U,
+      R <- geoR::varcov.spatial(dists.lowertri = U,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       log.det.R <- as.numeric(determinant(R)$modulus)
       R.inv <- solve(R)
@@ -10697,7 +10679,7 @@ lm.ps.MCML <- function(formula.response,formula.log.intensity=~1,coords,
       mu2 <- as.numeric(D2%*%beta2)
       Q <- INLA::inla.spde2.precision(spde,theta=c(0,-log(phi1)))
       log.det.Q <- as.numeric(determinant(Q)$modulus)
-      R <- varcov.spatial(dists.lowertri = U,
+      R <- geoR::varcov.spatial(dists.lowertri = U,
                           cov.pars=c(1,phi2),nugget=nu2,kappa=kappa)$varcov
       log.det.R <- as.numeric(determinant(R)$modulus)
       R.inv <- solve(R)
@@ -11113,8 +11095,6 @@ set.par.ps <- function(p=1,q=1,intensity,response,preferentiality.par) {
 ##' namely \code{preferential} and \code{non.preferential}, associated with \code{response}.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @importFrom pdist pdist
-##' @importFrom geoR varcov.spatial
-##' @importFrom geoR matern
 ##' @importFrom Matrix t solve chol diag
 ##' @export
 spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
@@ -11237,7 +11217,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
   if(target==1 | target==3) {
 
     if(DG.model) {
-      R <- varcov.spatial(dists.lowertri = dist(object$coords$preferential),
+      R <- geoR::varcov.spatial(dists.lowertri = dist(object$coords$preferential),
                           cov.pars=c(1,phi2),nugget=tau2/sigma2.2,kappa=kappa.response)$varcov
       U.pred.obs <- as.matrix(pdist(grid.pred,object$coords$preferential))
       p97 <- ncol(object$D.response$preferential)
@@ -11251,7 +11231,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
                                                                                    object$grid.intensity[,2])^2))
       mu.intensity.obs <- as.numeric(as.matrix(object$D.intensity[ind.grid,])%*%beta1)
     } else {
-      R <- varcov.spatial(dists.lowertri = dist(object$coords),
+      R <- geoR::varcov.spatial(dists.lowertri = dist(object$coords),
                           cov.pars=c(1,phi2),nugget=tau2/sigma2.2,kappa=kappa.response)$varcov
       U.pred.obs <- as.matrix(pdist(grid.pred,object$coords))
       mu.response.pred <- as.numeric(predictors%*%beta2)
@@ -11281,7 +11261,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
     }
 
     Sigma.inv <- R.inv/sigma2.2
-    C <- sigma2.2*matern(U.pred.obs,phi2,kappa.response)
+    C <- sigma2.2*geoR::matern(U.pred.obs,phi2,kappa.response)
     A <- C%*%Sigma.inv
 
 
@@ -11291,7 +11271,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
       sd.cond <- sqrt((sigma2.2-apply(A*C,1,sum)))
       if(type=="joint") {
         U.pred <- dist(grid.pred)
-        Sigma.pred <- varcov.spatial(dists.lowertri = U.pred,
+        Sigma.pred <- geoR::varcov.spatial(dists.lowertri = U.pred,
                                      cov.pars=c(sigma2.2,phi2),nugget=0,kappa=kappa.response)$varcov
         Sigma.pred.cond <- Sigma.pred - A%*%t(C)
       }
@@ -11339,7 +11319,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
     }
 
     if(DG.model) {
-      R <- varcov.spatial(dists.lowertri = dist(object$coords$non.preferential),
+      R <- geoR::varcov.spatial(dists.lowertri = dist(object$coords$non.preferential),
                           cov.pars=c(1,phi2),nugget=tau2/sigma2.2,kappa=kappa.response)$varcov
       U.pred.obs <- as.matrix(pdist(grid.pred,object$coords$non.preferential))
       p00 <- ncol(object$D.response$non.preferential)
@@ -11348,7 +11328,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
       y.diff <- object$y$non.preferential-mu.response
       Sigma <- sigma2.2*R
       Sigma.inv <- solve(Sigma)
-      C <- sigma2.2*matern(U.pred.obs,phi2,kappa.response)
+      C <- sigma2.2*geoR::matern(U.pred.obs,phi2,kappa.response)
       A <- C%*%Sigma.inv
 
 
@@ -11382,7 +11362,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
   if(target==2 | target==3) {
     if(!sim.done) {
       if(DG.model) {
-        R <- varcov.spatial(dists.lowertri = dist(object$coords$preferential),
+        R <- geoR::varcov.spatial(dists.lowertri = dist(object$coords$preferential),
                             cov.pars=c(1,phi2),nugget=tau2/sigma2.2,kappa=kappa.response)$varcov
         p97 <- ncol(object$D.response$preferential)
         mu.response.pred <- as.numeric(predictors[[1]]%*%beta2[1:p97])
@@ -11394,7 +11374,7 @@ spatial.pred.lm.ps <- function(object,grid.pred=NULL,predictors=NULL,
                                                                                      object$grid.intensity[,2])^2))
         mu.intensity.obs <- as.numeric(as.matrix(object$D.intensity[ind.grid,])%*%beta1)
       } else {
-        R <- varcov.spatial(dists.lowertri = dist(object$coords),
+        R <- geoR::varcov.spatial(dists.lowertri = dist(object$coords),
                             cov.pars=c(1,phi2),nugget=tau2/sigma2.2,kappa=kappa.response)$varcov
         mu.response.pred <- as.numeric(predictors%*%beta2)
         mu.response <- as.numeric(object$D.response%*%beta2)
@@ -11485,9 +11465,7 @@ plot.pred.PrevMap.ps <- function(x,target=NULL,summary="predictions",...) {
 ##' @param data an object of class "data.frame" containing the data.
 ##' @param var.name a \code{\link{formula}} object indicating the variable to display.
 ##' @param coords a \code{\link{formula}} object indicating the geographical coordinates.
-##' @param ... additional arguments to be passed to \code{\link{points.geodata}}.
-##' @importFrom geoR as.geodata
-##' @importFrom geoR points.geodata
+##' @param ... additional arguments to be passed to \code{points.geodata}.
 ##' @export
 point.map <- function(data,var.name,coords,...) {
   if(class(data)!="data.frame") stop("'data' must be an object of class 'data.frame'.")
@@ -11527,10 +11505,8 @@ trend.plot <- function(data,var.name,coords,...) {
 ##' @param data an object of class "data.frame" containing the data.
 ##' @param var.name a \code{\link{formula}} object indicating the variable to display.
 ##' @param coords a \code{\link{formula}} object indicating the geographical coordinates.
-##' @param ... additional arguments to be passed to \code{\link{variog}}.
-##' @return An object of the class "variogram" which is list containing components as detailed in \code{\link{variog}}.
-##' @importFrom geoR as.geodata
-##' @importFrom geoR variog
+##' @param ... additional arguments to be passed to \code{variog}.
+##' @return An object of the class "variogram" which is list containing components as detailed in \code{variog}.
 ##' @export
 variogram <- function(data,var.name,coords,...) {
   if(class(data)!="data.frame") stop("'data' must be an object of class 'data.frame'.")
@@ -11539,8 +11515,8 @@ variogram <- function(data,var.name,coords,...) {
 
   coords <- as.matrix(model.frame(coords,data))
   y <- as.vector(model.frame(var.name,data))
-  gdo <- as.geodata(data.frame(x1=coords[,1],x2=coords[,2],y=y))
-  variog(gdo,...)
+  gdo <- geoR::as.geodata(data.frame(x1=coords[,1],x2=coords[,2],y=y))
+  geoR::variog(gdo,...)
 }
 
 ##' @title Diagnostics for residual spatial correlation
@@ -11553,7 +11529,7 @@ variogram <- function(data,var.name,coords,...) {
 ##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}.
 ##' These must be provided if, for example, spatial random effects are defined at
 ##'  household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct
-##'  otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##'  otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param n.sim number of simulations used to perform the selected test(s) for spatial correlation.
 ##' @param nAGQ integer scalar (passed to \code{\link{glmer}}) - the number of points per axis for evaluating the adaptive Gauss-Hermite approximation to the log-likelihood.
 ##' Defaults to 1, corresponding to the Laplace approximation. Values greater than 1 produce greater accuracy in the evaluation of the
@@ -11609,33 +11585,32 @@ variogram <- function(data,var.name,coords,...) {
 ##' @importFrom lme4 glmer
 ##' @importFrom lme4 lmer
 ##' @importFrom lme4 ranef
-##' @importFrom geoR matern
 ##' @export
-spat.corr.diagnostic <- 
-  function(formula, units.m = NULL, coords, data, likelihood, 
-           ID.coords = NULL, n.sim = 200, nAGQ = 1, uvec = NULL, plot.results = TRUE, 
+spat.corr.diagnostic <-
+  function(formula, units.m = NULL, coords, data, likelihood,
+           ID.coords = NULL, n.sim = 200, nAGQ = 1, uvec = NULL, plot.results = TRUE,
            lse.variogram = FALSE, kappa = 0.5, which.test = "both") {
     theta.start <- NULL
-    if (class(formula) != "formula") 
+    if (class(formula) != "formula")
       stop("'formula' must be an object of class 'formula' indicating the model to be fitted.")
-    if (!is.null(units.m) & class(units.m) != "formula") 
+    if (!is.null(units.m) & class(units.m) != "formula")
       stop("'units.m' must be an object of class 'formula'.")
-    if (class(data) != "data.frame") 
+    if (class(data) != "data.frame")
       stop("'data' must be a 'data.frame' object.")
-    if (!any(likelihood == c("Gaussian", "Binomial", "Poisson"))) 
+    if (!any(likelihood == c("Gaussian", "Binomial", "Poisson")))
       stop("'likelihood' must be either 'Gaussian', 'Binomial' or 'Poisson'.")
     which.plot <- which.test
-    if (which.plot == "both" & which.test != which.plot) 
+    if (which.plot == "both" & which.test != which.plot)
       stop("the input for 'which.plot' is not valid.")
-    if (which.test != "both" & (which.test != which.plot)) 
+    if (which.test != "both" & (which.test != which.plot))
       stop("the input for 'which.plot' is not valid.")
-    if (any(which.test == c("both", "variogram", "test statistic")) == 
-        FALSE) 
+    if (any(which.test == c("both", "variogram", "test statistic")) ==
+        FALSE)
       stop("'which.test' must be equal to 'both', 'variogram' or 'test statistic'.")
-    if (any(which.plot == c("both", "variogram", "test statistic")) == 
-        FALSE) 
+    if (any(which.plot == c("both", "variogram", "test statistic")) ==
+        FALSE)
       stop("'which.plot' must be equal to 'both', 'variogram' or 'test statistic'.")
-    if (!is.null(theta.start) & length(theta.start) != 3) 
+    if (!is.null(theta.start) & length(theta.start) != 3)
       stop("'theta.start' must be a numeric vector of length 3, providing the initial values for 'sigma2', 'phi' and 'nugget' for the least square fit to the empirical variogram")
     mf <- model.frame(formula, data = data)
     D <- as.matrix(model.matrix(attr(mf, "terms"), data = data))
@@ -11659,49 +11634,49 @@ spat.corr.diagnostic <-
       n.x <- length(unique(ID.coords))
       xy.set <- expand.grid(1:n.x, 1:n.x)
       xy.set <- xy.set[xy.set[, 1] > xy.set[, 2], ]
-      d.coords <- as.numeric(sqrt((coords[ID.coords[xy.set[, 
-                                                           1]], 1] - coords[ID.coords[xy.set[, 2]], 1])^2 + 
-                                    (coords[ID.coords[xy.set[, 1]], 2] - coords[ID.coords[xy.set[, 
+      d.coords <- as.numeric(sqrt((coords[ID.coords[xy.set[,
+                                                           1]], 1] - coords[ID.coords[xy.set[, 2]], 1])^2 +
+                                    (coords[ID.coords[xy.set[, 1]], 2] - coords[ID.coords[xy.set[,
                                                                                                  2]], 2])^2))
     } else {
       n.x <- length(ID.coords)
       xy.set <- expand.grid(1:n.x, 1:n.x)
       xy.set <- xy.set[xy.set[, 1] > xy.set[, 2], ]
-      d.coords <- as.numeric(sqrt((coords[xy.set[, 1], 1] - 
-                                     coords[xy.set[, 2], 1])^2 + (coords[xy.set[, 1], 
+      d.coords <- as.numeric(sqrt((coords[xy.set[, 1], 1] -
+                                     coords[xy.set[, 2], 1])^2 + (coords[xy.set[, 1],
                                                                          2] - coords[xy.set[, 2], 2])^2))
     }
     if (is.null(uvec)) {
       u.range <- range(d.coords)
-      uvec <- seq(u.range[1], (u.range[1] + u.range[2])/2, 
+      uvec <- seq(u.range[1], (u.range[1] + u.range[2])/2,
                   length = 15)
     }
     out <- list()
     if (likelihood == "Binomial") {
-      data.aux <- data.frame(response.variable = y, units.m = units.m, 
+      data.aux <- data.frame(response.variable = y, units.m = units.m,
                              D[, -1], ID = ID.coords)
-      formula.aux <- paste("cbind(response.variable,units.m-response.variable)", 
-                           "~", paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"), 
+      formula.aux <- paste("cbind(response.variable,units.m-response.variable)",
+                           "~", paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"),
                                       collapse = " + "))
       options(warn = -1)
-      glmer.fit <- glmer(formula.aux, data = data.aux, family = binomial, 
+      glmer.fit <- glmer(formula.aux, data = data.aux, family = binomial,
                          nAGQ = nAGQ)
       options(warn = 0)
       sigma2.hat <- sqrt(glmer.fit@theta)
-      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[, 
+      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,
                                                               1])
     } else if (likelihood == "Poisson") {
-      data.aux <- data.frame(response.variable = y, units.m = units.m, 
+      data.aux <- data.frame(response.variable = y, units.m = units.m,
                              D[, -1], ID = ID.coords)
-      formula.aux <- paste("response.variable", "~", "offset(log(units.m)) +", 
-                           paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"), 
+      formula.aux <- paste("response.variable", "~", "offset(log(units.m)) +",
+                           paste(c(names(data.aux)[-c(1, 2, p + 2)], "(1|ID)"),
                                  collapse = " + "))
       options(warn = -1)
-      glmer.fit <- glmer(formula.aux, data = data.aux, family = poisson, 
+      glmer.fit <- glmer(formula.aux, data = data.aux, family = poisson,
                          nAGQ = nAGQ)
       options(warn = 0)
       sigma2.hat <- sqrt(glmer.fit@theta)
-      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[, 
+      out$mode.rand.effects <- as.numeric(ranef(glmer.fit)$ID[,
                                                               1])
     } else {
       if (length(ID.coords) == nrow(coords)) {
@@ -11709,9 +11684,9 @@ spat.corr.diagnostic <-
         sigma2.hat <- mean(lm.fit$residuals^2)
         out$mode.rand.effects <- lm.fit$residuals
       } else {
-        data.aux <- data.frame(response.variable = y, 
+        data.aux <- data.frame(response.variable = y,
                                D[, -1], ID = ID.coords)
-        formula.aux <- paste("response.variable", "~", 
+        formula.aux <- paste("response.variable", "~",
                              paste(c(names(data.aux)[-c(1, p + 1)],"(1|ID)"), collapse = " + "))
         options(warn = -1)
         lmer.fit <- lmer(formula.aux, data = data.aux)
@@ -11725,77 +11700,77 @@ spat.corr.diagnostic <-
     d.coords <- d.coords[-na.remove]
     d.coords.class <- d.coords.class[-na.remove]
     xy.set <- xy.set[-na.remove, ]
-    re.sq.diff <- 0.5 * (out$mode.rand.effects[xy.set[, 1]] - 
+    re.sq.diff <- 0.5 * (out$mode.rand.effects[xy.set[, 1]] -
                            out$mode.rand.effects[xy.set[, 2]])^2
     out$obs.variogram <- tapply(re.sq.diff, d.coords.class, mean)
-    out$distance.bins <- d.coords.class.mean <- tapply(d.coords, 
+    out$distance.bins <- d.coords.class.mean <- tapply(d.coords,
                                                        d.coords.class, mean)
     out$n.bins <- as.numeric(table(d.coords.class))
     variogram.sim <- matrix(NA, nrow = n.sim, ncol = length(out$obs.variogram))
-    if (which.test == "both" | which.test == "test statistic") 
+    if (which.test == "both" | which.test == "test statistic")
       test.stat <- rep(NA, n.sim)
     for (i in 1:n.sim) {
       d.coords.class.i <- d.coords.class[sample(1:length(d.coords.class))]
-      variogram.sim[i, ] <- tapply(re.sq.diff, d.coords.class.i, 
+      variogram.sim[i, ] <- tapply(re.sq.diff, d.coords.class.i,
                                    mean)
-      if (which.test == "both" | which.test == "test statistic") 
+      if (which.test == "both" | which.test == "test statistic")
         test.stat[i] <- sum(out$n.bins * (variogram.sim[i,] - sigma2.hat)^2)
     }
-    if (which.test == "both" | which.test == "variogram") 
-      out$lower.lim <- apply(variogram.sim, 2, function(x) quantile(x, 
+    if (which.test == "both" | which.test == "variogram")
+      out$lower.lim <- apply(variogram.sim, 2, function(x) quantile(x,
                                                                     0.025))
-    if (which.test == "both" | which.test == "variogram") 
-      out$upper.lim <- apply(variogram.sim, 2, function(x) quantile(x, 
+    if (which.test == "both" | which.test == "variogram")
+      out$upper.lim <- apply(variogram.sim, 2, function(x) quantile(x,
                                                                     0.975))
-    if (which.test == "both" | which.test == "test statistic") 
-      obs.test.stat <- sum(out$n.bins * (out$obs.variogram - 
+    if (which.test == "both" | which.test == "test statistic")
+      obs.test.stat <- sum(out$n.bins * (out$obs.variogram -
                                            sigma2.hat)^2)
-    if (which.test == "both" | which.test == "test statistic") 
+    if (which.test == "both" | which.test == "test statistic")
       out$p.value <- mean(test.stat > obs.test.stat)
     if (lse.variogram) {
       lse <- function(theta) {
         sigma2 <- exp(theta[1])
         phi <- exp(theta[2])
         tau2 <- exp(theta[3])
-        f <- out$n.bins * ((out$obs.variogram - (tau2 + sigma2 * 
-                                                   (1 - matern(d.coords.class.mean, phi, kappa))))^2)
+        f <- out$n.bins * ((out$obs.variogram - (tau2 + sigma2 *
+                                                   (1 - geoR::matern(d.coords.class.mean, phi, kappa))))^2)
         sum(f)
       }
       u.range <- range(d.coords)
-      if (is.null(theta.start)) 
-        theta.start <- c(log(sigma2.hat), log((u.range[1] + 
+      if (is.null(theta.start))
+        theta.start <- c(log(sigma2.hat), log((u.range[1] +
                                                  u.range[2])/4), log(out$obs.variogram[1]))
       estim.variogram <- nlminb(theta.start, lse)
       out$lse.variogram <- exp(estim.variogram$par)
       names(out$lse.variogram) <- c("sigma^2", "phi", "tau^2")
       cat("Least square fit to the empirical variogram \n")
-      cat("sigma^2 = ", out$lse.variogram[1], " (Variance of the Gaussian process) \n", 
+      cat("sigma^2 = ", out$lse.variogram[1], " (Variance of the Gaussian process) \n",
           sep = "")
-      cat("phi = ", out$lse.variogram[2], " (Scale of the spatial correlation) \n", 
+      cat("phi = ", out$lse.variogram[2], " (Scale of the spatial correlation) \n",
           sep = "")
-      cat("tau^2 = ", out$lse.variogram[3], " (Variance of the nugget effect) \n", 
+      cat("tau^2 = ", out$lse.variogram[3], " (Variance of the nugget effect) \n",
           sep = "")
     }
     if (plot.results) {
       if (which.plot == "both" | which.plot == "variogram") {
-        if (which.plot == "both") 
+        if (which.plot == "both")
           par(mfrow = c(1, 2))
-        matplot(d.coords.class.mean, cbind(out$lower.lim, 
-                                           out$upper.lim, out$obs.variogram), type = "n", 
+        matplot(d.coords.class.mean, cbind(out$lower.lim,
+                                           out$upper.lim, out$obs.variogram), type = "n",
                 xlab = "Spatial distance", ylab = "Variogram")
-        polygon(c(d.coords.class.mean, d.coords.class.mean[length(d.coords.class.mean):1]), 
-                c(out$lower.lim, out$upper.lim[length(out$upper.lim):1]), 
+        polygon(c(d.coords.class.mean, d.coords.class.mean[length(d.coords.class.mean):1]),
+                c(out$lower.lim, out$upper.lim[length(out$upper.lim):1]),
                 border = "white", col = "light grey")
         lines(d.coords.class.mean, out$obs.variogram)
         if (lse.variogram) {
           u.set <- seq(uvec[1], uvec[length(uvec)], length = 200)
-          u.val <- out$lse.variogram[3] + out$lse.variogram[1] * 
-            (1 - matern(u.set, out$lse.variogram[2], kappa))
+          u.val <- out$lse.variogram[3] + out$lse.variogram[1] *
+            (1 - geoR::matern(u.set, out$lse.variogram[2], kappa))
           lines(u.set, u.val, lty = "dashed")
         }
       }
       if (which.test == "both" | which.test == "test statistic") {
-        hist(test.stat, prob = TRUE, main = paste("p-value = ", 
+        hist(test.stat, prob = TRUE, main = paste("p-value = ",
                                                   round(out$p.value, 3), sep = ""), xlab = "")
         points(obs.test.stat, 0, pch = 20, cex = 2)
         abline(v = obs.test.stat, lty = "dashed")
@@ -11865,7 +11840,6 @@ spat.corr.diagnostic <-
 ##' @return \code{lse.variogram}: (available only if \code{lse.variogram=TRUE}) a vector of length \code{length(uvec)-1} containing the values of the estimated Matern variogram via a weighted least square fit.
 ##' @importFrom lme4 glmer
 ##' @importFrom lme4 ranef
-##' @importFrom geoR matern
 ##' @export
 variog.diagnostic.lm <- function(object,
                                  n.sim=1000,
@@ -11993,7 +11967,7 @@ variog.diagnostic.lm <- function(object,
   U <- dist(coords)
 
   if(!param.uncertainty) {
-    Sigma.spat <- varcov.spatial(dists.lowertri = U,
+    Sigma.spat <- geoR::varcov.spatial(dists.lowertri = U,
                                  kappa=object$kappa,
                                  cov.pars = c(sigma2,phi))$varcov
     Sigma.spat.sroot <- t(chol(Sigma.spat))
@@ -12010,7 +11984,7 @@ variog.diagnostic.lm <- function(object,
   n.bins <- as.numeric(table(d.coords.class))
 
   phi.estim <- exp(object$estimate["log(phi)"])
-  pr <- uniroot(function(x) matern(x,phi.estim,object$kappa)-0.05,
+  pr <- uniroot(function(x) geoR::matern(x,phi.estim,object$kappa)-0.05,
                 lower=0,upper=10*phi.estim)$root
   if(which.test=="both" | which.test=="test statistic") {
     which.dist.test <- which(d.coords.class.mean < range.fact*pr)
@@ -12020,7 +11994,7 @@ variog.diagnostic.lm <- function(object,
   n.coords <- nrow(coords)
   for(i in 1:n.sim) {
     if(param.uncertainty) {
-      Sigma.spat <- varcov.spatial(dists.lowertri = U,
+      Sigma.spat <- geoR::varcov.spatial(dists.lowertri = U,
                                    kappa=object$kappa,
                                    cov.pars = c(sigma2[i],phi[i]))$varcov
       Sigma.spat.sroot <- t(chol(Sigma.spat))
@@ -12058,7 +12032,7 @@ variog.diagnostic.lm <- function(object,
       test.stat[i] <- sum(n.bins[which.dist.test]*
                             (variogram.sim[i,which.dist.test]-
                                (omega2+tau2+sigma2*
-                                  (1-matern(dist.test,phi,object$kappa))))^2)
+                                  (1-geoR::matern(dist.test,phi,object$kappa))))^2)
     }
   }
 
@@ -12071,7 +12045,7 @@ variog.diagnostic.lm <- function(object,
     obs.test.stat <- sum(n.bins[which.dist.test]*
                            (out$obs.variogram[which.dist.test]-
                               (omega2+tau2+sigma2*
-                                 (1-matern(dist.test,phi,object$kappa))))^2)
+                                 (1-geoR::matern(dist.test,phi,object$kappa))))^2)
     out$p.value <- mean(test.stat > obs.test.stat)
   }
 
@@ -12136,7 +12110,7 @@ plot.PrevMap.diagnostic <- function(x,...) {
 ##' @param coords an object of class \code{\link{formula}} indicating the spatial coordinates in the data.
 ##' @param times an object of class \code{\link{formula}} indicating the times in the data, used in the spatio-temporal model.
 ##' @param data a data frame containing the variables in the model.
-##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.
+##' @param ID.coords vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.
 ##' @param kappa fixed value for the shape parameter of the Matern covariance function.
 ##' @param kappa.t fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
 ##' @param fixed.rel.nugget fixed value for the relative variance of the nugget effect; \code{fixed.rel.nugget=NULL} if this should be included in the estimation. Default is \code{fixed.rel.nugget=NULL}.
@@ -12149,7 +12123,7 @@ plot.PrevMap.diagnostic <- function(x,...) {
 ##' This function performs parameter estimation for a generealized linear geostatistical model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a GLM
 ##' with link function \eqn{g(.)} and linear predictor
 ##' \deqn{\eta = d'\beta + S(x) + Z,}
-##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+##' where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 ##' The shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 ##'
 ##' \bold{Laplace Approximation}
@@ -12175,7 +12149,7 @@ plot.PrevMap.diagnostic <- function(x,...) {
 ##' @return \code{kappa.t}: fixed value for the shape parameter of the Matern covariance function in the separable double-Matern spatio-temporal model.
 ##' @return \code{fixed.rel.nugget}: fixed value for the relative variance of the nugget effect.
 ##' @return \code{call}: the matched call.
-##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+##' @seealso \code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 ##' @references Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 ##' @references Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapping.} Journal of Statistical Software. 78(8), 1-29. doi: 10.18637/jss.v078.i08
 ##' @references Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based geostatistics.} Journal of Computational and Graphical Statistics 13, 702-718.
@@ -12260,12 +12234,12 @@ glgm.LA <- function(formula,units.m=NULL,coords,times=NULL,
 
     mu <- as.numeric(D%*%beta)
 
-    R <- varcov.spatial(dists.lowertri=U,cov.model="matern",
+    R <- geoR::varcov.spatial(dists.lowertri=U,cov.model="matern",
                         cov.pars=c(1,phi),
                         nugget=0,kappa=kappa)$varcov
     if(st) {
       options(warn=-1)
-      R.t <- varcov.spatial(dists.lowertri=U.t,cov.model="matern",
+      R.t <- geoR::varcov.spatial(dists.lowertri=U.t,cov.model="matern",
                             cov.pars=c(1,psi),
                             nugget=0,kappa=kappa)$varcov
       options(warn=0)
@@ -12419,7 +12393,6 @@ glgm.LA <- function(formula,units.m=NULL,coords,times=NULL,
 ##' @return \code{lse.variogram}: (available only if \code{lse.variogram=TRUE}) a vector of length \code{length(uvec)-1} containing the values of the estimated Matern variogram via a weighted least square fit.
 ##' @importFrom lme4 glmer
 ##' @importFrom lme4 ranef
-##' @importFrom geoR matern
 ##' @export
 variog.diagnostic.glgm  <- function(object,
                                     n.sim=200,

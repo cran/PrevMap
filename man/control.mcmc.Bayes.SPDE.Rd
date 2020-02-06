@@ -4,11 +4,23 @@
 \alias{control.mcmc.Bayes.SPDE}
 \title{Control settings for the MCMC algorithm used for Bayesian inference using SPDE}
 \usage{
-control.mcmc.Bayes.SPDE(n.sim, burnin, thin, h.theta1 = 0.01,
-  h.theta2 = 0.01, start.beta = "prior mean",
-  start.sigma2 = "prior mean", start.phi = "prior mean",
-  start.S = "prior mean", n.iter = 1, h = 1, c1.h.theta1 = 0.01,
-  c2.h.theta1 = 1e-04, c1.h.theta2 = 0.01, c2.h.theta2 = 1e-04)
+control.mcmc.Bayes.SPDE(
+  n.sim,
+  burnin,
+  thin,
+  h.theta1 = 0.01,
+  h.theta2 = 0.01,
+  start.beta = "prior mean",
+  start.sigma2 = "prior mean",
+  start.phi = "prior mean",
+  start.S = "prior mean",
+  n.iter = 1,
+  h = 1,
+  c1.h.theta1 = 0.01,
+  c2.h.theta1 = 1e-04,
+  c1.h.theta2 = 0.01,
+  c2.h.theta2 = 1e-04
+)
 }
 \arguments{
 \item{n.sim}{total number of simulations.}

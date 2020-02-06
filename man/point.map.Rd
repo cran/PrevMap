@@ -13,7 +13,7 @@ point.map(data, var.name, coords, ...)
 
 \item{coords}{a \code{\link{formula}} object indicating the geographical coordinates.}
 
-\item{...}{additional arguments to be passed to \code{\link{points.geodata}}.}
+\item{...}{additional arguments to be passed to \code{points.geodata}.}
 }
 \description{
 This function produces a plot with points indicating the data locations. Arguments can control the points sizes, patterns and colors. These can be set to be proportional to data values, ranks or quantiles. Alternatively, points can be added to the current plot.

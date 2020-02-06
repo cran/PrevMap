@@ -4,10 +4,22 @@
 \alias{glgm.LA}
 \title{Maximum Likelihood estimation for generalised linear geostatistical models via the Laplace approximation}
 \usage{
-glgm.LA(formula, units.m = NULL, coords, times = NULL, data,
-  ID.coords = NULL, kappa, kappa.t = 0.5, fixed.rel.nugget = NULL,
-  start.cov.pars, method = "nlminb", messages = TRUE, family,
-  return.covariance = TRUE)
+glgm.LA(
+  formula,
+  units.m = NULL,
+  coords,
+  times = NULL,
+  data,
+  ID.coords = NULL,
+  kappa,
+  kappa.t = 0.5,
+  fixed.rel.nugget = NULL,
+  start.cov.pars,
+  method = "nlminb",
+  messages = TRUE,
+  family,
+  return.covariance = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -20,7 +32,7 @@ glgm.LA(formula, units.m = NULL, coords, times = NULL, data,
 
 \item{data}{a data frame containing the variables in the model.}
 
-\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{kappa}{fixed value for the shape parameter of the Matern covariance function.}
 
@@ -78,7 +90,7 @@ This function performs the Laplace method for maximum likelihood estimation of a
 This function performs parameter estimation for a generealized linear geostatistical model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a GLM
 with link function \eqn{g(.)} and linear predictor
 \deqn{\eta = d'\beta + S(x) + Z,}
-where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 The shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 
 \bold{Laplace Approximation}
@@ -97,7 +109,7 @@ Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based g
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+\code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

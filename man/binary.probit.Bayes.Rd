@@ -4,9 +4,18 @@
 \alias{binary.probit.Bayes}
 \title{Bayesian estimation for the two-levels binary probit model}
 \usage{
-binary.probit.Bayes(formula, coords, data, ID.coords, control.prior,
-  control.mcmc, kappa, low.rank = FALSE, knots = NULL,
-  messages = TRUE)
+binary.probit.Bayes(
+  formula,
+  coords,
+  data,
+  ID.coords,
+  control.prior,
+  control.mcmc,
+  kappa,
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -15,7 +24,7 @@ binary.probit.Bayes(formula, coords, data, ID.coords, control.prior,
 
 \item{data}{a data frame containing the variables in the model.}
 
-\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to specify spatial random effects at household-level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided in order to specify spatial random effects at household-level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{control.prior}{output from \code{\link{control.prior}}.}
 
@@ -64,7 +73,7 @@ This function performs Bayesian estimation for a geostatistical binary probit mo
 \details{
 This function performs Bayesian estimation for the parameters of the geostatistical binary probit model. Let \eqn{i} and \eqn{j} denote the indices of the \eqn{i}-th household and \eqn{j}-th individual within that household. The response variable \eqn{Y_{ij}} is a binary indicator taking value 1 if the individual has been tested positive for the disease of interest and 0 otherwise. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x_{i})}, \eqn{Y_{ij}} are mutually independent Bernoulli variables with probit link function \eqn{\Phi^{-1}(\cdot)}, i.e.
 \deqn{\Phi^{-1}(p_{ij}) = d_{ij}'\beta + S(x_{i}),}
-where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-level, with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+where \eqn{d_{ij}} is a vector of covariates, both at individual- and household-level, with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 
 \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi)}; each component of \eqn{\theta} has independent priors that can be freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. The vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{beta.covar}.
 
@@ -85,7 +94,7 @@ Rue, H., Held, L. (2005). \emph{Gaussian Markov Random Fields: Theory and Applic
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+\code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

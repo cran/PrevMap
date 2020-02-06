@@ -4,9 +4,15 @@
 \alias{variog.diagnostic.lm}
 \title{Variogram-based validation for linear geostatistical model fits}
 \usage{
-variog.diagnostic.lm(object, n.sim = 1000, uvec = NULL,
-  plot.results = TRUE, range.fact = 1, which.test = "both",
-  param.uncertainty = FALSE)
+variog.diagnostic.lm(
+  object,
+  n.sim = 1000,
+  uvec = NULL,
+  plot.results = TRUE,
+  range.fact = 1,
+  which.test = "both",
+  param.uncertainty = FALSE
+)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as an output from \code{\link{linear.model.MLE}}.}

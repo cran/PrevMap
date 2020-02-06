@@ -4,8 +4,12 @@
 \alias{loglik.linear.model}
 \title{Profile log-likelihood or fixed parameters likelihood evaluation for the covariance parameters in the geostatistical linear model}
 \usage{
-loglik.linear.model(object, control.profile, plot.profile = TRUE,
-  messages = TRUE)
+loglik.linear.model(
+  object,
+  control.profile,
+  plot.profile = TRUE,
+  messages = TRUE
+)
 }
 \arguments{
 \item{object}{an object of class 'PrevMap', which is the fitted linear model obtained with the function \code{\link{linear.model.MLE}}.}

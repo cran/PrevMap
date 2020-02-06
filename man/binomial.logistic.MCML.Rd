@@ -4,11 +4,28 @@
 \alias{binomial.logistic.MCML}
 \title{Monte Carlo Maximum Likelihood estimation for the binomial logistic model}
 \usage{
-binomial.logistic.MCML(formula, units.m, coords, times = NULL, data,
-  ID.coords = NULL, par0, control.mcmc, kappa, kappa.t = NULL,
-  sst.model = NULL, fixed.rel.nugget = NULL, start.cov.pars,
-  method = "BFGS", low.rank = FALSE, SPDE = FALSE, knots = NULL,
-  mesh = NULL, messages = TRUE, plot.correlogram = TRUE)
+binomial.logistic.MCML(
+  formula,
+  units.m,
+  coords,
+  times = NULL,
+  data,
+  ID.coords = NULL,
+  par0,
+  control.mcmc,
+  kappa,
+  kappa.t = NULL,
+  sst.model = NULL,
+  fixed.rel.nugget = NULL,
+  start.cov.pars,
+  method = "BFGS",
+  low.rank = FALSE,
+  SPDE = FALSE,
+  knots = NULL,
+  mesh = NULL,
+  messages = TRUE,
+  plot.correlogram = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -21,7 +38,7 @@ binomial.logistic.MCML(formula, units.m, coords, times = NULL, data,
 
 \item{data}{a data frame containing the variables in the model.}
 
-\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{par0}{parameters of the importance sampling distribution: these should be given in the following order \code{c(beta,sigma2,phi,tau2)}, where \code{beta} are the regression coefficients, \code{sigma2} is the variance of the Gaussian process, \code{phi} is the scale parameter of the spatial correlation and \code{tau2} is the variance of the nugget effect (if included in the model).}
 
@@ -103,7 +120,7 @@ This function performs Monte Carlo maximum likelihood (MCML) estimation for the 
 \details{
 This function performs parameter estimation for a geostatistical binomial logistic model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the observations \code{y} are generated from a binomial distribution with probability \eqn{p} and binomial denominators \code{units.m}. A canonical logistic link is used, thus the linear predictor assumes the form
 \deqn{\log(p/(1-p)) = d'\beta + S(x) + Z,}
-where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 In the \code{binomial.logistic.MCML} function, the shape parameter is treated as fixed. The relative variance of the nugget effect, \code{nu2=tau2/sigma2}, can also be fixed through the argument \code{fixed.rel.nugget}; if \code{fixed.rel.nugget=NULL}, then the relative variance of the nugget effect is also included in the estimation.
 
 \bold{Monte Carlo Maximum likelihood.}
@@ -125,7 +142,7 @@ Christensen, O. F. (2004). \emph{Monte carlo maximum likelihood in model-based g
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
+\code{\link{Laplace.sampling}}, \code{\link{Laplace.sampling.lr}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}},  \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

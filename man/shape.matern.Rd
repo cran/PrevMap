@@ -4,8 +4,17 @@
 \alias{shape.matern}
 \title{Profile likelihood for the shape parameter of the Matern covariance function}
 \usage{
-shape.matern(formula, coords, data, set.kappa, fixed.rel.nugget = NULL,
-  start.par, coverage = NULL, plot.profile = TRUE, messages = TRUE)
+shape.matern(
+  formula,
+  coords,
+  data,
+  set.kappa,
+  fixed.rel.nugget = NULL,
+  start.par,
+  coverage = NULL,
+  plot.profile = TRUE,
+  messages = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}

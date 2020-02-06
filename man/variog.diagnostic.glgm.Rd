@@ -4,8 +4,13 @@
 \alias{variog.diagnostic.glgm}
 \title{Variogram-based validation for generalized linear geostatistical model fits (Binomial and Poisson)}
 \usage{
-variog.diagnostic.glgm(object, n.sim = 200, uvec = NULL,
-  plot.results = TRUE, which.test = "both")
+variog.diagnostic.glgm(
+  object,
+  n.sim = 200,
+  uvec = NULL,
+  plot.results = TRUE,
+  which.test = "both"
+)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as an output from \code{\link{binomial.logistic.MCML}} and \code{\link{poisson.log.MCML}}.}

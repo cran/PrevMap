@@ -4,8 +4,20 @@
 \alias{Laplace.sampling.SPDE}
 \title{Independence sampler for conditional simulation of a Gaussian process using SPDE}
 \usage{
-Laplace.sampling.SPDE(mu, sigma2, phi, kappa, y, units.m, coords, mesh,
-  control.mcmc, messages = TRUE, plot.correlogram = TRUE, poisson.llik)
+Laplace.sampling.SPDE(
+  mu,
+  sigma2,
+  phi,
+  kappa,
+  y,
+  units.m,
+  coords,
+  mesh,
+  control.mcmc,
+  messages = TRUE,
+  plot.correlogram = TRUE,
+  poisson.llik
+)
 }
 \arguments{
 \item{mu}{mean vector of the Gaussian process to approximate.}

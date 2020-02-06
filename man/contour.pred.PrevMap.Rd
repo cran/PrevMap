@@ -4,8 +4,7 @@
 \alias{contour.pred.PrevMap}
 \title{Contour plot of a predicted surface}
 \usage{
-\method{contour}{pred.PrevMap}(x, type = NULL, summary = "predictions",
-  ...)
+\method{contour}{pred.PrevMap}(x, type = NULL, summary = "predictions", ...)
 }
 \arguments{
 \item{x}{an object of class "pred.PrevMap".}

@@ -4,10 +4,21 @@
 \alias{spat.corr.diagnostic}
 \title{Diagnostics for residual spatial correlation}
 \usage{
-spat.corr.diagnostic(formula, units.m = NULL, coords, data, likelihood,
-  ID.coords = NULL, n.sim = 200, nAGQ = 1, uvec = NULL,
-  plot.results = TRUE, lse.variogram = FALSE, kappa = 0.5,
-  which.test = "both")
+spat.corr.diagnostic(
+  formula,
+  units.m = NULL,
+  coords,
+  data,
+  likelihood,
+  ID.coords = NULL,
+  n.sim = 200,
+  nAGQ = 1,
+  uvec = NULL,
+  plot.results = TRUE,
+  lse.variogram = FALSE,
+  kappa = 0.5,
+  which.test = "both"
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -23,7 +34,7 @@ spat.corr.diagnostic(formula, units.m = NULL, coords, data, likelihood,
 \item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}.
 These must be provided if, for example, spatial random effects are defined at
  household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct
- otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+ otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{n.sim}{number of simulations used to perform the selected test(s) for spatial correlation.}
 

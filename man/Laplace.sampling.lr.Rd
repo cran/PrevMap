@@ -4,8 +4,17 @@
 \alias{Laplace.sampling.lr}
 \title{Langevin-Hastings MCMC for conditional simulation (low-rank approximation)}
 \usage{
-Laplace.sampling.lr(mu, sigma2, K, y, units.m, control.mcmc,
-  messages = TRUE, plot.correlogram = TRUE, poisson.llik = FALSE)
+Laplace.sampling.lr(
+  mu,
+  sigma2,
+  K,
+  y,
+  units.m,
+  control.mcmc,
+  messages = TRUE,
+  plot.correlogram = TRUE,
+  poisson.llik = FALSE
+)
 }
 \arguments{
 \item{mu}{mean vector of the linear predictor.}

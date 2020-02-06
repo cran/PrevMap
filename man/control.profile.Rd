@@ -4,8 +4,14 @@
 \alias{control.profile}
 \title{Auxliary function for controlling profile log-likelihood in the linear Gaussian model}
 \usage{
-control.profile(phi = NULL, rel.nugget = NULL, fixed.beta = NULL,
-  fixed.sigma2 = NULL, fixed.phi = NULL, fixed.rel.nugget = NULL)
+control.profile(
+  phi = NULL,
+  rel.nugget = NULL,
+  fixed.beta = NULL,
+  fixed.sigma2 = NULL,
+  fixed.phi = NULL,
+  fixed.rel.nugget = NULL
+)
 }
 \arguments{
 \item{phi}{a vector of the different values that should be used in the likelihood evalutation for the scale parameter \code{phi}, or \code{NULL} if a single value is provided either as first argument in \code{start.par} (for profile likelihood maximization) or as fixed value in \code{fixed.phi}; default is \code{NULL}.}

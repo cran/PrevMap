@@ -4,8 +4,14 @@
 \alias{dens.plot}
 \title{Density plot for posterior samples}
 \usage{
-dens.plot(object, param, component.beta = NULL, component.S = NULL,
-  hist = TRUE, ...)
+dens.plot(
+  object,
+  param,
+  component.beta = NULL,
+  component.S = NULL,
+  hist = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{an object of class 'Bayes.PrevMap'.}

@@ -4,8 +4,7 @@
 \alias{control.mcmc.MCML}
 \title{Control settings for the MCMC algorithm used for classical inference on a binomial logistic model}
 \usage{
-control.mcmc.MCML(n.sim, burnin, thin = 1, h = NULL, c1.h = 0.01,
-  c2.h = 1e-04)
+control.mcmc.MCML(n.sim, burnin, thin = 1, h = NULL, c1.h = 0.01, c2.h = 1e-04)
 }
 \arguments{
 \item{n.sim}{number of simulations.}

@@ -4,8 +4,17 @@
 \alias{Laplace.sampling}
 \title{Langevin-Hastings MCMC for conditional simulation}
 \usage{
-Laplace.sampling(mu, Sigma, y, units.m, control.mcmc, ID.coords = NULL,
-  messages = TRUE, plot.correlogram = TRUE, poisson.llik = FALSE)
+Laplace.sampling(
+  mu,
+  Sigma,
+  y,
+  units.m,
+  control.mcmc,
+  ID.coords = NULL,
+  messages = TRUE,
+  plot.correlogram = TRUE,
+  poisson.llik = FALSE
+)
 }
 \arguments{
 \item{mu}{mean vector of the marginal distribution of the random effect.}
@@ -18,7 +27,7 @@ Laplace.sampling(mu, Sigma, y, units.m, control.mcmc, ID.coords = NULL,
 
 \item{control.mcmc}{output from \code{\link{control.mcmc.MCML}}.}
 
-\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{messages}{logical; if \code{messages=TRUE} then status messages are printed on the screen (or output device) while the function is running. Default is \code{messages=TRUE}.}
 
@@ -54,7 +63,7 @@ data(data_sim)
 n.subset <- 50
 data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
 mu <- rep(0,50)
-Sigma <- varcov.spatial(coords=data_subset[,c("x1","x2")],
+Sigma <- geoR::varcov.spatial(coords=data_subset[,c("x1","x2")],
               cov.pars=c(1,0.15),kappa=2)$varcov
 control.mcmc <- control.mcmc.MCML(n.sim=1000,burnin=0,thin=1,
                            h=1.65/(n.subset^2/3))

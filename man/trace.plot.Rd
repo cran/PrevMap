@@ -14,8 +14,6 @@ trace.plot(object, param, component.beta = NULL, component.S = NULL)
 \item{component.beta}{if \code{param="beta"}, \code{component.beta} is a numeric value indicating the component of the regression coefficients; default is \code{NULL}.}
 
 \item{component.S}{if \code{param="S"}, \code{component.S} can be a numeric value indicating the component of the spatial random effect. Default is \code{NULL}.}
-
-\item{...}{additional parameters to pass to \code{\link{density}}.}
 }
 \description{
 Displays the trace-plots for the posterior samples of the model parameters and spatial random effects.

@@ -4,9 +4,21 @@
 \alias{binomial.logistic.Bayes}
 \title{Bayesian estimation for the binomial logistic model}
 \usage{
-binomial.logistic.Bayes(formula, units.m, coords, data, ID.coords = NULL,
-  control.prior, control.mcmc, kappa, low.rank = FALSE, knots = NULL,
-  messages = TRUE, mesh = NULL, SPDE = FALSE)
+binomial.logistic.Bayes(
+  formula,
+  units.m,
+  coords,
+  data,
+  ID.coords = NULL,
+  control.prior,
+  control.mcmc,
+  kappa,
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE,
+  mesh = NULL,
+  SPDE = FALSE
+)
 }
 \arguments{
 \item{formula}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -17,7 +29,7 @@ binomial.logistic.Bayes(formula, units.m, coords, data, ID.coords = NULL,
 
 \item{data}{a data frame containing the variables in the model.}
 
-\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{\link{jitterDupCoords}}. Default is \code{NULL}.}
+\item{ID.coords}{vector of ID values for the unique set of spatial coordinates obtained from \code{\link{create.ID.coords}}. These must be provided if, for example, spatial random effects are defined at household level but some of the covariates are at individual level. \bold{Warning}: the household coordinates must all be distinct otherwise see \code{jitterDupCoords}. Default is \code{NULL}.}
 
 \item{control.prior}{output from \code{\link{control.prior}}.}
 
@@ -78,7 +90,7 @@ This function performs Bayesian estimation for a geostatistical binomial logisti
 \details{
 This function performs Bayesian estimation for the parameters of the geostatistical binomial logistic model. Conditionally on a zero-mean stationary Gaussian process \eqn{S(x)} and mutually independent zero-mean Gaussian variables \eqn{Z} with variance \code{tau2}, the linear predictor assumes the form
 \deqn{\log(p/(1-p)) = d'\beta + S(x) + Z,}
-where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{\link{matern}}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
+where \eqn{d} is a vector of covariates with associated regression coefficients \eqn{\beta}. The Gaussian process \eqn{S(x)} has isotropic Matern covariance function (see \code{matern}) with variance \code{sigma2}, scale parameter \code{phi} and shape parameter \code{kappa}.
 
 \bold{Priors definition.} Priors can be defined through the function \code{\link{control.prior}}. The hierarchical structure of the priors is the following. Let \eqn{\theta} be the vector of the covariance parameters \code{c(sigma2,phi,tau2)}; then each component of \eqn{\theta} has independent priors freely defined by the user. However, in  \code{\link{control.prior}} uniform and log-normal priors are also available as default priors for each of the covariance parameters. To remove the nugget effect \eqn{Z}, no prior should be defined for \code{tau2}. Conditionally on \code{sigma2}, the vector of regression coefficients \code{beta} has a multivariate Gaussian prior with mean \code{beta.mean} and covariance matrix \code{sigma2*beta.covar}, while in the low-rank approximation the covariance matrix is simply \code{beta.covar}.
 
@@ -136,7 +148,7 @@ Neal, R. M. (2011) \emph{MCMC using Hamiltonian Dynamics}, In: Handbook of Marko
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
+\code{\link{control.mcmc.Bayes}},  \code{\link{control.prior}},\code{\link{summary.Bayes.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{create.ID.coords}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

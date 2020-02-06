@@ -4,14 +4,29 @@
 \alias{control.mcmc.Bayes}
 \title{Control settings for the MCMC algorithm used for Bayesian inference}
 \usage{
-control.mcmc.Bayes(n.sim, burnin, thin, h.theta1 = 0.01,
-  h.theta2 = 0.01, h.theta3 = 0.01, L.S.lim = NULL,
-  epsilon.S.lim = NULL, start.beta = "prior mean",
-  start.sigma2 = "prior mean", start.phi = "prior mean",
-  start.S = "prior mean", start.nugget = "prior mean",
-  c1.h.theta1 = 0.01, c2.h.theta1 = 1e-04, c1.h.theta2 = 0.01,
-  c2.h.theta2 = 1e-04, c1.h.theta3 = 0.01, c2.h.theta3 = 1e-04,
-  linear.model = FALSE, binary = FALSE)
+control.mcmc.Bayes(
+  n.sim,
+  burnin,
+  thin,
+  h.theta1 = 0.01,
+  h.theta2 = 0.01,
+  h.theta3 = 0.01,
+  L.S.lim = NULL,
+  epsilon.S.lim = NULL,
+  start.beta = "prior mean",
+  start.sigma2 = "prior mean",
+  start.phi = "prior mean",
+  start.S = "prior mean",
+  start.nugget = "prior mean",
+  c1.h.theta1 = 0.01,
+  c2.h.theta1 = 1e-04,
+  c1.h.theta2 = 0.01,
+  c2.h.theta2 = 1e-04,
+  c1.h.theta3 = 0.01,
+  c2.h.theta3 = 1e-04,
+  linear.model = FALSE,
+  binary = FALSE
+)
 }
 \arguments{
 \item{n.sim}{total number of simulations.}

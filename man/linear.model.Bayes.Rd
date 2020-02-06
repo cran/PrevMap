@@ -4,8 +4,17 @@
 \alias{linear.model.Bayes}
 \title{Bayesian estimation for the geostatistical linear Gaussian model}
 \usage{
-linear.model.Bayes(formula, coords, data, kappa, control.mcmc,
-  control.prior, low.rank = FALSE, knots = NULL, messages = TRUE)
+linear.model.Bayes(
+  formula,
+  coords,
+  data,
+  kappa,
+  control.mcmc,
+  control.prior,
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE
+)
 }
 \arguments{
 \item{formula}{an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -98,7 +107,7 @@ Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapp
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
+\code{\link{control.prior}}, \code{\link{control.mcmc.Bayes}}, \code{\link{shape.matern}}, \code{\link{summary.Bayes.PrevMap}}, \code{\link{autocor.plot}}, \code{\link{trace.plot}}, \code{\link{dens.plot}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{adjust.sigma2}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

@@ -4,12 +4,21 @@
 \alias{spatial.pred.linear.MLE}
 \title{Spatial predictions for the geostatistical Linear Gaussian model using plug-in of ML estimates}
 \usage{
-spatial.pred.linear.MLE(object, grid.pred, predictors = NULL,
-  predictors.samples = NULL, type = "marginal",
+spatial.pred.linear.MLE(
+  object,
+  grid.pred,
+  predictors = NULL,
+  predictors.samples = NULL,
+  type = "marginal",
   scale.predictions = c("logit", "prevalence", "odds"),
-  quantiles = c(0.025, 0.975), n.sim.prev = 0,
-  standard.errors = FALSE, thresholds = NULL,
-  scale.thresholds = NULL, messages = TRUE, include.nugget = FALSE)
+  quantiles = c(0.025, 0.975),
+  n.sim.prev = 0,
+  standard.errors = FALSE,
+  thresholds = NULL,
+  scale.thresholds = NULL,
+  messages = TRUE,
+  include.nugget = FALSE
+)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.}

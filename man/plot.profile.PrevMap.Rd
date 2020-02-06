@@ -4,8 +4,7 @@
 \alias{plot.profile.PrevMap}
 \title{Plot of the profile log-likelihood for the covariance parameters of the Matern function}
 \usage{
-\method{plot}{profile.PrevMap}(x, log.scale = FALSE,
-  plot.spline.profile = FALSE, ...)
+\method{plot}{profile.PrevMap}(x, log.scale = FALSE, plot.spline.profile = FALSE, ...)
 }
 \arguments{
 \item{x}{object of class "profile.PrevMap" obtained as output from \code{\link{loglik.linear.model}}.}

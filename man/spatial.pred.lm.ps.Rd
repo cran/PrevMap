@@ -4,10 +4,19 @@
 \alias{spatial.pred.lm.ps}
 \title{Spatial predictions for the geostatistical Linear Gaussian model using plug-in of ML estimates}
 \usage{
-spatial.pred.lm.ps(object, grid.pred = NULL, predictors = NULL,
-  predictors.intensity = NULL, control.mcmc = NULL, target = 3,
-  type = "marginal", quantiles = NULL, standard.errors = FALSE,
-  messages = TRUE, return.samples = FALSE)
+spatial.pred.lm.ps(
+  object,
+  grid.pred = NULL,
+  predictors = NULL,
+  predictors.intensity = NULL,
+  control.mcmc = NULL,
+  target = 3,
+  type = "marginal",
+  quantiles = NULL,
+  standard.errors = FALSE,
+  messages = TRUE,
+  return.samples = FALSE
+)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as result of a call to \code{\link{linear.model.MLE}}.}

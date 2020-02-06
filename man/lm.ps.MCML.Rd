@@ -4,11 +4,24 @@
 \alias{lm.ps.MCML}
 \title{Monte Carlo Maximum Likelihood estimation of the geostatistical linear model with preferentially sampled locations}
 \usage{
-lm.ps.MCML(formula.response, formula.log.intensity = ~1, coords,
-  which.is.preferential = NULL, data.response, data.intensity = NULL,
-  par0, control.mcmc, kappa1, kappa2, mesh, grid.intensity,
-  start.par = NULL, method = "nlminb", messages = TRUE,
-  plot.correlogram = TRUE)
+lm.ps.MCML(
+  formula.response,
+  formula.log.intensity = ~1,
+  coords,
+  which.is.preferential = NULL,
+  data.response,
+  data.intensity = NULL,
+  par0,
+  control.mcmc,
+  kappa1,
+  kappa2,
+  mesh,
+  grid.intensity,
+  start.par = NULL,
+  method = "nlminb",
+  messages = TRUE,
+  plot.correlogram = TRUE
+)
 }
 \arguments{
 \item{formula.response}{an object of class \code{\link{formula}} (or one that can be coerced to that class): a symbolic description of the sub-model for the response variable.}

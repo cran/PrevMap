@@ -4,11 +4,20 @@
 \alias{spatial.pred.binomial.MCML}
 \title{Spatial predictions for the binomial logistic model using plug-in of MCML estimates}
 \usage{
-spatial.pred.binomial.MCML(object, grid.pred, predictors = NULL,
-  control.mcmc, type = "marginal", scale.predictions = c("logit",
-  "prevalence", "odds"), quantiles = c(0.025, 0.975),
-  standard.errors = FALSE, thresholds = NULL,
-  scale.thresholds = NULL, plot.correlogram = FALSE, messages = TRUE)
+spatial.pred.binomial.MCML(
+  object,
+  grid.pred,
+  predictors = NULL,
+  control.mcmc,
+  type = "marginal",
+  scale.predictions = c("logit", "prevalence", "odds"),
+  quantiles = c(0.025, 0.975),
+  standard.errors = FALSE,
+  thresholds = NULL,
+  scale.thresholds = NULL,
+  plot.correlogram = FALSE,
+  messages = TRUE
+)
 }
 \arguments{
 \item{object}{an object of class "PrevMap" obtained as result of a call to \code{\link{binomial.logistic.MCML}}.}

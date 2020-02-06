@@ -4,11 +4,23 @@
 \alias{linear.model.MLE}
 \title{Maximum Likelihood estimation for the geostatistical linear Gaussian model}
 \usage{
-linear.model.MLE(formula, coords = NULL, data, ID.coords = NULL, kappa,
-  fixed.rel.nugget = NULL, start.cov.pars, method = "BFGS",
-  low.rank = FALSE, knots = NULL, messages = TRUE,
-  profile.llik = FALSE, SPDE = FALSE, mesh = NULL,
-  SPDE.analytic.hessian = FALSE)
+linear.model.MLE(
+  formula,
+  coords = NULL,
+  data,
+  ID.coords = NULL,
+  kappa,
+  fixed.rel.nugget = NULL,
+  start.cov.pars,
+  method = "BFGS",
+  low.rank = FALSE,
+  knots = NULL,
+  messages = TRUE,
+  profile.llik = FALSE,
+  SPDE = FALSE,
+  mesh = NULL,
+  SPDE.analytic.hessian = FALSE
+)
 }
 \arguments{
 \item{formula}{an object of class "\code{\link{formula}}" (or one that can be coerced to that class): a symbolic description of the model to be fitted.}
@@ -122,7 +134,7 @@ Giorgi, E., Diggle, P.J. (2017). \emph{PrevMap: an R package for prevalence mapp
 Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 }
 \seealso{
-\code{\link{shape.matern}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{\link{matern}}, \code{\link{matern.kernel}}, \code{\link{maxBFGS}}, \code{\link{nlminb}}.
+\code{\link{shape.matern}}, \code{\link{summary.PrevMap}}, \code{\link{coef.PrevMap}}, \code{matern}, \code{\link{matern.kernel}}, \code{\link{maxBFGS}}, \code{\link{nlminb}}.
 }
 \author{
 Emanuele Giorgi \email{e.giorgi@lancaster.ac.uk}

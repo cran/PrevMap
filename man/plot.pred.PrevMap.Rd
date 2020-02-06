@@ -4,8 +4,7 @@
 \alias{plot.pred.PrevMap}
 \title{Plot of a predicted surface}
 \usage{
-\method{plot}{pred.PrevMap}(x, type = NULL, summary = "predictions",
-  ...)
+\method{plot}{pred.PrevMap}(x, type = NULL, summary = "predictions", ...)
 }
 \arguments{
 \item{x}{an object of class "PrevMap".}
