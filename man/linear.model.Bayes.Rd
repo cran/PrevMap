@@ -79,26 +79,6 @@ where \eqn{Y} is the measured outcome, \eqn{d} is a vector of coavariates, \eqn{
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
 }
-\examples{
-set.seed(1234)
-data(loaloa)
-# Empirical logit transformation
-loaloa$logit <- log((loaloa$NO_INF+0.5)/(loaloa$NO_EXAM-loaloa$NO_INF+0.5))
-
-cp <- control.prior(beta.mean=-2.3,beta.covar=20,
-                             log.normal.sigma2=c(0.9,5),
-                             log.normal.phi=c(-0.17,2),
-                             log.normal.nugget=c(-1,1))
-control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-                           h.theta1=0.5,h.theta2=0.5,h.theta3=0.5,
-                           c1.h.theta3=0.01,c2.h.theta3=0.0001,linear.model=TRUE,
-                           start.beta=-2.3,start.sigma2=2.45,
-                           start.phi=0.65,start.nugget=0.34)
-fit.Bayes <- linear.model.Bayes(logit ~ 1,coords=~LONGITUDE+LATITUDE,
-                data=loaloa,kappa=0.5, control.mcmc=control.mcmc,
-                control.prior = cp)
-summary(fit.Bayes)
-}
 \references{
 Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 

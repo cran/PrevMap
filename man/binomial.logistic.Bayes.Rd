@@ -104,40 +104,6 @@ When analysing data from household sruveys, some of the avilable information inf
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} might be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process (but only approximately), \code{sigma2} may take very different values from the actual variance of the Gaussian process to approximate. The function \code{\link{adjust.sigma2}} can then be used to (approximately) explore the range for \code{sigma2}. For example if the variance of the Gaussian process is \code{0.5}, then an approximate value for \code{sigma2} is \code{0.5/const.sigma2}, where \code{const.sigma2} is the value obtained with \code{\link{adjust.sigma2}}.
 }
-\examples{
-set.seed(1234)
-data(data_sim)
-# Select a subset of data_sim with 50 observations
-n.subset <- 50
-data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-# Set the MCMC control parameters
-control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-                                  h.theta1=0.05,h.theta2=0.05,
-                                  L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
-                                  start.beta=0,start.sigma2=1,start.phi=0.15,
-                                  start.nugget = 1,
-                                  start.S=rep(0,n.subset))
-
-cp <- control.prior(beta.mean=0,beta.covar=1,
-                   log.normal.phi=c(log(0.15),0.05),
-                   log.normal.sigma2=c(log(1),0.1),
-                   log.normal.nugget =c(log(1),0.1))
-
-fit.Bayes <- binomial.logistic.Bayes(formula=y~1,coords=~x1+x2,units.m=~units.m,
-                                     data=data_subset,control.prior=cp,
-                                     control.mcmc=control.mcmc,kappa=2)
-summary(fit.Bayes)
-
-par(mfrow=c(2,4))
-autocor.plot(fit.Bayes,param="S",component.S="all")
-autocor.plot(fit.Bayes,param="beta",component.beta=1)
-autocor.plot(fit.Bayes,param="sigma2")
-autocor.plot(fit.Bayes,param="phi")
-trace.plot(fit.Bayes,param="S",component.S=30)
-trace.plot(fit.Bayes,param="beta",component.beta=1)
-trace.plot(fit.Bayes,param="sigma2")
-trace.plot(fit.Bayes,param="phi")
-}
 \references{
 Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 

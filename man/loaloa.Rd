@@ -4,7 +4,9 @@
 \name{loaloa}
 \alias{loaloa}
 \title{Loa loa prevalence data from 197 village surveys}
-\format{A data frame with 197 rows and 11 variables}
+\format{
+A data frame with 197 rows and 11 variables
+}
 \usage{
 data(loaloa)
 }

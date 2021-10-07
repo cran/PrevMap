@@ -4,7 +4,9 @@
 \name{galicia.boundary}
 \alias{galicia.boundary}
 \title{Boundary of Galicia}
-\format{A data frame with 42315 rows and 2 variables}
+\format{
+A data frame with 42315 rows and 2 variables
+}
 \usage{
 data(galicia.boundary)
 }

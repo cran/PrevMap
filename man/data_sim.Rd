@@ -4,7 +4,9 @@
 \name{data_sim}
 \alias{data_sim}
 \title{Simulated binomial data-set over the unit square}
-\format{A data frame with 900 rows and 5 variables}
+\format{
+A data frame with 900 rows and 5 variables
+}
 \usage{
 data(data_sim)
 }

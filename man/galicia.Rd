@@ -4,7 +4,9 @@
 \name{galicia}
 \alias{galicia}
 \title{Heavy metal biomonitoring in Galicia}
-\format{A data frame with 195 rows and 4 variables}
+\format{
+A data frame with 195 rows and 4 variables
+}
 \source{
 Diggle, P.J., Menezes, R. and Su, T.-L. (2010). Geostatistical analysis under preferential
 sampling (with Discussion). Applied Statistics, 59, 191-232.

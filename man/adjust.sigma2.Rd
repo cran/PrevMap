@@ -24,21 +24,6 @@ Let \eqn{U} denote the \eqn{n} by \eqn{m} matrix of the distances between the \e
 \deqn{\frac{1}{n}\sum_{i=1}^n \sum_{j=1}^m K(u_{ij}; \phi, \kappa)^2,}
 where \eqn{K(.; \phi, \kappa)} is the Matern kernel (see \code{\link{matern.kernel}}) and \eqn{u_{ij}} is the distance between the \eqn{i}-th sampled location and the \eqn{j}-th spatial knot.
 }
-\examples{
-set.seed(1234)
-# Observed coordinates
-n <- 100
-coords <- cbind(runif(n),runif(n))
-
-# Spatial knots
-knots <- expand.grid(seq(-0.2,1.2,length=5),seq(-0.2,1.2,length=5))
-
-# Distance matrix
-knots.dist <- as.matrix(pdist(coords,knots))
-
-adjust.sigma2(knots.dist,0.1,2)
-
-}
 \seealso{
 \code{\link{matern.kernel}}, \code{\link{pdist}}.
 }

@@ -100,32 +100,6 @@ If multiple observations are available at any of the sampled locations the above
 \bold{Low-rank approximation.}
 In the case of very large spatial data-sets, a low-rank approximation of the Gaussian spatial process \eqn{S(x)} can be computationally beneficial. Let \eqn{(x_{1},\dots,x_{m})} and \eqn{(t_{1},\dots,t_{m})} denote the set of sampling locations and a grid of spatial knots covering the area of interest, respectively. Then \eqn{S(x)} is approximated as \eqn{\sum_{i=1}^m K(\|x-t_{i}\|; \phi, \kappa)U_{i}}, where \eqn{U_{i}} are zero-mean mutually independent Gaussian variables with variance \code{sigma2} and \eqn{K(.;\phi, \kappa)} is the isotropic Matern kernel (see \code{\link{matern.kernel}}). Since the resulting approximation is no longer a stationary process, the parameter \code{sigma2} is adjusted by a factor\code{constant.sigma2}. See \code{\link{adjust.sigma2}} for more details on the the computation of the adjustment factor \code{constant.sigma2} in the low-rank approximation.
 }
-\examples{
-data(loaloa)
-# Empirical logit transformation
-loaloa$logit <- log((loaloa$NO_INF+0.5)/(loaloa$NO_EXAM-loaloa$NO_INF+0.5))
-fit.MLE <- linear.model.MLE(logit ~ 1,coords=~LONGITUDE+LATITUDE,
-                data=loaloa, start.cov.pars=c(0.2,0.15),
-                 kappa=0.5)
-summary(fit.MLE)
-
-# Low-rank approximation
-data(data_sim)
-n.subset <- 200
-data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-
-# Logit transformation
-data_subset$logit <- log(data_subset$y+0.5)/
-                     (data_subset$units.m-
-                      data_subset$y+0.5)
-knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
-
-fit <- linear.model.MLE(formula=logit~1,coords=~x1+x2,data=data_subset,
-                             kappa=2,start.cov.pars=c(0.15,0.1),low.rank=TRUE,
-                             knots=knots)
-summary(fit,log.cov.pars=FALSE)
-
-}
 \references{
 Diggle, P.J., Giorgi, E. (2019). \emph{Model-based Geostatistics for Global Public Health.} CRC/Chapman & Hall.
 

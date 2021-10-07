@@ -275,19 +275,6 @@ create.ID.coords <- function(data,coords) {
 ##' @return \code{samples}: a matrix, each row of which corresponds to a sample from the predictive distribution.
 ##' @return \code{h}: vector of the values of the tuning parameter at each iteration of the Langevin-Hastings MCMC algorithm.
 ##' @seealso \code{\link{control.mcmc.MCML}}, \code{\link{create.ID.coords}}.
-##' @examples
-##' set.seed(1234)
-##' data(data_sim)
-##' n.subset <- 50
-##' data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-##' mu <- rep(0,50)
-##' Sigma <- geoR::varcov.spatial(coords=data_subset[,c("x1","x2")],
-##'               cov.pars=c(1,0.15),kappa=2)$varcov
-##' control.mcmc <- control.mcmc.MCML(n.sim=1000,burnin=0,thin=1,
-##'                            h=1.65/(n.subset^2/3))
-##' invisible(Laplace.sampling(mu=mu,Sigma=Sigma,
-##'                                        y=data_subset$y,units.m=data_subset$units.m,
-##'                                        control.mcmc=control.mcmc))
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -1822,31 +1809,7 @@ binomial.logistic.MCML <- function(formula,units.m,coords,times=NULL,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
-##' @examples
-##' data(loaloa)
-##' # Empirical logit transformation
-##' loaloa$logit <- log((loaloa$NO_INF+0.5)/(loaloa$NO_EXAM-loaloa$NO_INF+0.5))
-##' fit.MLE <- linear.model.MLE(logit ~ 1,coords=~LONGITUDE+LATITUDE,
-##'                 data=loaloa, start.cov.pars=c(0.2,0.15),
-##'                  kappa=0.5)
-##' summary(fit.MLE)
-##'
-##' # Low-rank approximation
-##' data(data_sim)
-##' n.subset <- 200
-##' data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-##'
-##' # Logit transformation
-##' data_subset$logit <- log(data_subset$y+0.5)/
-##'                      (data_subset$units.m-
-##'                       data_subset$y+0.5)
-##' knots <- as.matrix(expand.grid(seq(-0.2,1.2,length=8),seq(-0.2,1.2,length=8)))
-##'
-##' fit <- linear.model.MLE(formula=logit~1,coords=~x1+x2,data=data_subset,
-##'                              kappa=2,start.cov.pars=c(0.15,0.1),low.rank=TRUE,
-##'                              knots=knots)
-##' summary(fit,log.cov.pars=FALSE)
-##'
+
 linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
                              kappa,fixed.rel.nugget=NULL,
                              start.cov.pars,method="BFGS",low.rank=FALSE,
@@ -1936,25 +1899,7 @@ linear.model.MLE <- function(formula,coords=NULL,data,ID.coords=NULL,
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
-##' @examples
-##' set.seed(1234)
-##' data(loaloa)
-##' # Empirical logit transformation
-##' loaloa$logit <- log((loaloa$NO_INF+0.5)/(loaloa$NO_EXAM-loaloa$NO_INF+0.5))
-##'
-##' cp <- control.prior(beta.mean=-2.3,beta.covar=20,
-##'                              log.normal.sigma2=c(0.9,5),
-##'                              log.normal.phi=c(-0.17,2),
-##'                              log.normal.nugget=c(-1,1))
-##' control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-##'                            h.theta1=0.5,h.theta2=0.5,h.theta3=0.5,
-##'                            c1.h.theta3=0.01,c2.h.theta3=0.0001,linear.model=TRUE,
-##'                            start.beta=-2.3,start.sigma2=2.45,
-##'                            start.phi=0.65,start.nugget=0.34)
-##' fit.Bayes <- linear.model.Bayes(logit ~ 1,coords=~LONGITUDE+LATITUDE,
-##'                 data=loaloa,kappa=0.5, control.mcmc=control.mcmc,
-##'                 control.prior = cp)
-##' summary(fit.Bayes)
+
 linear.model.Bayes <- function(formula,coords,data,
                                kappa,
                                control.mcmc,
@@ -6656,39 +6601,6 @@ binomial.geo.Bayes.lr <- function(formula,units.m,coords,data,knots,
 ##' @references Higdon, D. (1998). \emph{A process-convolution approach to modeling temperatures in the North Atlantic Ocean.} Environmental and Ecological Statistics 5, 173-190.
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##' @examples
-##' set.seed(1234)
-##' data(data_sim)
-##' # Select a subset of data_sim with 50 observations
-##' n.subset <- 50
-##' data_subset <- data_sim[sample(1:nrow(data_sim),n.subset),]
-##' # Set the MCMC control parameters
-##'control.mcmc <- control.mcmc.Bayes(n.sim=10,burnin=0,thin=1,
-##'                                   h.theta1=0.05,h.theta2=0.05,
-##'                                   L.S.lim=c(1,50),epsilon.S.lim=c(0.01,0.02),
-##'                                   start.beta=0,start.sigma2=1,start.phi=0.15,
-##'                                   start.nugget = 1,
-##'                                   start.S=rep(0,n.subset))
-##'
-##'cp <- control.prior(beta.mean=0,beta.covar=1,
-##'                    log.normal.phi=c(log(0.15),0.05),
-##'                    log.normal.sigma2=c(log(1),0.1),
-##'                    log.normal.nugget =c(log(1),0.1))
-##'
-##' fit.Bayes <- binomial.logistic.Bayes(formula=y~1,coords=~x1+x2,units.m=~units.m,
-##'                                      data=data_subset,control.prior=cp,
-##'                                      control.mcmc=control.mcmc,kappa=2)
-##' summary(fit.Bayes)
-##'
-##' par(mfrow=c(2,4))
-##' autocor.plot(fit.Bayes,param="S",component.S="all")
-##' autocor.plot(fit.Bayes,param="beta",component.beta=1)
-##' autocor.plot(fit.Bayes,param="sigma2")
-##' autocor.plot(fit.Bayes,param="phi")
-##' trace.plot(fit.Bayes,param="S",component.S=30)
-##' trace.plot(fit.Bayes,param="beta",component.beta=1)
-##' trace.plot(fit.Bayes,param="sigma2")
-##' trace.plot(fit.Bayes,param="phi")
 ##' @export
 binomial.logistic.Bayes <- function(formula,units.m,coords,data,ID.coords=NULL,
                                     control.prior,control.mcmc,kappa,low.rank=FALSE,
@@ -8613,20 +8525,6 @@ plot.shape.matern <- function(x,plot.spline=TRUE,...) {
 ##' where \eqn{K(.; \phi, \kappa)} is the Matern kernel (see \code{\link{matern.kernel}}) and \eqn{u_{ij}} is the distance between the \eqn{i}-th sampled location and the \eqn{j}-th spatial knot.
 ##' @return A value corresponding to the adjustment factor for \code{sigma2}.
 ##' @seealso \code{\link{matern.kernel}}, \code{\link{pdist}}.
-##' @examples
-##' set.seed(1234)
-##' # Observed coordinates
-##' n <- 100
-##' coords <- cbind(runif(n),runif(n))
-##'
-##' # Spatial knots
-##' knots <- expand.grid(seq(-0.2,1.2,length=5),seq(-0.2,1.2,length=5))
-##'
-##' # Distance matrix
-##' knots.dist <- as.matrix(pdist(coords,knots))
-##'
-##' adjust.sigma2(knots.dist,0.1,2)
-##'
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
 ##' @export
@@ -8747,18 +8645,6 @@ discrete.sample<-function(xy.all,n,delta,k=0) {
 ##' }
 ##' @author Emanuele Giorgi \email{e.giorgi@@lancaster.ac.uk}
 ##' @author Peter J. Diggle \email{p.diggle@@lancaster.ac.uk}
-##'
-##' @examples
-##' library(geoR)
-##' data(parana)
-##' poly<-parana$borders
-##' poly<-matrix(c(poly[,1],poly[,2]),dim(poly)[1],2,byrow=FALSE)
-##' set.seed(5871121)
-##'
-##' # Generate spatially regular sample
-##' xy.sample<-continuous.sample(poly,100,30)
-##' plot(poly,type="l",xlab="X",ylab="Y")
-##' points(xy.sample,pch=19,cex=0.5)
 ##'
 ##' @importFrom splancs csr
 ##' @export
